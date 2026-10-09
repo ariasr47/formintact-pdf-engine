@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pdf-translator.invalid/cjk-locked-reference-carrier-v1.schema.json",
+  "title": "CJK Locked Reference Carrier v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source_page", "execution", "draws", "render"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "source_page": {"$ref": "#/$defs/source_page"},
+    "execution": {"oneOf": [{"$ref": "#/$defs/batch_execution"}, {"$ref": "#/$defs/interleaved_execution"}]},
+    "draws": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/draw"}},
+    "render": {"oneOf": [{"$ref": "#/$defs/page_render"}, {"$ref": "#/$defs/clip_render"}]}
+  },
+  "$defs": {
+    "number": {"type": "number"},
+    "point": {
+      "type": "array", "prefixItems": [{"$ref": "#/$defs/number"}, {"$ref": "#/$defs/number"}],
+      "items": false, "minItems": 2, "maxItems": 2
+    },
+    "rect": {
+      "type": "array",
+      "prefixItems": [{"$ref": "#/$defs/number"}, {"$ref": "#/$defs/number"}, {"$ref": "#/$defs/number"}, {"$ref": "#/$defs/number"}],
+      "items": false, "minItems": 4, "maxItems": 4
+    },
+    "source_page": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sha256", "page_number", "media_box", "crop_box", "rotation"],
+      "properties": {
+        "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "page_number": {"const": 1},
+        "media_box": {"$ref": "#/$defs/rect"},
+        "crop_box": {"$ref": "#/$defs/rect"},
+        "rotation": {"enum": [0, 90, 180, 270]}
+      }
+    },
+    "apply_redactions": {
+      "type": "object", "additionalProperties": false,
+      "required": ["images", "graphics", "text"],
+      "properties": {"images": {"const": 0}, "graphics": {"const": 0}, "text": {"const": 0}}
+    },
+    "batch_execution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["erase_order", "apply_redactions", "subset_fonts", "assemble"],
+      "properties": {
+        "erase_order": {"const": "batch_redaction"},
+        "apply_redactions": {"$ref": "#/$defs/apply_redactions"},
+        "subset_fonts": {"const": true},
+        "assemble": {"const": true}
+      }
+    },
+    "interleaved_execution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["erase_order", "subset_fonts", "assemble"],
+      "properties": {
+        "erase_order": {"const": "interleaved"},
+        "subset_fonts": {"const": true},
+        "assemble": {"const": true}
+      }
+    },
+    "redaction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "fill", "cross_out", "rects"],
+      "properties": {
+        "kind": {"const": "redaction"}, "fill": {"type": "null"}, "cross_out": {"const": false},
+        "rects": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/rect"}}
+      }
+    },
+    "opaque_fill": {
+      "type": "object", "additionalProperties": false,
+      "required": ["kind", "color", "rects"],
+      "properties": {
+        "kind": {"const": "opaque_fill"},
+        "color": {"type": "integer", "minimum": 0, "maximum": 16777215},
+        "rects": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/rect"}}
+      }
+    },
+    "line": {
+      "type": "object", "additionalProperties": false, "required": ["text", "origin"],
+      "properties": {"text": {"type": "string"}, "origin": {"$ref": "#/$defs/point"}}
+    },
+    "draw": {
+      "type": "object", "additionalProperties": false, "required": ["erase", "lines", "size", "text_color"],
+      "properties": {
+        "erase": {"oneOf": [{"$ref": "#/$defs/redaction"}, {"$ref": "#/$defs/opaque_fill"}]},
+        "lines": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/line"}},
+        "size": {"type": "number", "exclusiveMinimum": 0},
+        "text_color": {"type": "integer", "minimum": 0, "maximum": 16777215}
+      }
+    },
+    "page_render": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "clip", "matrix", "alpha"],
+      "properties": {
+        "kind": {"const": "page"}, "clip": {"type": "null"},
+        "matrix": {"const": [2.0, 2.0]}, "alpha": {"const": false}
+      }
+    },
+    "clip_render": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "clip", "matrix", "alpha"],
+      "properties": {
+        "kind": {"const": "clip"}, "clip": {"$ref": "#/$defs/rect"},
+        "matrix": {"const": [4.0, 4.0]}, "alpha": {"const": false}
+      }
+    }
+  }
+}

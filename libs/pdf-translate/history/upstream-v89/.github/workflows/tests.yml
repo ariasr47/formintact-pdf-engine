@@ -1,0 +1,121 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+# A second push supersedes the first: only the newest ref state can be green, so an older run
+# is spending minutes to answer a question nobody will read. Cancel it instead of queueing it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unittest:
+    name: ${{ matrix.os }} / py${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.14']
+    defaults:
+      run:
+        working-directory: pdf-translate
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # Acceptance runs the recorded v54/v56 Git snapshots.
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      # The shaping tests need real OFL faces with GSUB tables. They are
+      # fetched, never committed; a fetch failure must not turn into a
+      # silent skip, so the check step is separate and fatal.
+      # The key follows the fetcher: a hit is never re-saved, so a fixed key
+      # kept a font set the fetcher had outgrown and both legs re-downloaded
+      # the rest on every run.
+      - name: Restore test fonts
+        id: fonts
+        uses: actions/cache/restore@v6
+        with:
+          path: pdf-translate/tests/fonts
+          key: noto-fonts-${{ hashFiles('pdf-translate/tools/fetch_test_fonts.py') }}
+
+      - name: Fetch test fonts
+        run: python tools/fetch_test_fonts.py
+
+      - name: Verify test fonts are present
+        run: python tools/fetch_test_fonts.py --check
+
+      # Saved now, not at the end of the job: the suite writes instanced faces
+      # into tests/fonts (han_forms caches -wght400 copies beside their
+      # source), and a cached instance would be reused instead of made.
+      - name: Save test fonts
+        if: steps.fonts.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: pdf-translate/tests/fonts
+          key: ${{ steps.fonts.outputs.cache-primary-key }}
+
+      # Discovered, not listed: a hand-written list left a new module unrun.
+      - name: Run the suite
+        run: python -m unittest discover -s tests -t . -v
+
+      - name: Test canary output selection and scoring
+        run: python -m unittest discover -s ../dev/canary -v
+
+      # A binary git mistakes for text gets rewritten on a Windows checkout:
+      # corpus/pale_blank.pdf carries no NUL byte, so it was smudged to CRLF
+      # and its xref offsets moved. .gitattributes pins that now, and this
+      # runs on the Windows leg, where the smudge is the one that happens.
+      - name: Committed binaries survive the checkout; CI finds every test
+        run: python -m unittest discover -s ../dev/repo -v
+
+      - name: Build the eval fixtures
+        run: python evals/make_fixtures.py --outdir "${{ runner.temp }}/fixtures"
+
+  package:
+    name: plugin manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
+      # The repository root is a Claude Code plugin and a one-entry
+      # marketplace (lane B row P2). Validation catches a misspelled field
+      # or a stale source path before anyone installs from it.
+      - name: Install the Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate the plugin and marketplace manifests
+        run: claude plugin validate . --strict
+
+      # plugin.json's version is metadata.version as N.0.0. Users only get
+      # an update when the plugin version changes, so bumping one without
+      # the other ships nothing.
+      - name: Version sources agree (plugin, SKILL.md, pyproject, __version__)
+        run: |
+          python - <<'PY'
+          import json, re
+          plugin = json.load(open('.claude-plugin/plugin.json'))['version']
+          text = open('pdf-translate/SKILL.md', encoding='utf-8').read()
+          skill = re.search(r'^\s+version:\s*"(\d+)"', text, re.M).group(1)
+          pyproject = re.search(r'^version\s*=\s*"([\d.]+)"', open('pdf-translate/pyproject.toml', encoding='utf-8').read(), re.M).group(1)
+          init = re.search(r"^__version__\s*=\s*'(\d+)'", open('pdf-translate/pdf_translate/__init__.py', encoding='utf-8').read(), re.M).group(1)
+          assert plugin == f'{skill}.0.0', f'plugin.json {plugin} vs metadata.version {skill}'
+          assert pyproject == plugin, f'pyproject {pyproject} vs plugin.json {plugin}'
+          assert init == skill, f'__version__ {init} vs metadata.version {skill}'
+          print('plugin', plugin, '== metadata.version', skill, '== pyproject', pyproject, '== __version__', init)
+          PY

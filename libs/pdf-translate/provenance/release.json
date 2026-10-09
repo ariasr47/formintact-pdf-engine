@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "release_id": "pdf-translate-89.0.4-review-fixes",
+  "scope": "behavior-release",
+  "version": "89.0.4",
+  "origin_revision": "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7",
+  "adopted_owner_revision": "b9059acf9981a0fddd863e5e80cdc0831d53e916",
+  "source_digest": "452730b9c265d2b633df8e3bdae3347f7785c73e23d5910229ccee0a833a322e",
+  "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+  "files": [
+    {
+      "path": "pdf_translate/__init__.py",
+      "size": 3802,
+      "sha256": "3a2289f4f8e7e0f457960b0d2b7bb43c7aeaa3645b96d3e88db2a97856b0183c"
+    },
+    {
+      "path": "pdf_translate/_console.py",
+      "size": 3884,
+      "sha256": "92a4304d57a5345d5d515da8cecc4712b07f4f180c58bffb29ecb0f191f4f45a"
+    },
+    {
+      "path": "pdf_translate/_lang.py",
+      "size": 2565,
+      "sha256": "018908e55dc90aea5cce1e9c92db23aecc6f686dd2029b1575e526702244d9cd"
+    },
+    {
+      "path": "pdf_translate/_pixels.py",
+      "size": 2189,
+      "sha256": "c0cf619e65536d03196cfe54aa257d70bfe93084fb0c36893a60cdf1128b3bc1"
+    },
+    {
+      "path": "pdf_translate/_requirements.py",
+      "size": 3410,
+      "sha256": "03fd23c461d38b9dacbe54f00a551424244ad6ef36ea843fb5f9e905ab10c39f"
+    },
+    {
+      "path": "pdf_translate/bilingual.py",
+      "size": 3319,
+      "sha256": "e4fa997310a01f3b72c3b8d22fc4366fac6e6d74915953bb12229450032acee7"
+    },
+    {
+      "path": "pdf_translate/capture.py",
+      "size": 19653,
+      "sha256": "b0a96a37a50b4ff8b598080b0b4738d7ae786247aa5b4f7f1b89cb2da7e1bd1e"
+    },
+    {
+      "path": "pdf_translate/cjk_tell.py",
+      "size": 3861,
+      "sha256": "a2934a748bbd6b7791b6c318c583725b03833691b86f8961801e76c8e9e1f4fd"
+    },
+    {
+      "path": "pdf_translate/compare.py",
+      "size": 4589,
+      "sha256": "77977273924761262d4a47d41479cb791210057672a5bcdc5bf91a8edaa32de5"
+    },
+    {
+      "path": "pdf_translate/extract_segments.py",
+      "size": 42006,
+      "sha256": "5c0652e2bb504840c237cb29460ec358c19fefad4048977380ade21234e98a8c"
+    },
+    {
+      "path": "pdf_translate/field_fonts.py",
+      "size": 10062,
+      "sha256": "187dedecb53c81e856d2f5192d844ea9605574ee51961d083759808e2e67b86f"
+    },
+    {
+      "path": "pdf_translate/han_forms.py",
+      "size": 15477,
+      "sha256": "540597d82af372ad4861da42b378d7922e43dde7b5c5becc69ebd26d7495573b"
+    },
+    {
+      "path": "pdf_translate/mapping.py",
+      "size": 20530,
+      "sha256": "d7bee78aeec467bc05aa909e21ada968ffd7cd05c82ce04e4a40a8f41b62308c"
+    },
+    {
+      "path": "pdf_translate/pipeline.py",
+      "size": 34411,
+      "sha256": "26a770936690b87103c975899cce77e8ee7b790739fcac617e457d8735a5c43a"
+    },
+    {
+      "path": "pdf_translate/prepare_font.py",
+      "size": 20042,
+      "sha256": "e685065e750ebc050cc97f919960a8779380c7aa36232363198557c08464da24"
+    },
+    {
+      "path": "pdf_translate/qa_check.py",
+      "size": 17606,
+      "sha256": "5cb0adeec99a78b8d7364d7b770126c7c31042c1ba1dc99986da43a6aeb6b944"
+    },
+    {
+      "path": "pdf_translate/render_pages.py",
+      "size": 2400,
+      "sha256": "516244ec81413617c07a6d6dfdae9b79ca487adcce45ce8e16300fcdb5ab18b7"
+    },
+    {
+      "path": "pdf_translate/results.py",
+      "size": 8127,
+      "sha256": "d035428c39edce777ac4a812653b8b7595f78b70d7fe86488b703cd1512e6619"
+    },
+    {
+      "path": "pdf_translate/retypeset.py",
+      "size": 123668,
+      "sha256": "f4780f52a14302eb228b0ae64e8ca1db4c35400c188895825dc4125a2059c1c5"
+    },
+    {
+      "path": "pdf_translate/review.py",
+      "size": 29725,
+      "sha256": "c2458b3cc6b6008fa85ff0747222b912797a1ce508e412f407d5f60deaf473ee"
+    },
+    {
+      "path": "pdf_translate/shaping_probe.py",
+      "size": 14358,
+      "sha256": "a07d16188e0400438b818623a05a50206efc8e23084f3b579ef7c230e17192a2"
+    },
+    {
+      "path": "pdf_translate/source_retention.py",
+      "size": 60242,
+      "sha256": "9382dcdd18c53fd0a9d60f7d2150e40f3f27c44cc216cc3ff11e00d6e6b95edf"
+    },
+    {
+      "path": "pdf_translate/strip_text.py",
+      "size": 41098,
+      "sha256": "44b1075aac481d3cf3730837b0403cde85fed4f25d6504f5f4d151c94f84456e"
+    },
+    {
+      "path": "pdf_translate/typography.py",
+      "size": 11742,
+      "sha256": "899d91e2973243973a480b8807532a5ab236742ae8174f79149dd02fefa7fe24"
+    },
+    {
+      "path": "pdf_translate/typography_content.py",
+      "size": 10948,
+      "sha256": "0c1d7e07ec4487e6ea4828f47dc38da70c4c25e2ff08850ee1a76e0c5480f82a"
+    },
+    {
+      "path": "pdf_translate/typography_verify.py",
+      "size": 21115,
+      "sha256": "e884672b99b2ac95badf5547e26d0ab5c407e1ac23a01cb22796f78726baee7d"
+    },
+    {
+      "path": "pdf_translate/verify.py",
+      "size": 114526,
+      "sha256": "e982374d7b026eecfe152fbb0bcf94082c7fa106a6a3ea90beb45368366dcce4"
+    }
+  ]
+}

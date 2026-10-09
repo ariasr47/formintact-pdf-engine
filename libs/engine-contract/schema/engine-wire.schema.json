@@ -1,0 +1,1585 @@
+{
+  "$defs": {
+    "ArtifactResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "title": "Artifact",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact"
+      ],
+      "title": "ArtifactResponse",
+      "type": "object"
+    },
+    "AssembleRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "pages": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Pages",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "pages"
+      ],
+      "title": "AssembleRequest",
+      "type": "object"
+    },
+    "BlockProgressEvent": {
+      "properties": {
+        "block_index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Block Index"
+        },
+        "block_total": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Block Total"
+        },
+        "page": {
+          "title": "Page",
+          "type": "integer"
+        },
+        "page_finished": {
+          "default": false,
+          "title": "Page Finished",
+          "type": "boolean"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "type": {
+          "const": "block_progress",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "seq",
+        "page"
+      ],
+      "title": "BlockProgressEvent",
+      "type": "object"
+    },
+    "CallbackError": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "unauthorized",
+            "invalid_request",
+            "callback_out_of_order",
+            "callback_replay_mismatch",
+            "callback_limit",
+            "callback_oversize",
+            "internal_error"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Detail"
+        }
+      },
+      "required": [
+        "code",
+        "detail"
+      ],
+      "title": "CallbackError",
+      "type": "object"
+    },
+    "CallbackErrorEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/CallbackError"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "CallbackErrorEnvelope",
+      "type": "object"
+    },
+    "CallbackRef": {
+      "additionalProperties": false,
+      "properties": {
+        "token": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Token",
+          "type": "string"
+        }
+      },
+      "required": [
+        "token"
+      ],
+      "title": "CallbackRef",
+      "type": "object"
+    },
+    "CallbackReply": {
+      "additionalProperties": false,
+      "properties": {
+        "cause": {
+          "anyOf": [
+            {
+              "enum": [
+                "provider_rate_limit",
+                "provider_error",
+                "translation_protocol",
+                "engine_error",
+                "provider_auth",
+                "attempt_refused"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cause"
+        },
+        "next_seq": {
+          "minimum": 1,
+          "title": "Next Seq",
+          "type": "integer"
+        },
+        "render_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Render Id",
+          "type": "string"
+        },
+        "results": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/WireResult"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Results"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "translated",
+            "skipped",
+            "fatal",
+            "refused",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "render_id",
+        "seq",
+        "next_seq",
+        "status",
+        "cause",
+        "results"
+      ],
+      "title": "CallbackReply",
+      "type": "object"
+    },
+    "CallbackRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/WireItem"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "job_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "render_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Render Id",
+          "type": "string"
+        },
+        "seq": {
+          "minimum": 0,
+          "title": "Seq",
+          "type": "integer"
+        },
+        "target_lang": {
+          "maxLength": 200,
+          "title": "Target Lang",
+          "type": "string"
+        }
+      },
+      "required": [
+        "render_id",
+        "job_id",
+        "seq",
+        "target_lang",
+        "items"
+      ],
+      "title": "CallbackRequest",
+      "type": "object"
+    },
+    "CancelResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "cancelled_renders": {
+          "minimum": 0,
+          "title": "Cancelled Renders",
+          "type": "integer"
+        },
+        "job_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "cancelled_renders"
+      ],
+      "title": "CancelResponse",
+      "type": "object"
+    },
+    "CountPage": {
+      "additionalProperties": false,
+      "properties": {
+        "extract_failed": {
+          "title": "Extract Failed",
+          "type": "boolean"
+        },
+        "layout_units": {
+          "minimum": 0,
+          "title": "Layout Units",
+          "type": "integer"
+        },
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "text_block_count": {
+          "minimum": 0,
+          "title": "Text Block Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page",
+        "layout_units",
+        "extract_failed",
+        "text_block_count"
+      ],
+      "title": "CountPage",
+      "type": "object"
+    },
+    "CountRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "pages": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Pages",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "pages"
+      ],
+      "title": "CountRequest",
+      "type": "object"
+    },
+    "CountResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "kept_page_count": {
+          "minimum": 0,
+          "title": "Kept Page Count",
+          "type": "integer"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/CountPage"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "source_chars": {
+          "minimum": 0,
+          "title": "Source Chars",
+          "type": "integer"
+        },
+        "text_block_count": {
+          "minimum": 0,
+          "title": "Text Block Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source_chars",
+        "text_block_count",
+        "kept_page_count",
+        "pages"
+      ],
+      "title": "CountResponse",
+      "type": "object"
+    },
+    "CoverageEntry": {
+      "properties": {
+        "block_id": {
+          "title": "Block Id",
+          "type": "string"
+        },
+        "masked_terms": {
+          "items": {
+            "$ref": "#/$defs/MaskedTermEntry"
+          },
+          "title": "Masked Terms",
+          "type": "array"
+        },
+        "outcome": {
+          "enum": [
+            "fitted",
+            "skipped"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "empty_block",
+                "page_extract_error",
+                "engine_error",
+                "provider_rate_limit",
+                "provider_error",
+                "translation_protocol",
+                "masking_incomplete",
+                "no_room_for_translation"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "reason_detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason Detail"
+        },
+        "reason_lead": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason Lead"
+        },
+        "reason_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason Message"
+        },
+        "units": {
+          "items": {
+            "$ref": "#/$defs/UnitCoverage"
+          },
+          "title": "Units",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "$ref": "#/$defs/WarningRecord"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "block_id",
+        "outcome",
+        "reason",
+        "reason_message",
+        "reason_lead",
+        "reason_detail",
+        "warnings",
+        "masked_terms"
+      ],
+      "title": "CoverageEntry",
+      "type": "object"
+    },
+    "DocumentArtifactLine": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "title": "Artifact",
+          "type": "string"
+        },
+        "type": {
+          "const": "document_artifact",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "artifact"
+      ],
+      "title": "DocumentArtifactLine",
+      "type": "object"
+    },
+    "EngineError": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "invalid_request",
+            "job_not_found",
+            "input_not_found",
+            "page_out_of_range",
+            "render_in_progress",
+            "prepared_state_mismatch",
+            "internal_error"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Detail"
+        }
+      },
+      "required": [
+        "code",
+        "detail"
+      ],
+      "title": "EngineError",
+      "type": "object"
+    },
+    "EngineErrorEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/EngineError"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "EngineErrorEnvelope",
+      "type": "object"
+    },
+    "HealthResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "engine_version": {
+          "title": "Engine Version",
+          "type": "string"
+        },
+        "pdf_translate_version": {
+          "title": "Pdf Translate Version",
+          "type": "string"
+        },
+        "pymupdf_version": {
+          "title": "Pymupdf Version",
+          "type": "string"
+        },
+        "python_version": {
+          "title": "Python Version",
+          "type": "string"
+        },
+        "status": {
+          "const": "ok",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "engine_version",
+        "pymupdf_version",
+        "pdf_translate_version",
+        "python_version"
+      ],
+      "title": "HealthResponse",
+      "type": "object"
+    },
+    "MaskedTermEntry": {
+      "properties": {
+        "category": {
+          "enum": [
+            "glossary",
+            "number",
+            "date",
+            "url",
+            "email"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "original_text": {
+          "title": "Original Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "original_text",
+        "category"
+      ],
+      "title": "MaskedTermEntry",
+      "type": "object"
+    },
+    "PageArtifactLine": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {
+          "title": "Artifact",
+          "type": "string"
+        },
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        },
+        "type": {
+          "const": "page_artifact",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "page",
+        "artifact"
+      ],
+      "title": "PageArtifactLine",
+      "type": "object"
+    },
+    "PageCoverage": {
+      "properties": {
+        "blocks": {
+          "items": {
+            "$ref": "#/$defs/CoverageEntry"
+          },
+          "title": "Blocks",
+          "type": "array"
+        },
+        "page_flag": {
+          "anyOf": [
+            {
+              "enum": [
+                "page_copied_unchanged",
+                "page_returned_untranslated"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Flag"
+        },
+        "page_flag_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Flag Message"
+        },
+        "page_flag_severity": {
+          "anyOf": [
+            {
+              "enum": [
+                "needs_attention",
+                "advisory",
+                "informational"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Flag Severity"
+        },
+        "page_number": {
+          "title": "Page Number",
+          "type": "integer"
+        },
+        "page_source_text_flag": {
+          "anyOf": [
+            {
+              "const": "page_text_left_in_source_language",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Source Text Flag"
+        },
+        "page_source_text_flag_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Source Text Flag Message"
+        },
+        "page_source_text_flag_severity": {
+          "anyOf": [
+            {
+              "enum": [
+                "needs_attention",
+                "advisory",
+                "informational"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Source Text Flag Severity"
+        }
+      },
+      "required": [
+        "page_number",
+        "page_flag",
+        "page_flag_message",
+        "blocks"
+      ],
+      "title": "PageCoverage",
+      "type": "object"
+    },
+    "PrepareRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "dnt_terms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dnt Terms",
+          "type": "array"
+        },
+        "job_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "pages": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Pages",
+          "type": "array"
+        },
+        "route": {
+          "enum": [
+            "old-engine",
+            "japanese-library"
+          ],
+          "title": "Route",
+          "type": "string"
+        },
+        "target_lang": {
+          "maxLength": 200,
+          "title": "Target Lang",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "pages",
+        "target_lang",
+        "dnt_terms",
+        "route"
+      ],
+      "title": "PrepareRequest",
+      "type": "object"
+    },
+    "PrepareResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "pages": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "prepared": {
+          "pattern": "^prep-[0-9a-f]{32}$",
+          "title": "Prepared",
+          "type": "string"
+        },
+        "requests": {
+          "items": {
+            "$ref": "#/$defs/PreparedRequestWire"
+          },
+          "title": "Requests",
+          "type": "array"
+        },
+        "route": {
+          "enum": [
+            "old-engine",
+            "japanese-library"
+          ],
+          "title": "Route",
+          "type": "string"
+        },
+        "target_lang": {
+          "title": "Target Lang",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prepared",
+        "digest",
+        "route",
+        "target_lang",
+        "pages",
+        "requests"
+      ],
+      "title": "PrepareResponse",
+      "type": "object"
+    },
+    "PreparedRef": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "handle": {
+          "pattern": "^prep-[0-9a-f]{32}$",
+          "title": "Handle",
+          "type": "string"
+        }
+      },
+      "required": [
+        "handle",
+        "digest"
+      ],
+      "title": "PreparedRef",
+      "type": "object"
+    },
+    "PreparedRequestWire": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/WireItem"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "request_index": {
+          "minimum": 0,
+          "title": "Request Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "request_index",
+        "items"
+      ],
+      "title": "PreparedRequestWire",
+      "type": "object"
+    },
+    "ProbePage": {
+      "additionalProperties": false,
+      "properties": {
+        "has_text_layer": {
+          "title": "Has Text Layer",
+          "type": "boolean"
+        },
+        "number": {
+          "minimum": 1,
+          "title": "Number",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "number",
+        "has_text_layer"
+      ],
+      "title": "ProbePage",
+      "type": "object"
+    },
+    "ProbeRejection": {
+      "additionalProperties": false,
+      "properties": {
+        "cause": {
+          "enum": [
+            "not_a_pdf",
+            "encrypted",
+            "zero_pages",
+            "too_many_pages"
+          ],
+          "title": "Cause",
+          "type": "string"
+        },
+        "limit": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Limit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "cause",
+        "value",
+        "limit"
+      ],
+      "title": "ProbeRejection",
+      "type": "object"
+    },
+    "ProbeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "max_pages": {
+          "minimum": 1,
+          "title": "Max Pages",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "job_id",
+        "max_pages"
+      ],
+      "title": "ProbeRequest",
+      "type": "object"
+    },
+    "ProbeResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "enum": [
+            "accepted",
+            "rejected"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "pages": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/ProbePage"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pages"
+        },
+        "rejection": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProbeRejection"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "outcome",
+        "pages",
+        "rejection"
+      ],
+      "title": "ProbeResponse",
+      "type": "object"
+    },
+    "ProgressLine": {
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "discriminator": {
+            "mapping": {
+              "block_progress": "#/$defs/BlockProgressEvent",
+              "stage": "#/$defs/StageEvent",
+              "warning": "#/$defs/WarningEvent"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/StageEvent"
+            },
+            {
+              "$ref": "#/$defs/BlockProgressEvent"
+            },
+            {
+              "$ref": "#/$defs/WarningEvent"
+            }
+          ],
+          "title": "Event"
+        },
+        "type": {
+          "const": "progress",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "event"
+      ],
+      "title": "ProgressLine",
+      "type": "object"
+    },
+    "RenderRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "callback": {
+          "$ref": "#/$defs/CallbackRef"
+        },
+        "dnt_terms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dnt Terms",
+          "type": "array"
+        },
+        "job_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "pages": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Pages",
+          "type": "array"
+        },
+        "prepared": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PreparedRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "render_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Render Id",
+          "type": "string"
+        },
+        "route": {
+          "enum": [
+            "old-engine",
+            "japanese-library"
+          ],
+          "title": "Route",
+          "type": "string"
+        },
+        "target_lang": {
+          "maxLength": 200,
+          "title": "Target Lang",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "render_id",
+        "pages",
+        "target_lang",
+        "dnt_terms",
+        "route",
+        "prepared",
+        "callback"
+      ],
+      "title": "RenderRequest",
+      "type": "object"
+    },
+    "SourceRect": {
+      "description": "Source-PDF provenance rectangle; never a delivered-output assertion.",
+      "properties": {
+        "x0": {
+          "title": "X0",
+          "type": "number"
+        },
+        "x1": {
+          "title": "X1",
+          "type": "number"
+        },
+        "y0": {
+          "title": "Y0",
+          "type": "number"
+        },
+        "y1": {
+          "title": "Y1",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x0",
+        "y0",
+        "x1",
+        "y1"
+      ],
+      "title": "SourceRect",
+      "type": "object"
+    },
+    "StageEvent": {
+      "properties": {
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "stage": {
+          "enum": [
+            "extract",
+            "translate",
+            "fit",
+            "rebuild"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "type": {
+          "const": "stage",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "seq",
+        "stage"
+      ],
+      "title": "StageEvent",
+      "type": "object"
+    },
+    "Telemetry": {
+      "additionalProperties": false,
+      "properties": {
+        "engine_version": {
+          "title": "Engine Version",
+          "type": "string"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/TelemetryPage"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "route": {
+          "enum": [
+            "old-engine",
+            "japanese-library"
+          ],
+          "title": "Route",
+          "type": "string"
+        }
+      },
+      "required": [
+        "route",
+        "engine_version",
+        "pages"
+      ],
+      "title": "Telemetry",
+      "type": "object"
+    },
+    "TelemetryPage": {
+      "additionalProperties": false,
+      "properties": {
+        "engine_ms": {
+          "minimum": 0,
+          "title": "Engine Ms",
+          "type": "integer"
+        },
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page",
+        "engine_ms"
+      ],
+      "title": "TelemetryPage",
+      "type": "object"
+    },
+    "TerminalLine": {
+      "additionalProperties": false,
+      "properties": {
+        "cause": {
+          "anyOf": [
+            {
+              "enum": [
+                "provider_auth",
+                "attempt_refused",
+                "callback_refused",
+                "callback_unreachable"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cause"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/PageCoverage"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "done",
+            "partial",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "telemetry": {
+          "$ref": "#/$defs/Telemetry"
+        },
+        "type": {
+          "const": "terminal",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "status",
+        "cause",
+        "pages",
+        "telemetry"
+      ],
+      "title": "TerminalLine",
+      "type": "object"
+    },
+    "ThumbnailRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "job_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "source",
+            "translated_preview"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page": {
+          "minimum": 1,
+          "title": "Page",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "job_id",
+        "kind",
+        "page"
+      ],
+      "title": "ThumbnailRequest",
+      "type": "object"
+    },
+    "UnitCoverage": {
+      "description": "INTERFACE_CONTRACT.md \u00a72.4a. One record per LayoutUnit the block produced,\nin the engine's own unit order. The mechanism decides PER UNIT (SPEC \u00a72.6: the\npay-stub box is one block of eight units with different fates), while the only\ngranularity previously on the wire was the block -- so every criterion about\ndrawn text was unverifiable at block granularity.\n\nDELIBERATELY ABSENT: any field naming the size the engine DREW. The report says\nWHICH units were drawn and WHERE; the DELIVERED PDF says at what size. A field\nread back from the engine's own report would be asserting intent, not observing\noutput (`rendered-not-asserted`), and would silently blind SPEC \u00a73 AC 1, 2 and\n33. A future round that adds `drawn_size` \"for convenience\" destroys them.\n\nNO TEXT, NO KEY MATERIAL: geometry, an opaque style token and vocabulary\nmembers only.",
+      "properties": {
+        "attempt": {
+          "title": "Attempt",
+          "type": "integer"
+        },
+        "origin_x": {
+          "title": "Origin X",
+          "type": "number"
+        },
+        "origin_y": {
+          "title": "Origin Y",
+          "type": "number"
+        },
+        "outcome": {
+          "enum": [
+            "fitted",
+            "skipped"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "empty_block",
+                "page_extract_error",
+                "engine_error",
+                "provider_rate_limit",
+                "provider_error",
+                "translation_protocol",
+                "masking_incomplete",
+                "no_room_for_translation"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "reason_detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason Detail"
+        },
+        "reason_lead": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason Lead"
+        },
+        "reason_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason Message"
+        },
+        "source_rects": {
+          "items": {
+            "$ref": "#/$defs/SourceRect"
+          },
+          "minItems": 1,
+          "title": "Source Rects",
+          "type": "array"
+        },
+        "source_size": {
+          "title": "Source Size",
+          "type": "number"
+        },
+        "style_key": {
+          "title": "Style Key",
+          "type": "string"
+        },
+        "unit_id": {
+          "title": "Unit Id",
+          "type": "string"
+        },
+        "warnings": {
+          "items": {
+            "$ref": "#/$defs/WarningRecord"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "unit_id",
+        "attempt",
+        "outcome",
+        "reason",
+        "reason_message",
+        "reason_lead",
+        "reason_detail",
+        "style_key",
+        "source_size",
+        "origin_x",
+        "origin_y",
+        "source_rects",
+        "warnings"
+      ],
+      "title": "UnitCoverage",
+      "type": "object"
+    },
+    "WarningEvent": {
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        },
+        "seq": {
+          "title": "Seq",
+          "type": "integer"
+        },
+        "severity": {
+          "title": "Severity",
+          "type": "string"
+        },
+        "type": {
+          "const": "warning",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "seq",
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "WarningEvent",
+      "type": "object"
+    },
+    "WarningRecord": {
+      "properties": {
+        "code": {
+          "enum": [
+            "fit_shrunk",
+            "glyph_unsupported",
+            "mask_overflow",
+            "style_fallback",
+            "style_simplified",
+            "masking_incomplete",
+            "fit_size_harmonised"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "needs_attention",
+            "advisory",
+            "informational"
+          ],
+          "title": "Severity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "WarningRecord",
+      "type": "object"
+    },
+    "WireItem": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text"
+      ],
+      "title": "WireItem",
+      "type": "object"
+    },
+    "WireResult": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "translation": {
+          "title": "Translation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "translation"
+      ],
+      "title": "WireResult",
+      "type": "object"
+    }
+  },
+  "title": "engine-boundary wire"
+}

@@ -1,0 +1,382 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pdf-translator.invalid/type0-repaired-reference-v1.schema.json",
+  "title": "Affected Type0 Identity-H repaired reference v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "producer",
+    "runtime",
+    "input",
+    "output",
+    "recipe",
+    "partition",
+    "historical_comparison",
+    "semantics",
+    "protected_pixels"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "producer": {"$ref": "#/$defs/producer"},
+    "runtime": {"$ref": "#/$defs/runtime"},
+    "input": {"$ref": "#/$defs/input"},
+    "output": {"$ref": "#/$defs/output"},
+    "recipe": {"$ref": "#/$defs/recipe"},
+    "partition": {"$ref": "#/$defs/partition"},
+    "historical_comparison": {"$ref": "#/$defs/historical"},
+    "semantics": {"$ref": "#/$defs/semantics"},
+    "protected_pixels": {"$ref": "#/$defs/protected_pixels"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "revision": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "rect": {
+      "type": "array",
+      "prefixItems": [
+        {"type": "number"},
+        {"type": "number"},
+        {"type": "number"},
+        {"type": "number"}
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "revision", "produced_utc", "os", "platform_release"],
+      "properties": {
+        "tool": {"const": "tests/reference/type0-identity-h/capture_repaired_reference.py"},
+        "revision": {"$ref": "#/$defs/revision"},
+        "produced_utc": {"type": "string", "format": "date-time"},
+        "os": {"enum": ["windows", "ubuntu", "darwin"]},
+        "platform_release": {"type": "string", "minLength": 1}
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "python",
+        "pdf_translate",
+        "pdf_translate_commit",
+        "pymupdf",
+        "pikepdf",
+        "fonttools"
+      ],
+      "properties": {
+        "python": {"const": "3.14.6"},
+        "pdf_translate": {"const": "89.0.0"},
+        "pdf_translate_commit": {
+          "const": "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7"
+        },
+        "pymupdf": {"const": "1.28.0"},
+        "pikepdf": {"const": "10.12.0"},
+        "fonttools": {"const": "4.65.0"}
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "source_sha256", "selected_pages", "source_page_count"],
+      "properties": {
+        "source": {"const": "tests/fixtures/fl150_print.pdf"},
+        "source_sha256": {
+          "const": "afbdd0b5616e322c31b7ae789dd8eb510eae560d12e552297db6e2c2b2e32844"
+        },
+        "selected_pages": {"const": [1]},
+        "source_page_count": {"const": 4}
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pdf", "pdf_sha256", "page_raster", "page_raster_sha256", "page_count"],
+      "properties": {
+        "pdf": {"const": "result.pdf"},
+        "pdf_sha256": {"$ref": "#/$defs/sha256"},
+        "page_raster": {"const": "page-1.png"},
+        "page_raster_sha256": {"$ref": "#/$defs/sha256"},
+        "page_count": {"const": 1}
+      }
+    },
+    "recipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "translator",
+        "translator_classification",
+        "target",
+        "zoom",
+        "colorspace",
+        "alpha",
+        "channel_delta_threshold",
+        "whole_page_ratio_max"
+      ],
+      "properties": {
+        "translator": {"const": "tests.support.translators.SpacelessCJKTranslator"},
+        "translator_classification": {
+          "const": "provider-free forced-CJK deterministic stand-in; not Spanish or provider proof"
+        },
+        "target": {"const": "Spanish"},
+        "zoom": {"const": 2.0},
+        "colorspace": {"const": "RGB"},
+        "alpha": {"const": false},
+        "channel_delta_threshold": {"const": 8},
+        "whole_page_ratio_max": {"const": 0.001}
+      }
+    },
+    "unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_id",
+        "block_id",
+        "source_text",
+        "source_rects",
+        "outcome",
+        "reason",
+        "operator_vouched",
+        "source_operator_removed",
+        "translated_glyphs_rendered",
+        "source_retained",
+        "proof_method"
+      ],
+      "properties": {
+        "unit_id": {"type": "string", "minLength": 1},
+        "block_id": {"type": "string", "minLength": 1},
+        "source_text": {"type": "string", "minLength": 1},
+        "source_rects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/rect"}
+        },
+        "outcome": {"enum": ["fitted", "skipped"]},
+        "reason": {"type": ["string", "null"]},
+        "operator_vouched": {"type": "boolean"},
+        "source_operator_removed": {"type": ["boolean", "null"]},
+        "translated_glyphs_rendered": {"type": "boolean"},
+        "source_retained": {"type": "boolean"},
+        "proof_method": {
+          "enum": [
+            "operator_removed_and_translation_rendered",
+            "source_delivered_span_identity"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"outcome": {"const": "fitted"}}},
+          "then": {
+            "properties": {
+              "reason": {"type": "null"},
+              "operator_vouched": {"const": true},
+              "source_operator_removed": {"const": true},
+              "translated_glyphs_rendered": {"const": true},
+              "source_retained": {"const": false},
+              "proof_method": {"const": "operator_removed_and_translation_rendered"}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"outcome": {"const": "skipped"}}},
+          "then": {
+            "properties": {
+              "reason": {"type": "string", "minLength": 1},
+              "source_operator_removed": {"enum": [false, null]},
+              "translated_glyphs_rendered": {"const": false},
+              "source_retained": {"const": true},
+              "proof_method": {"const": "source_delivered_span_identity"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "outcome": {"const": "skipped"},
+              "operator_vouched": {"const": false}
+            },
+            "required": ["outcome", "operator_vouched"]
+          },
+          "then": {
+            "properties": {"source_operator_removed": {"type": "null"}}
+          }
+        }
+      ]
+    },
+    "partition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["page_number", "extracted", "fitted", "skipped", "units"],
+      "properties": {
+        "page_number": {"const": 1},
+        "extracted": {"type": "integer", "minimum": 1},
+        "fitted": {"type": "integer", "minimum": 1},
+        "skipped": {"type": "integer", "minimum": 0},
+        "units": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/unit"}
+        }
+      }
+    },
+    "changed_unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_id",
+        "source_text",
+        "source_rects",
+        "historical_outcome",
+        "historical_reason",
+        "final_outcome",
+        "final_reason",
+        "explanation"
+      ],
+      "properties": {
+        "unit_id": {"type": "string", "minLength": 1},
+        "source_text": {"type": "string", "minLength": 1},
+        "source_rects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/rect"}
+        },
+        "historical_outcome": {"enum": ["fitted", "skipped"]},
+        "historical_reason": {"type": ["string", "null"]},
+        "final_outcome": {"enum": ["fitted", "skipped"]},
+        "final_reason": {"type": ["string", "null"]},
+        "explanation": {"type": "string", "minLength": 1}
+      }
+    },
+    "historical": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "diagnostic_output_sha256",
+        "diagnostic_revision",
+        "extracted",
+        "fitted",
+        "skipped",
+        "diagnostic_units",
+        "changed_units"
+      ],
+      "properties": {
+        "diagnostic_output_sha256": {
+          "enum": [
+            "65418bfa8cd9dfdb205679eb4248baa00f39166d872ba8c0455216e0742d35d0",
+            "91143452c78bd829c77d92128a4b72f4b1872334a2f401e6795789f9fa53a831"
+          ]
+        },
+        "diagnostic_revision": {"$ref": "#/$defs/revision"},
+        "extracted": {"const": 93},
+        "fitted": {"const": 31},
+        "skipped": {"const": 62},
+        "diagnostic_units": {
+          "type": "array",
+          "minItems": 93,
+          "maxItems": 93,
+          "items": {"$ref": "#/$defs/historical_unit"}
+        },
+        "changed_units": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/changed_unit"}
+        }
+      }
+    },
+    "historical_unit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit_id", "outcome", "reason"],
+      "properties": {
+        "unit_id": {"type": "string", "minLength": 1},
+        "outcome": {"enum": ["fitted", "skipped"]},
+        "reason": {"type": ["string", "null"]}
+      }
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type", "value", "rect"],
+      "properties": {
+        "name": {"type": "string"},
+        "type": {"type": "integer"},
+        "value": {"type": ["string", "null"]},
+        "rect": {"$ref": "#/$defs/rect"}
+      }
+    },
+    "semantics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "all_units_partitioned_once",
+        "all_fitted_source_operators_removed",
+        "all_fitted_translations_rendered",
+        "all_skipped_sources_retained",
+        "petitioner_unit_ids",
+        "source_fields",
+        "output_fields",
+        "field_parity"
+      ],
+      "properties": {
+        "all_units_partitioned_once": {"const": true},
+        "all_fitted_source_operators_removed": {"const": true},
+        "all_fitted_translations_rendered": {"const": true},
+        "all_skipped_sources_retained": {"const": true},
+        "petitioner_unit_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        },
+        "source_fields": {"type": "array", "items": {"$ref": "#/$defs/field"}},
+        "output_fields": {"type": "array", "items": {"$ref": "#/$defs/field"}},
+        "field_parity": {"const": true}
+      }
+    },
+    "crop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "page", "rect", "ratio"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "page": {"const": 1},
+        "rect": {"$ref": "#/$defs/rect"},
+        "ratio": {"const": 0.0}
+      }
+    },
+    "protected_pixels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blank_row", "margin_and_no_glyph", "widget", "graphics"],
+      "properties": {
+        "blank_row": {
+          "allOf": [
+            {"$ref": "#/$defs/crop"},
+            {
+              "properties": {
+                "name": {"const": "petitioner_blank_row"},
+                "rect": {"const": [129.96, 203.0, 180.16, 204.0]}
+              }
+            }
+          ]
+        },
+        "margin_and_no_glyph": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/crop"}
+        },
+        "widget": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/crop"}
+        },
+        "graphics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/crop"}
+        }
+      }
+    }
+  }
+}

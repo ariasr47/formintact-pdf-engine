@@ -1,0 +1,2962 @@
+{
+  "schema_version": 1,
+  "origin_revision": "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7",
+  "source_tree": "5f89ba7f635eb1a79f25eb96e3adeb160b97c4d5",
+  "package_tree": "c3a179f16585203bd44f544ea6a58ce889efa1b6",
+  "import_commit": "9ae1cf9aaa33715e10651c84942b5232ec21d2ad",
+  "expected_files": 400,
+  "expected_bytes": 21163472,
+  "licenses": {
+    "other_source": "LICENSE",
+    "active_destination": "LICENSE",
+    "active_source": "pdf-translate/LICENSE",
+    "other_destination": "history/upstream-v89/LICENSE"
+  },
+  "files": [
+    {
+      "source": ".claude-plugin/marketplace.json",
+      "destination": "history/upstream-v89/.claude-plugin/marketplace.json",
+      "mode": "100644",
+      "size": 522,
+      "sha256": "946a6a010239cb6e091eb4443bf23223dce190efe58473b48f62b1ed15ddb585"
+    },
+    {
+      "source": ".claude-plugin/plugin.json",
+      "destination": "history/upstream-v89/.claude-plugin/plugin.json",
+      "mode": "100644",
+      "size": 454,
+      "sha256": "a4ae1f7935388111d940b9fb6d9213ac18b26bb1320291d05f3ba129b5c62b5b"
+    },
+    {
+      "source": ".gitattributes",
+      "destination": ".gitattributes",
+      "mode": "100644",
+      "size": 1126,
+      "sha256": "c3dd13955a72cb96d4467c324fb851668bdc728cf592412bdd03abab6d7afca2"
+    },
+    {
+      "source": ".github/workflows/tests.yml",
+      "destination": "history/upstream-v89/.github/workflows/tests.yml",
+      "mode": "100644",
+      "size": 4950,
+      "sha256": "3efee4a677d43805027855b035135001fa3c62319725e34805861f02ff8165b4"
+    },
+    {
+      "source": ".gitignore",
+      "destination": "history/upstream-v89/.gitignore",
+      "mode": "100644",
+      "size": 1251,
+      "sha256": "b51a0340957f6d071a362204d20fa535c73f4b9dcb711068f2f68530ce9f8ab3",
+      "successor": {
+        "path": ".gitignore",
+        "size": 1223,
+        "sha256": "023a926e15a0e9f938f538170bcc04bbfaf54ffd9a0bd5ea1289657da6670922"
+      }
+    },
+    {
+      "source": "AGENTS.md",
+      "destination": "history/upstream-v89/AGENTS.md",
+      "mode": "100644",
+      "size": 7069,
+      "sha256": "17166224f5e007ad7cc5cd797d6ace66c915e23d9fcb2598cb607dd407958025"
+    },
+    {
+      "source": "CLAUDE.md",
+      "destination": "history/upstream-v89/CLAUDE.md",
+      "mode": "100644",
+      "size": 11,
+      "sha256": "336cc4fbf19beaada7ccf9986414fa91851a8d7a07dfb3ccbe800a69eed0ab49"
+    },
+    {
+      "source": "dev/canary/make_fixture.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/canary/make_fixture.py",
+      "mode": "100644",
+      "size": 2583,
+      "sha256": "b6c396b5eb06b954e2f1d0b92e76665e72a3df631cfe521776ba455990eded4f",
+      "successor": {
+        "path": "dev/canary/make_fixture.py",
+        "size": 2583,
+        "sha256": "5421032c7a76b8691d9175e88a348476d17425271441497f7684561de162e299"
+      }
+    },
+    {
+      "source": "dev/canary/README.md",
+      "destination": "dev/canary/README.md",
+      "mode": "100644",
+      "size": 7945,
+      "sha256": "4587fc33272197253881a9ec390b3b3b7cd84ff65a868bec0257e3947748eb23"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-02-fable-5.1.md",
+      "destination": "dev/canary/runs/2026-09-02-fable-5.1.md",
+      "mode": "100644",
+      "size": 4177,
+      "sha256": "7a1d90d5bce2c2cbd50c5682f9c991c3681c83c9e9eb8649b2fd31c5a7926961"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-02-haiku-4.5.md",
+      "destination": "dev/canary/runs/2026-09-02-haiku-4.5.md",
+      "mode": "100644",
+      "size": 4261,
+      "sha256": "600ad7af5ff3c58152be6abc188e17e6f719671825bd1d03ba0fe48f82ce9d81"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-02-opus-5.md",
+      "destination": "dev/canary/runs/2026-09-02-opus-5.md",
+      "mode": "100644",
+      "size": 4618,
+      "sha256": "57811b1dae55fe6a928b6807724e1b356b2efebebe0ea362ad9e95bb601e4e57"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-02-summary.md",
+      "destination": "dev/canary/runs/2026-09-02-summary.md",
+      "mode": "100644",
+      "size": 3590,
+      "sha256": "a8d2cf7fce1bfb213079e1c1cd120a22021be41c5d6cb21bc4d342fd237c2192"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-03-fable-5.1-fl100.md",
+      "destination": "dev/canary/runs/2026-09-03-fable-5.1-fl100.md",
+      "mode": "100644",
+      "size": 6263,
+      "sha256": "841e7aba204c1d7cca6655779d5ca6c3651c43c94e11d2faacca758bc4dba409"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-03-fable-5.1.md",
+      "destination": "dev/canary/runs/2026-09-03-fable-5.1.md",
+      "mode": "100644",
+      "size": 5027,
+      "sha256": "5487e35b85a72d96f364d1403169453f1e1d808bf7900558671960c3c3642d66"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-03-haiku-4.5.md",
+      "destination": "dev/canary/runs/2026-09-03-haiku-4.5.md",
+      "mode": "100644",
+      "size": 3315,
+      "sha256": "f41f6b948f7f472ddf1fb342d21b273889832150da73a6e425c834a023803901"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-03-opus-5.md",
+      "destination": "dev/canary/runs/2026-09-03-opus-5.md",
+      "mode": "100644",
+      "size": 4333,
+      "sha256": "d5cc9b51a7c9a17726c9f9e6bab3f01246de7dc5daace76632b1b8f7fe205df6"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-03-run3-fable-5.1.md",
+      "destination": "dev/canary/runs/2026-09-03-run3-fable-5.1.md",
+      "mode": "100644",
+      "size": 2972,
+      "sha256": "948796c54652d7ded4453d40a8f1d72877eca52ef98b10f4b2b95729fa735d53"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-03-run3-opus-5.md",
+      "destination": "dev/canary/runs/2026-09-03-run3-opus-5.md",
+      "mode": "100644",
+      "size": 3340,
+      "sha256": "f5105a20f285d9feb0534879b2af27be7918ec3196acfabe238e005168ee52d8"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-03-run3-sonnet-5.md",
+      "destination": "dev/canary/runs/2026-09-03-run3-sonnet-5.md",
+      "mode": "100644",
+      "size": 3011,
+      "sha256": "8f4aa24f28d8a84b9a815f4e3e4ed4efad8439705feb4a1546125c7c46dca558"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-03-run3-summary.md",
+      "destination": "dev/canary/runs/2026-09-03-run3-summary.md",
+      "mode": "100644",
+      "size": 4341,
+      "sha256": "6948bb50613dbdc21444ebfe4b698b57eded35376cb9533c6f09586d70b4dff5"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-03-sonnet-5.md",
+      "destination": "dev/canary/runs/2026-09-03-sonnet-5.md",
+      "mode": "100644",
+      "size": 4518,
+      "sha256": "a44768cccf3ab5da299a9537374be1c67171e6e0d9fe0f23e30397de0a056ee5"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-03-summary.md",
+      "destination": "dev/canary/runs/2026-09-03-summary.md",
+      "mode": "100644",
+      "size": 5372,
+      "sha256": "fdfacce06e98c48867139d2747b6fded66c04bd4473439b95efa4c3089ff5198"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-25-run4-opus-5.5.md",
+      "destination": "dev/canary/runs/2026-09-25-run4-opus-5.5.md",
+      "mode": "100644",
+      "size": 5258,
+      "sha256": "fcf630d3791ee47a71829b1fabb7930cbc59ab6c7f2786ec979d164b45f77816"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-25-run4-opus-5.md",
+      "destination": "dev/canary/runs/2026-09-25-run4-opus-5.md",
+      "mode": "100644",
+      "size": 4812,
+      "sha256": "6c3525ed9898ff6fe2d65c7884761d4c017719e6ed7baa18e545ca3f45099414"
+    },
+    {
+      "source": "dev/canary/runs/2026-09-25-run4-summary.md",
+      "destination": "dev/canary/runs/2026-09-25-run4-summary.md",
+      "mode": "100644",
+      "size": 5911,
+      "sha256": "b154b05cd66ca428d2abf4df085ae682b18c7f11611be1a25c3a98016509bf05"
+    },
+    {
+      "source": "dev/canary/score.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/canary/score.py",
+      "mode": "100644",
+      "size": 16110,
+      "sha256": "8796ff009eacca8459f3bccce4e812e8ba0fa0a4060f3e720e1051da9075190a",
+      "successor": {
+        "path": "dev/canary/score.py",
+        "size": 16062,
+        "sha256": "5d4ac02a50ae406c976c7f365aef1e62e981a6cbac26cafc216dc96f1d7a0a65"
+      }
+    },
+    {
+      "source": "dev/canary/test_score.py",
+      "destination": "dev/canary/test_score.py",
+      "mode": "100644",
+      "size": 10139,
+      "sha256": "843440c1894a9ca2182876451eef1e828d6d06d655d41e7a773157783b5d22f2"
+    },
+    {
+      "source": "dev/CLAUDE_SESSION_PROMPT.md",
+      "destination": "dev/CLAUDE_SESSION_PROMPT.md",
+      "mode": "100644",
+      "size": 6406,
+      "sha256": "5046994fe8aad16e49852f41d7d55086cf31572cb7b5444526b881f47e3f2f1a"
+    },
+    {
+      "source": "dev/explainer.html",
+      "destination": "dev/explainer.html",
+      "mode": "100644",
+      "size": 19839,
+      "sha256": "060e74fa2985012e849a4dc9f2fcdd0bf4af203546ebbffa8c6b13da398d5cb8"
+    },
+    {
+      "source": "dev/flow.html",
+      "destination": "dev/flow.html",
+      "mode": "100644",
+      "size": 30690,
+      "sha256": "a452786e62134f0243e09605c7bcb93bbb4a11d8618faa0ceca0e3a77dc76878"
+    },
+    {
+      "source": "dev/goals/01-mapping-in-the-pdf.md",
+      "destination": "dev/goals/01-mapping-in-the-pdf.md",
+      "mode": "100644",
+      "size": 2369,
+      "sha256": "fc832109269c52811cce059cfd0dcd6f1b0b8cc9479cfc2ac5c9d057a798fd5f"
+    },
+    {
+      "source": "dev/goals/02-untranslated-chrome.md",
+      "destination": "dev/goals/02-untranslated-chrome.md",
+      "mode": "100644",
+      "size": 3157,
+      "sha256": "a95bfca97e7a9aab6b2e1c03fdd21dedac9fe9d1d07a6d69e9e69d85dd9895be"
+    },
+    {
+      "source": "dev/goals/03-overflow-is-a-gate.md",
+      "destination": "dev/goals/03-overflow-is-a-gate.md",
+      "mode": "100644",
+      "size": 2599,
+      "sha256": "7ec6f06d8cd31835afae6e5c7a0635997a8ce93608f947f89dbd29a8e26e6173"
+    },
+    {
+      "source": "dev/goals/04-rtl-text-layer.md",
+      "destination": "dev/goals/04-rtl-text-layer.md",
+      "mode": "100644",
+      "size": 2281,
+      "sha256": "e9023e0683233d29f0668fce66ad1a1496630f3e94f59291f53a48ecf06e5a2a"
+    },
+    {
+      "source": "dev/goals/05-rtl-layout.md",
+      "destination": "dev/goals/05-rtl-layout.md",
+      "mode": "100644",
+      "size": 2059,
+      "sha256": "d70e89fb07adba0cbe9c629ac9d300ed65d63f27df4baae97ee5a24db09958a7"
+    },
+    {
+      "source": "dev/goals/06-corpus-structure.md",
+      "destination": "dev/goals/06-corpus-structure.md",
+      "mode": "100644",
+      "size": 1929,
+      "sha256": "b97bf4e1b297cb943ad16f68dd6a722881b877e3b527f26d223970584446e37f"
+    },
+    {
+      "source": "dev/goals/07-from-cores.md",
+      "destination": "dev/goals/07-from-cores.md",
+      "mode": "100644",
+      "size": 1589,
+      "sha256": "a77c0c3b660c61a29fcbb7432bac20c43bf17abc531d6dab4a23ad995dee64f1"
+    },
+    {
+      "source": "dev/goals/08-quoted-identifiers.md",
+      "destination": "dev/goals/08-quoted-identifiers.md",
+      "mode": "100644",
+      "size": 2786,
+      "sha256": "f0dc0b9b24205352b6a9e952286a0ddf81365ff7973f6dda0aaf1654276e55c8"
+    },
+    {
+      "source": "dev/goals/09-empty-targets.md",
+      "destination": "dev/goals/09-empty-targets.md",
+      "mode": "100644",
+      "size": 2343,
+      "sha256": "566a599ec26d2690e4686d14718358f32ed8619d8e46871a0fe8f8f9ecdb3c08"
+    },
+    {
+      "source": "dev/goals/10-caption-width.md",
+      "destination": "dev/goals/10-caption-width.md",
+      "mode": "100644",
+      "size": 2424,
+      "sha256": "ee230c1a6094fd91fe91b4d4c2f425e9ff404112d4e5a158597bb9dcb9607195"
+    },
+    {
+      "source": "dev/goals/11-override-markers.md",
+      "destination": "dev/goals/11-override-markers.md",
+      "mode": "100644",
+      "size": 2876,
+      "sha256": "80619f73a224ff6e7ec19bf0b3c0cb9eeb00a9708218c8015473c689cc78d144"
+    },
+    {
+      "source": "dev/goals/12-narrow-column-warning.md",
+      "destination": "dev/goals/12-narrow-column-warning.md",
+      "mode": "100644",
+      "size": 2043,
+      "sha256": "ab2ec79744e5bbc17d34998ad7a4b43bec2f204b73b2cd1209761f9f32281c2c"
+    },
+    {
+      "source": "dev/goals/13-strip-completeness.md",
+      "destination": "dev/goals/13-strip-completeness.md",
+      "mode": "100644",
+      "size": 3387,
+      "sha256": "ee9d293bd28c36faea762d96b4403f79fea8de83cdd44ed9cf9bb6efcae5f0d2"
+    },
+    {
+      "source": "dev/goals/14-ocr-layer.md",
+      "destination": "dev/goals/14-ocr-layer.md",
+      "mode": "100644",
+      "size": 3425,
+      "sha256": "a43df8056a45951d4d322d97c1d189d2a5d9ada2e788bdc76326ed073914853c"
+    },
+    {
+      "source": "dev/goals/15-script-aware-leaks.md",
+      "destination": "dev/goals/15-script-aware-leaks.md",
+      "mode": "100644",
+      "size": 3839,
+      "sha256": "6673e3d5616a19590b96c3c7b928ee4a805f707c4fdd714904245faa66b586af"
+    },
+    {
+      "source": "dev/goals/16-shaped-scripts.md",
+      "destination": "dev/goals/16-shaped-scripts.md",
+      "mode": "100644",
+      "size": 4193,
+      "sha256": "ddfdb8397d06e480f69f495189957c064af163597a49293ba9fa833fc483edbe"
+    },
+    {
+      "source": "dev/goals/18-center-example.md",
+      "destination": "dev/goals/18-center-example.md",
+      "mode": "100644",
+      "size": 5974,
+      "sha256": "bad3dac89f1dec607b8cd39c1c088c7cd2b26846493c3acf74d6fcba6bcdd877"
+    },
+    {
+      "source": "dev/goals/19-list-marker-gap.md",
+      "destination": "dev/goals/19-list-marker-gap.md",
+      "mode": "100644",
+      "size": 6572,
+      "sha256": "eef6e6cb7d54d9da7beb8485df132a3370758040755a104a074315153ac17d88"
+    },
+    {
+      "source": "dev/goals/20-notice-title-leak.md",
+      "destination": "dev/goals/20-notice-title-leak.md",
+      "mode": "100644",
+      "size": 6700,
+      "sha256": "719bf0fe225a8be5e708c535893a36825b02614ad65a5e0535cb2e975cd77016"
+    },
+    {
+      "source": "dev/goals/21-right-aligned-on-text.md",
+      "destination": "dev/goals/21-right-aligned-on-text.md",
+      "mode": "100644",
+      "size": 7345,
+      "sha256": "3de461b4da937f0a5d22b4371357fa7001a009c5d4e1f90115f2628efc68b253"
+    },
+    {
+      "source": "dev/goals/22-merge-candidate-kind.md",
+      "destination": "dev/goals/22-merge-candidate-kind.md",
+      "mode": "100644",
+      "size": 3998,
+      "sha256": "3149804e644876863eb1981f7e9048831e961bc282c57fbe84f524f0e22b5f54"
+    },
+    {
+      "source": "dev/goals/23-marker-font-metrics.md",
+      "destination": "dev/goals/23-marker-font-metrics.md",
+      "mode": "100644",
+      "size": 5805,
+      "sha256": "30879755fdff08bd149263766652388c2be58bc37f4a669f9c89521de13658dd"
+    },
+    {
+      "source": "dev/goals/24-merge-ligatures.md",
+      "destination": "dev/goals/24-merge-ligatures.md",
+      "mode": "100644",
+      "size": 6702,
+      "sha256": "0eb6ffdcd62a2e86ed7c4eca1bdfe285df46bd356dfce65578e8d150ba163acc"
+    },
+    {
+      "source": "dev/goals/25-shrink-band-reported.md",
+      "destination": "dev/goals/25-shrink-band-reported.md",
+      "mode": "100644",
+      "size": 5173,
+      "sha256": "0fe19c69ae63b819aa796f86dcd28692c7ca8000062fc666e5f99e457074e06d"
+    },
+    {
+      "source": "dev/goals/26-merge-box.md",
+      "destination": "dev/goals/26-merge-box.md",
+      "mode": "100644",
+      "size": 5996,
+      "sha256": "83306db5a16176f0eb1cfcc9263b906b09d9fa3e30f77280b3d95e142004d9b5"
+    },
+    {
+      "source": "dev/goals/27-kept-title-tokens.md",
+      "destination": "dev/goals/27-kept-title-tokens.md",
+      "mode": "100644",
+      "size": 3960,
+      "sha256": "309fd0633908fca28eba385b77c3d9515f1c2f5345aa6e70c0e9b29c62efd564"
+    },
+    {
+      "source": "dev/goals/28-right-anchor-room.md",
+      "destination": "dev/goals/28-right-anchor-room.md",
+      "mode": "100644",
+      "size": 4399,
+      "sha256": "8202a51c8aae65b7c8a7dd07ffc6f47b691e46bfeb6cee55c361b32f90af74da"
+    },
+    {
+      "source": "dev/goals/29-override-plain-value.md",
+      "destination": "dev/goals/29-override-plain-value.md",
+      "mode": "100644",
+      "size": 3829,
+      "sha256": "6865c6866d51efa3b33700b0edd8fd470a0c7cb8e425b96288712a663df84374"
+    },
+    {
+      "source": "dev/goals/30-font-charset-gaps.md",
+      "destination": "dev/goals/30-font-charset-gaps.md",
+      "mode": "100644",
+      "size": 4955,
+      "sha256": "ad8d981cdfa8fee847f220c7cf325b5291e874b01a6925c5340b9d0d582bcc24"
+    },
+    {
+      "source": "dev/goals/31-bold-role-is-real.md",
+      "destination": "dev/goals/31-bold-role-is-real.md",
+      "mode": "100644",
+      "size": 5850,
+      "sha256": "44d00aedcdf51cb3ddaedf4b0dbf3a3ce89dbbcf8fec60c3f0c330f45f212983"
+    },
+    {
+      "source": "dev/goals/32-terminology-loop.md",
+      "destination": "dev/goals/32-terminology-loop.md",
+      "mode": "100644",
+      "size": 5140,
+      "sha256": "710bd6cc9796732f060cd4a29fd7aa0006178f302a2e94955d2c881171ec3583"
+    },
+    {
+      "source": "dev/goals/HANDOVER-codex-2026-09-19.md",
+      "destination": "dev/goals/HANDOVER-codex-2026-09-19.md",
+      "mode": "100644",
+      "size": 13010,
+      "sha256": "ea8a9cf30311f5d36e39619d102c7713704d7fcfebb7bba09350b0ce3c0b8df5"
+    },
+    {
+      "source": "dev/goals/HANDOVER.md",
+      "destination": "dev/goals/HANDOVER.md",
+      "mode": "100644",
+      "size": 134894,
+      "sha256": "700bd74a4d3e32d737f632fcb1a9c9afb815d2ab61fec8c0a567824e23346232"
+    },
+    {
+      "source": "dev/goals/IMPLEMENTATION.md",
+      "destination": "dev/goals/IMPLEMENTATION.md",
+      "mode": "100644",
+      "size": 7060,
+      "sha256": "3ee72647dc8aa45225982ed0c7c8105350c349ba6d4e8fc4a1f6ee95b778240a"
+    },
+    {
+      "source": "dev/goals/P2-plugin-packaging.md",
+      "destination": "dev/goals/P2-plugin-packaging.md",
+      "mode": "100644",
+      "size": 5023,
+      "sha256": "04f2341432df19617aaff4caeb5b582a00ff7a837049b6a27a069f296112b651"
+    },
+    {
+      "source": "dev/goals/P3-skill-length.md",
+      "destination": "dev/goals/P3-skill-length.md",
+      "mode": "100644",
+      "size": 5943,
+      "sha256": "b40556726188cc0095ce45f27cefaa624872a760ad7c82f8da0c8753884d991d"
+    },
+    {
+      "source": "dev/goals/P4-eval-automation.md",
+      "destination": "dev/goals/P4-eval-automation.md",
+      "mode": "100644",
+      "size": 9033,
+      "sha256": "9c759c3027f179b7122e05980eaa79a859040def98352571af8f82876d668749"
+    },
+    {
+      "source": "dev/goals/P6-warnings-at-scale.md",
+      "destination": "dev/goals/P6-warnings-at-scale.md",
+      "mode": "100644",
+      "size": 6325,
+      "sha256": "c48164534c2c7c476231ab5e4364d1b1b3a8f380ea969107fa3aeb433b7c92ac"
+    },
+    {
+      "source": "dev/goals/P7-notice-channel.md",
+      "destination": "dev/goals/P7-notice-channel.md",
+      "mode": "100644",
+      "size": 6140,
+      "sha256": "5c149cbd4c585d4ed126aed32676f97562466e7a2ceff8fd7dddf512d803e2c2"
+    },
+    {
+      "source": "dev/goals/PROGRAM.md",
+      "destination": "dev/goals/PROGRAM.md",
+      "mode": "100644",
+      "size": 43153,
+      "sha256": "1eb79e255d930de4271351b38957afbaa190a30bd170e4258981f723ddd0531d"
+    },
+    {
+      "source": "dev/goals/RECOMMENDATIONS.md",
+      "destination": "dev/goals/RECOMMENDATIONS.md",
+      "mode": "100644",
+      "size": 13040,
+      "sha256": "4922016407ec97dae2f469c7d122f3488160eae7a0fbe6c8127c2d23152d189a"
+    },
+    {
+      "source": "dev/GROK_SESSION_PROMPT.md",
+      "destination": "dev/GROK_SESSION_PROMPT.md",
+      "mode": "100644",
+      "size": 4699,
+      "sha256": "92ff1b220879b970d2c35a01acf92b6d405906fd27b9129b58d8de4089e3f7aa"
+    },
+    {
+      "source": "dev/jobs/fl150-ja-2026-09-17/build_translations.py",
+      "destination": "dev/jobs/fl150-ja-2026-09-17/build_translations.py",
+      "mode": "100644",
+      "size": 25954,
+      "sha256": "342900e4045249da0b916605e8db67b57f88ac6f7eb2e49527d9e066b854431a"
+    },
+    {
+      "source": "dev/jobs/fl150-ja-2026-09-17/NOTES.md",
+      "destination": "dev/jobs/fl150-ja-2026-09-17/NOTES.md",
+      "mode": "100644",
+      "size": 12455,
+      "sha256": "76ca931ef88abe1836badba7739546f867501c6134f8810e245fb1ab52844e72"
+    },
+    {
+      "source": "dev/jobs/fl150-ja-2026-09-17/README.md",
+      "destination": "dev/jobs/fl150-ja-2026-09-17/README.md",
+      "mode": "100644",
+      "size": 3301,
+      "sha256": "0893d7559894be1565d4e590a3cc84832f98b23e929e55432744b994c941d90d"
+    },
+    {
+      "source": "dev/jobs/fl150-ja-2026-09-17/review.json",
+      "destination": "dev/jobs/fl150-ja-2026-09-17/review.json",
+      "mode": "100644",
+      "size": 30877,
+      "sha256": "0a8689a664be5048c18b1191711ee075e350a9875661b53af14f3597aea21c69"
+    },
+    {
+      "source": "dev/jobs/fl150-ja-2026-09-17/translations.json",
+      "destination": "dev/jobs/fl150-ja-2026-09-17/translations.json",
+      "mode": "100644",
+      "size": 25336,
+      "sha256": "ef47992b9c20f93d056f3ee6f5c8df84b903f22af88455b63368bb853a5d3593"
+    },
+    {
+      "source": "dev/jobs/fl150-ja-2026-09-17/widget_text.json",
+      "destination": "dev/jobs/fl150-ja-2026-09-17/widget_text.json",
+      "mode": "100644",
+      "size": 14659,
+      "sha256": "c36c2532d801b975dfb349385a2885fddf3f856f6802c87bd8e9fa30438b7309"
+    },
+    {
+      "source": "dev/probes/a02_page_parity_probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/a02_page_parity_probe.py",
+      "mode": "100644",
+      "size": 6396,
+      "sha256": "487e77c9e9a34e7f6c8f3e27ac100eb7bab54e8b5a0ab83daf35f521c4a756e5",
+      "successor": {
+        "path": "dev/probes/a02_page_parity_probe.py",
+        "size": 6401,
+        "sha256": "8ea9b157716044b6c920d91da126442e1950cc317071ec16a87a0e41e4f477b6"
+      }
+    },
+    {
+      "source": "dev/probes/a02_page_parity_sweep.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/a02_page_parity_sweep.py",
+      "mode": "100644",
+      "size": 2560,
+      "sha256": "136ef6dbe3e90a871d53ef35e31267433c61da55bd967b7594dd53c47c8f0849",
+      "successor": {
+        "path": "dev/probes/a02_page_parity_sweep.py",
+        "size": 2565,
+        "sha256": "f57ff6b9c1ce3cf6b399a377ac99643d51145c42522c50329284d1719b9cec46"
+      }
+    },
+    {
+      "source": "dev/probes/a06_doc_examples_probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/a06_doc_examples_probe.py",
+      "mode": "100644",
+      "size": 8186,
+      "sha256": "c3e84711d8d26f8d7661a9fd4d8688c0cb839a499d76ad7717f537104c0803bd",
+      "successor": {
+        "path": "dev/probes/a06_doc_examples_probe.py",
+        "size": 8156,
+        "sha256": "da96c551a89f291d2a84a6bad1975c7f811dd8dbe0c8dc415d22c6201e29b3a3"
+      }
+    },
+    {
+      "source": "dev/probes/a06_rebuild_mapping_probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/a06_rebuild_mapping_probe.py",
+      "mode": "100644",
+      "size": 5079,
+      "sha256": "89026095ecbfeb62001e6db5e255f41ea9cc630d08756c83c57ae8a47c03a7d5",
+      "successor": {
+        "path": "dev/probes/a06_rebuild_mapping_probe.py",
+        "size": 5084,
+        "sha256": "3ad48c9f610d674e04eb52dd9809d3b3e47d83753d993ced4129af0d0d8dcfdc"
+      }
+    },
+    {
+      "source": "dev/probes/b1_anchor_probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/b1_anchor_probe.py",
+      "mode": "100644",
+      "size": 15743,
+      "sha256": "c6084316097420e754d119308343629bad6f8939bc02edbda926214cef8a24eb",
+      "successor": {
+        "path": "dev/probes/b1_anchor_probe.py",
+        "size": 15697,
+        "sha256": "4a4f375bbde55107ed8a8270b3720842e09c9b72ab053483fbcdfa7ec2871ae3"
+      }
+    },
+    {
+      "source": "dev/probes/b1_cases.json",
+      "destination": "dev/probes/b1_cases.json",
+      "mode": "100644",
+      "size": 2594,
+      "sha256": "fb013410ec057805fe94067dafa630da1617d036fbf9be615a82de6d5100fb11"
+    },
+    {
+      "source": "dev/probes/b1_recovery_audit.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/b1_recovery_audit.py",
+      "mode": "100644",
+      "size": 8011,
+      "sha256": "e0491e8e81ca492a616b463e3b6ceeb357f44b44a9cc5ee00690fab0bffc0d32",
+      "successor": {
+        "path": "dev/probes/b1_recovery_audit.py",
+        "size": 7983,
+        "sha256": "5a5f9256386a465dee224518208a79dfc121b09e6d08f89743e0cbd8377f2f49"
+      }
+    },
+    {
+      "source": "dev/probes/b1_recovery_probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/b1_recovery_probe.py",
+      "mode": "100644",
+      "size": 17119,
+      "sha256": "f4360e81a2ef134e8d68f9d95d76c568e3252dd04218440489e286c057d412f6",
+      "successor": {
+        "path": "dev/probes/b1_recovery_probe.py",
+        "size": 17073,
+        "sha256": "bf6592056ad7e8dd63a4d6f80edfc49aade889145edad0b33742b65d77faf0da"
+      }
+    },
+    {
+      "source": "dev/probes/cjk_kinsoku_probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/cjk_kinsoku_probe.py",
+      "mode": "100644",
+      "size": 8570,
+      "sha256": "0eb6fe1a4cac962c1c7042d8037461c7e615f1647a383d644e4e4f3ad15dac17",
+      "successor": {
+        "path": "dev/probes/cjk_kinsoku_probe.py",
+        "size": 8553,
+        "sha256": "f34657de82cf32545b993c330e8ea42958742cc5b50f7d84764255059d9836df"
+      }
+    },
+    {
+      "source": "dev/probes/cjk_leak_tell_probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/cjk_leak_tell_probe.py",
+      "mode": "100644",
+      "size": 11432,
+      "sha256": "6b8c7d5689f90c91dad94da76c92fdd7e2c9c00d4bbc1a53c6fd15823874b0cf",
+      "successor": {
+        "path": "dev/probes/cjk_leak_tell_probe.py",
+        "size": 11414,
+        "sha256": "64af2380fb850bdbec4c78eb14feb7581f114f40e5b78db93942dd860b3dd37a"
+      }
+    },
+    {
+      "source": "dev/probes/cli_parity_runner.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/cli_parity_runner.py",
+      "mode": "100644",
+      "size": 6989,
+      "sha256": "8ff2049701de655f362584b2aadafa87f8edc2cf59deee69722ee38a07cb81ed",
+      "successor": {
+        "path": "dev/probes/cli_parity_runner.py",
+        "size": 6976,
+        "sha256": "b55db5c5f4b3426ebf097936cc4b06fa6ff1b566040ea9ccba76651e97cc4387"
+      }
+    },
+    {
+      "source": "dev/probes/determinism_probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/determinism_probe.py",
+      "mode": "100644",
+      "size": 13422,
+      "sha256": "3f71cea0318a03c961f8008cbe26292a68194f752be50967f3f35ee8e7f5b15b",
+      "successor": {
+        "path": "dev/probes/determinism_probe.py",
+        "size": 13368,
+        "sha256": "fd895c7ed7fd39c164595169d106636dac92dd39e1d1103da8715e1681fbc794"
+      }
+    },
+    {
+      "source": "dev/probes/han_forms_probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/han_forms_probe.py",
+      "mode": "100644",
+      "size": 10405,
+      "sha256": "6850439aded4c497f5cb445605fe12c678490dfce9b33d46c3555b3e5637796e",
+      "successor": {
+        "path": "dev/probes/han_forms_probe.py",
+        "size": 10387,
+        "sha256": "3256f68f182c5971d216a262803c79e6d142f7249de15403d314eaeeea9be857"
+      }
+    },
+    {
+      "source": "dev/probes/ink_ratio_probe.py",
+      "destination": "dev/probes/ink_ratio_probe.py",
+      "mode": "100644",
+      "size": 8998,
+      "sha256": "63faee249968ddce74af9641cafbede34fdcbf56e5d3a84c53bc152a08e33f43"
+    },
+    {
+      "source": "dev/probes/mark_layout_tell.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/mark_layout_tell.py",
+      "mode": "100644",
+      "size": 8270,
+      "sha256": "43d4f345e65bacacdab5522072b84e407f777f9a5c7454ec6fdde71c570c5f52",
+      "successor": {
+        "path": "dev/probes/mark_layout_tell.py",
+        "size": 8252,
+        "sha256": "7c466b6c351f24b935f640e8c703621becfb9dad922d4f43a4188adcd6768ed2"
+      }
+    },
+    {
+      "source": "dev/probes/measure_shaping_tell.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/measure_shaping_tell.py",
+      "mode": "100644",
+      "size": 4440,
+      "sha256": "ffc6cbfd64b95e5d2849f12bd71c05c4f0be789913c9105a6b6367ef1b2eda85",
+      "successor": {
+        "path": "dev/probes/measure_shaping_tell.py",
+        "size": 4469,
+        "sha256": "129e67645bd323dbbb34db73498ded1200175ebf6e21517462838cd97d5a5eb2"
+      }
+    },
+    {
+      "source": "dev/probes/public_readiness_probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/public_readiness_probe.py",
+      "mode": "100644",
+      "size": 6107,
+      "sha256": "ede6a209f3494bf8d10067dcf07215782631d17623234d91754e5cc43e428e8c",
+      "successor": {
+        "path": "dev/probes/public_readiness_probe.py",
+        "size": 6089,
+        "sha256": "0872eb13d8b514a3c456eaef2b101d862557c43a0ffe3c8cc9976f93491543bb"
+      }
+    },
+    {
+      "source": "dev/probes/r47_verify_page_loads.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/r47_verify_page_loads.py",
+      "mode": "100644",
+      "size": 7117,
+      "sha256": "f97f413152c294fd21b88339d23125aea8bbdb9f07930664122bbc888a142c7e",
+      "successor": {
+        "path": "dev/probes/r47_verify_page_loads.py",
+        "size": 7128,
+        "sha256": "db17bbb1d33f27273b7e4d789b83f576a87546370dc01e41518067a12f460633"
+      }
+    },
+    {
+      "source": "dev/probes/r48_r49_bench.py",
+      "destination": "dev/probes/r48_r49_bench.py",
+      "mode": "100644",
+      "size": 7746,
+      "sha256": "8217db9df868c2f57fc02244cd2649ad7d4e27be19932d0777e92d21077ef9d8"
+    },
+    {
+      "source": "dev/probes/r48_r49_compare.py",
+      "destination": "dev/probes/r48_r49_compare.py",
+      "mode": "100644",
+      "size": 3126,
+      "sha256": "3242e76b76368a5a32636aa64162eef3c1539b0f4f292e872547ce52cc9904e2"
+    },
+    {
+      "source": "dev/probes/r50_deliver_compare.py",
+      "destination": "dev/probes/r50_deliver_compare.py",
+      "mode": "100644",
+      "size": 1863,
+      "sha256": "d1cfb7d57f0bd39cb24e0b3faaee3adfc14e517e927f5a17b06b1ccfd724fbb1"
+    },
+    {
+      "source": "dev/probes/r50_deliver.py",
+      "destination": "dev/probes/r50_deliver.py",
+      "mode": "100644",
+      "size": 4461,
+      "sha256": "afffc282bbed14df67a6ce6a33defd7d0db6624846864e54af863f407d705623"
+    },
+    {
+      "source": "dev/probes/r50_gpos_equal.py",
+      "destination": "dev/probes/r50_gpos_equal.py",
+      "mode": "100644",
+      "size": 5684,
+      "sha256": "f140988b0298bd3ceab800d06d605756193033ca2ee86031531ef8acce8e6da1"
+    },
+    {
+      "source": "dev/probes/r50_prepare_font_ab.py",
+      "destination": "dev/probes/r50_prepare_font_ab.py",
+      "mode": "100644",
+      "size": 7206,
+      "sha256": "6a3f3d4b0157f7fc79ef0733ac5a622c0ae169b5dd580929e634f2d29bb467ca"
+    },
+    {
+      "source": "dev/probes/shaping_design_experiments.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/shaping_design_experiments.py",
+      "mode": "100644",
+      "size": 5587,
+      "sha256": "d814e4c55c917f7258c9445cfa3d10fa8c1f8a0c93767d9cb196e2ea364b5f85",
+      "successor": {
+        "path": "dev/probes/shaping_design_experiments.py",
+        "size": 5574,
+        "sha256": "b91a39be46260f88a2c45b072af773dfd0971be9002d4397474745f6d6d8c10b"
+      }
+    },
+    {
+      "source": "dev/probes/typography_acceptance.py",
+      "destination": "dev/probes/typography_acceptance.py",
+      "mode": "100644",
+      "size": 13021,
+      "sha256": "d06d0cc4566bbb57baef9aa4687a630dcb3342d24772020fde995ba22c1ad4ce"
+    },
+    {
+      "source": "dev/probes/typography_capability_probe.py",
+      "destination": "dev/probes/typography_capability_probe.py",
+      "mode": "100644",
+      "size": 5427,
+      "sha256": "f8b3d576582a9a07ea8ac84484940926c5e5f1c4c6e71f40a75e36efe739fb63"
+    },
+    {
+      "source": "dev/probes/verdict_parity_fixtures.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/verdict_parity_fixtures.py",
+      "mode": "100644",
+      "size": 3631,
+      "sha256": "455215bcea2d9d2592943e9fd89d5ff46daa34d24e331910eb3f5f326f7ac977",
+      "successor": {
+        "path": "dev/probes/verdict_parity_fixtures.py",
+        "size": 3618,
+        "sha256": "ba77462c7016ba8684197f4612b700b7a7d429f0a4f4a2d018ef76f752c26c1a"
+      }
+    },
+    {
+      "source": "dev/probes/verdict_parity_runner.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/probes/verdict_parity_runner.py",
+      "mode": "100644",
+      "size": 1608,
+      "sha256": "c68105846e0dd3d51bcf771b20f8a87389bf73c99fd8716fdbaeaaf49c5dce57",
+      "successor": {
+        "path": "dev/probes/verdict_parity_runner.py",
+        "size": 1613,
+        "sha256": "b675d583e645eb16010f359cb464cd324e6e99314d45070ace62542cf14b42a5"
+      }
+    },
+    {
+      "source": "dev/repo/test_binary_integrity.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/repo/test_binary_integrity.py",
+      "mode": "100644",
+      "size": 5105,
+      "sha256": "91eb5cab2a6b298c7810701784df4dff5235fbcd00316d914175bf51f6390f50",
+      "successor": {
+        "path": "dev/repo/test_binary_integrity.py",
+        "size": 5117,
+        "sha256": "e2d28d9db8a2da7dfccf77c62afed4cbf393f20cf399952a34ff4b60a292d528"
+      }
+    },
+    {
+      "source": "dev/repo/test_ci_workflow.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/repo/test_ci_workflow.py",
+      "mode": "100644",
+      "size": 4584,
+      "sha256": "0cdc6c9608129cc7781ee001d18c5966ed05939011574762c7a6f7b2cc2e6f79",
+      "successor": {
+        "path": "dev/repo/test_ci_workflow.py",
+        "size": 4688,
+        "sha256": "9bea8138d069464d76d1b9bb784af18c0e28b10cfb44b2f38e545119903ea672"
+      }
+    },
+    {
+      "source": "dev/wild/ANALYSIS.md",
+      "destination": "dev/wild/ANALYSIS.md",
+      "mode": "100644",
+      "size": 13067,
+      "sha256": "a71900bb2534e64b96135a2a0c2ee777732591d45ef9cf343ebd2e078571a8bb"
+    },
+    {
+      "source": "dev/wild/probe.py",
+      "destination": "history/upstream-v89/relocated-originals/dev/wild/probe.py",
+      "mode": "100644",
+      "size": 16103,
+      "sha256": "91aec272f4c8728ac1725bf7ff6ab73a4820984a02fd2c3083e52b412936c377",
+      "successor": {
+        "path": "dev/wild/probe.py",
+        "size": 16085,
+        "sha256": "e458c3c4760109e4872d47e688a1a3c2ad0eda35cf66d72bd211e8698fbbad38"
+      }
+    },
+    {
+      "source": "dev/wild/results.json",
+      "destination": "dev/wild/results.json",
+      "mode": "100644",
+      "size": 57400,
+      "sha256": "96b756318d74b6eba3154ab161a1b713736d47df937260ac38f4043b24e6b15a"
+    },
+    {
+      "source": "dev/wild/RESULTS.md",
+      "destination": "dev/wild/RESULTS.md",
+      "mode": "100644",
+      "size": 19423,
+      "sha256": "0b4e62db33b89559ec50ecdf1c410739920c20e47ea74509dfb20bc0a59616c5"
+    },
+    {
+      "source": "dev/wild/SOURCES.md",
+      "destination": "dev/wild/SOURCES.md",
+      "mode": "100644",
+      "size": 3933,
+      "sha256": "feba5a29e94f8cfd0333163d619224e0c174daa2f616ceafe14534dc4d405c5c"
+    },
+    {
+      "source": "docs/audit-2026-09-01.html",
+      "destination": "docs/audit-2026-09-01.html",
+      "mode": "100644",
+      "size": 155087,
+      "sha256": "f8747f43a6408b7e17ba7a508e077453f8b5aff51e597b34503df82037daa981"
+    },
+    {
+      "source": "docs/BRIEF-cjk-leak-tell.md",
+      "destination": "docs/BRIEF-cjk-leak-tell.md",
+      "mode": "100644",
+      "size": 10598,
+      "sha256": "d0c0e1c2f50b84a1f0b376e17bda1fa654938e3440d8fc146ae16a634bab58b2"
+    },
+    {
+      "source": "docs/BRIEF-core-library-step1.md",
+      "destination": "docs/BRIEF-core-library-step1.md",
+      "mode": "100644",
+      "size": 7171,
+      "sha256": "adc8c29e09b39e36210fba3d123cfdfb27a375e2daa4e4950f1e4ebdfdc7ca4b"
+    },
+    {
+      "source": "docs/BRIEF-determinism.md",
+      "destination": "docs/BRIEF-determinism.md",
+      "mode": "100644",
+      "size": 10724,
+      "sha256": "46b0903d9d6617199c9d0f465367a0e7644bef043d5f9543268114986af87fb5"
+    },
+    {
+      "source": "docs/BRIEF-han-forms-gate.md",
+      "destination": "docs/BRIEF-han-forms-gate.md",
+      "mode": "100644",
+      "size": 8538,
+      "sha256": "1664bd8bbd9b4427b56f6a041d23537a3bc7fc7a3d4ff3fbdf900553a21658d3"
+    },
+    {
+      "source": "docs/BRIEF-product-bubble-2026-09-18.md",
+      "destination": "docs/BRIEF-product-bubble-2026-09-18.md",
+      "mode": "100644",
+      "size": 14538,
+      "sha256": "f602ecd49c8f97a7df462585053ba37b39aad6f94a4aa2112ea847a5692b5e1a"
+    },
+    {
+      "source": "docs/BRIEF-unattended-delivery.md",
+      "destination": "docs/BRIEF-unattended-delivery.md",
+      "mode": "100644",
+      "size": 15596,
+      "sha256": "e7154a955c332ff6ebe510645f0ea9e1e86a87d309f5e0e61066e47377b11118"
+    },
+    {
+      "source": "docs/checklist.html",
+      "destination": "docs/checklist.html",
+      "mode": "100644",
+      "size": 48270,
+      "sha256": "9a8b1325e4f6d17e01c37ee372417311be2c63199056695c8d2751b0960d214a"
+    },
+    {
+      "source": "docs/DECISIONS.md",
+      "destination": "docs/DECISIONS.md",
+      "mode": "100644",
+      "size": 126210,
+      "sha256": "5aad3c1f6696f25b60693d62ada4775115ac76ced42cc75428168feff8e93d45"
+    },
+    {
+      "source": "docs/design/32-terminology-loop/canvas.json",
+      "destination": "docs/design/32-terminology-loop/canvas.json",
+      "mode": "100644",
+      "size": 2401,
+      "sha256": "444aa241d90b5b51d8cda96d8663079ec568db9f4e76a5f9bc40e4ac47855fbd"
+    },
+    {
+      "source": "docs/design/32-terminology-loop/FinishRefusal.dc.html",
+      "destination": "docs/design/32-terminology-loop/FinishRefusal.dc.html",
+      "mode": "100644",
+      "size": 6478,
+      "sha256": "c29c854b91f82d95d0f011fa37ae905ef1d6a4c263b72f229a2ddda60fdddb2d"
+    },
+    {
+      "source": "docs/design/32-terminology-loop/Main.dc.html",
+      "destination": "docs/design/32-terminology-loop/Main.dc.html",
+      "mode": "100644",
+      "size": 14269,
+      "sha256": "5eda16bb7ecebba817bfa445fd02a3a563777e998ff0fbd0b98b820bd2807496"
+    },
+    {
+      "source": "docs/design/32-terminology-loop/OpenQuestion.dc.html",
+      "destination": "docs/design/32-terminology-loop/OpenQuestion.dc.html",
+      "mode": "100644",
+      "size": 10515,
+      "sha256": "e251b61c2e8c687aac0e90e37fee6b12e5320c43f4af94ffd69b75b20edfba2e"
+    },
+    {
+      "source": "docs/design/32-terminology-loop/README.md",
+      "destination": "docs/design/32-terminology-loop/README.md",
+      "mode": "100644",
+      "size": 3745,
+      "sha256": "2a6213ed08771e57824e0ca35d16cb1cd0e12e491b0a68af1f5bfaf727c06f14"
+    },
+    {
+      "source": "docs/design/32-terminology-loop/ReviewCommand.dc.html",
+      "destination": "docs/design/32-terminology-loop/ReviewCommand.dc.html",
+      "mode": "100644",
+      "size": 6451,
+      "sha256": "42ae126e38956c4a42066eefa41ed2109bb51e29ddb5ed752b92ccb737b3c84e"
+    },
+    {
+      "source": "docs/design/32-terminology-loop/ReviewPairs.dc.html",
+      "destination": "docs/design/32-terminology-loop/ReviewPairs.dc.html",
+      "mode": "100644",
+      "size": 5304,
+      "sha256": "de35dca17677920fff44d398a2ff18fb43a9af3228e1e2e288d0f7e99c19e71b"
+    },
+    {
+      "source": "docs/design/32-terminology-loop/ReviewPrompt.dc.html",
+      "destination": "docs/design/32-terminology-loop/ReviewPrompt.dc.html",
+      "mode": "100644",
+      "size": 5272,
+      "sha256": "06c2b2b889e55fa905e7a58dcc023c01d1618cde20aad6d69681c4c1e28d886a"
+    },
+    {
+      "source": "docs/design/32-terminology-loop/Termbase.dc.html",
+      "destination": "docs/design/32-terminology-loop/Termbase.dc.html",
+      "mode": "100644",
+      "size": 9194,
+      "sha256": "46b6a29ee13d5977b1e61ec45797707a5c4e724a8fdcbe01452d2ed73208e543"
+    },
+    {
+      "source": "docs/design/32-terminology-loop/TermsOfArt.dc.html",
+      "destination": "docs/design/32-terminology-loop/TermsOfArt.dc.html",
+      "mode": "100644",
+      "size": 10540,
+      "sha256": "8a581c2595e63a12d8c82c799f4fdede1cb68bfb2b66fd9f849341ebce36bc65"
+    },
+    {
+      "source": "docs/design/B1-line-wrapping/canvas.png",
+      "destination": "docs/design/B1-line-wrapping/canvas.png",
+      "mode": "100644",
+      "size": 1529980,
+      "sha256": "d8c36119a9bf8e2c4e07b18ea8854ad09c8df03302a1013f86770e2815beb30c"
+    },
+    {
+      "source": "docs/design/B1-line-wrapping/FAILED-JOB-REQUEST.md",
+      "destination": "docs/design/B1-line-wrapping/FAILED-JOB-REQUEST.md",
+      "mode": "100644",
+      "size": 1659,
+      "sha256": "8611dfe19021c74a4fea829d6f6c4ab823c2ab227c31d12a4072c6ed2f5345ff"
+    },
+    {
+      "source": "docs/design/B1-line-wrapping/README.md",
+      "destination": "docs/design/B1-line-wrapping/README.md",
+      "mode": "100644",
+      "size": 11686,
+      "sha256": "5cced93a1cffba3e4d49d926370da3697a95f9d399e182fe8bbc169802affdfe"
+    },
+    {
+      "source": "docs/design/B1-line-wrapping/REAL-JOB-CAPTURE.md",
+      "destination": "docs/design/B1-line-wrapping/REAL-JOB-CAPTURE.md",
+      "mode": "100644",
+      "size": 1960,
+      "sha256": "182da2cae268b37d2a5f1479ddcc45b1079d9010d4fd79fe931a3620b0bbc13e"
+    },
+    {
+      "source": "docs/design/B1-line-wrapping/WEB-APP-NOTE.md",
+      "destination": "docs/design/B1-line-wrapping/WEB-APP-NOTE.md",
+      "mode": "100644",
+      "size": 2429,
+      "sha256": "17ae01028d22437acfbdd50d13b9e27ec5ecbc36e0d11648270258324061def1"
+    },
+    {
+      "source": "docs/design/E3-consumer-surface/canvas.json",
+      "destination": "docs/design/E3-consumer-surface/canvas.json",
+      "mode": "100644",
+      "size": 1938,
+      "sha256": "7329348533ce90eb9b1ec8554405e002043f46bb75e3d8e7c1719ef5e6702237"
+    },
+    {
+      "source": "docs/design/E3-consumer-surface/ConsumerGuide.dc.html",
+      "destination": "docs/design/E3-consumer-surface/ConsumerGuide.dc.html",
+      "mode": "100644",
+      "size": 5047,
+      "sha256": "45ef7052440e8b5302062664a636808c858e72caf490ace1c018f02f48220754"
+    },
+    {
+      "source": "docs/design/E3-consumer-surface/DecideFirst.dc.html",
+      "destination": "docs/design/E3-consumer-surface/DecideFirst.dc.html",
+      "mode": "100644",
+      "size": 10412,
+      "sha256": "b2132c06eeef4fa59101e8a095984fa4bdbff1334908b22e2bc7f31a55cd1db0"
+    },
+    {
+      "source": "docs/design/E3-consumer-surface/Exceptions.dc.html",
+      "destination": "docs/design/E3-consumer-surface/Exceptions.dc.html",
+      "mode": "100644",
+      "size": 7460,
+      "sha256": "cc6b0fc8b14416bfaefa576e7b74a127761857e14fc8169fa98b2d112c2ede98"
+    },
+    {
+      "source": "docs/design/E3-consumer-surface/Hazards.dc.html",
+      "destination": "docs/design/E3-consumer-surface/Hazards.dc.html",
+      "mode": "100644",
+      "size": 9498,
+      "sha256": "e10824ec2b992f23325a70f2847d247cc3a26f28295ec73766da035c0e60410e"
+    },
+    {
+      "source": "docs/design/E3-consumer-surface/Logging.dc.html",
+      "destination": "docs/design/E3-consumer-surface/Logging.dc.html",
+      "mode": "100644",
+      "size": 12379,
+      "sha256": "275be1abf78efacd2cf136b9b92bb724c78cf768696aacad1f92006135a15869"
+    },
+    {
+      "source": "docs/design/E3-consumer-surface/Main.dc.html",
+      "destination": "docs/design/E3-consumer-surface/Main.dc.html",
+      "mode": "100644",
+      "size": 11696,
+      "sha256": "86e84ae856d83c2954f3cec11104b59f2b2fe875327f4258e6b8ecf315e498a1"
+    },
+    {
+      "source": "docs/design/E3-consumer-surface/ProgressCancel.dc.html",
+      "destination": "docs/design/E3-consumer-surface/ProgressCancel.dc.html",
+      "mode": "100644",
+      "size": 7442,
+      "sha256": "388b752a0c9c9622d69fe09e49df54b0ee3493c20c27bc39adb8b73df098eb78"
+    },
+    {
+      "source": "docs/design/E3-consumer-surface/README.md",
+      "destination": "docs/design/E3-consumer-surface/README.md",
+      "mode": "100644",
+      "size": 4595,
+      "sha256": "4e9af3cc5b66a22154f497c2535702d2c2a7c01c65bf9ded2f4ad7af0ee85c5f"
+    },
+    {
+      "source": "docs/design/E3-consumer-surface/Results.dc.html",
+      "destination": "docs/design/E3-consumer-surface/Results.dc.html",
+      "mode": "100644",
+      "size": 10350,
+      "sha256": "81723ecee375e9abcf8f6133824170e0c245aded38e6a33db3e5d9ae5988f441"
+    },
+    {
+      "source": "docs/design/typography-preservation/DESIGN.md",
+      "destination": "docs/design/typography-preservation/DESIGN.md",
+      "mode": "100644",
+      "size": 26084,
+      "sha256": "2f323e39af37644fadfb461534ff957429b072beddf9478c216c003bf4bd1c45"
+    },
+    {
+      "source": "docs/design/typography-preservation/README.md",
+      "destination": "docs/design/typography-preservation/README.md",
+      "mode": "100644",
+      "size": 2019,
+      "sha256": "ef2e4f8c26187f9987d11337e280f8e5b28cc2536a84f837014d01a9f528b388"
+    },
+    {
+      "source": "docs/E3-surface-inventory-2026-09-17.md",
+      "destination": "docs/E3-surface-inventory-2026-09-17.md",
+      "mode": "100644",
+      "size": 24895,
+      "sha256": "261de653e84b2ea34c4c51e14b35a90c9e808a33e0e26111e3516582c3b011bc"
+    },
+    {
+      "source": "docs/explainers/2026-09-21-b1-capture-hook.html",
+      "destination": "docs/explainers/2026-09-21-b1-capture-hook.html",
+      "mode": "100644",
+      "size": 43747,
+      "sha256": "a0df4df8028bd617f55af0c41a1a849255634e28fc0148b7cc4afaf18829c038"
+    },
+    {
+      "source": "docs/explainers/2026-09-21-typography-task-9-decision.html",
+      "destination": "docs/explainers/2026-09-21-typography-task-9-decision.html",
+      "mode": "100644",
+      "size": 44266,
+      "sha256": "b59a1ec9679c5cb0b8ca836644285a96f78a171e2a956f516ef4b764e9e79c00"
+    },
+    {
+      "source": "docs/plans/2026-09-16-cjk-faces-and-kinsoku-gate.md",
+      "destination": "docs/plans/2026-09-16-cjk-faces-and-kinsoku-gate.md",
+      "mode": "100644",
+      "size": 48240,
+      "sha256": "24073f219fb170779ebe78f37e45a3adeefc6f867602ba590a34d4475e1332c8"
+    },
+    {
+      "source": "docs/plans/2026-09-16-han-forms-gate.md",
+      "destination": "docs/plans/2026-09-16-han-forms-gate.md",
+      "mode": "100644",
+      "size": 91575,
+      "sha256": "d83737feea28493743be855a139d484b8b4705a6bf7b3083edc492ad1fdc44cd"
+    },
+    {
+      "source": "docs/plans/2026-09-16-leak-cjk-gate.md",
+      "destination": "docs/plans/2026-09-16-leak-cjk-gate.md",
+      "mode": "100644",
+      "size": 55992,
+      "sha256": "4da984c71f7f5d60f380a020f4828846b9879bedc37b8cc3250b4cf3d10ff2fb"
+    },
+    {
+      "source": "docs/plans/2026-09-16-verify-report.md",
+      "destination": "docs/plans/2026-09-16-verify-report.md",
+      "mode": "100644",
+      "size": 58542,
+      "sha256": "a9de67ed8d3cfa00de94963a345577af6baaa1befe2214db3e9c368ed547a7de"
+    },
+    {
+      "source": "docs/plans/2026-09-17-terminology-loop.md",
+      "destination": "docs/plans/2026-09-17-terminology-loop.md",
+      "mode": "100644",
+      "size": 36752,
+      "sha256": "3098dfdccddc6bab3c15b3dc0602d94196b57a91e870949d31f6cc647a4b72f9"
+    },
+    {
+      "source": "docs/plans/2026-09-18-e3-consumer-surface.md",
+      "destination": "docs/plans/2026-09-18-e3-consumer-surface.md",
+      "mode": "100644",
+      "size": 22143,
+      "sha256": "9582f23dd3f757ce17a92485b68db0cb14922511667455feb14b2979532f3119"
+    },
+    {
+      "source": "docs/plans/2026-09-20-typography-preservation-brief.md",
+      "destination": "docs/plans/2026-09-20-typography-preservation-brief.md",
+      "mode": "100644",
+      "size": 1949,
+      "sha256": "8755e90c2cc32cfd312ead9f03291ba5cb8103cf0d4368cfd48d9f44c7c4e007"
+    },
+    {
+      "source": "docs/plans/2026-09-20-typography-preservation.md",
+      "destination": "docs/plans/2026-09-20-typography-preservation.md",
+      "mode": "100644",
+      "size": 55770,
+      "sha256": "690639e6b54bfe63e9c924a343d4f0da0b0f44bbda18f9ad12a69afa1615d375"
+    },
+    {
+      "source": "docs/PUBLIC-READINESS-QUICK-WINS-2026-09-19.md",
+      "destination": "docs/PUBLIC-READINESS-QUICK-WINS-2026-09-19.md",
+      "mode": "100644",
+      "size": 7167,
+      "sha256": "d842766d9e63e139f1ea58c9dec42a532a43391b1d638484caef8081d14b1cc2"
+    },
+    {
+      "source": "docs/REQUESTS-from-product.md",
+      "destination": "docs/REQUESTS-from-product.md",
+      "mode": "100644",
+      "size": 151463,
+      "sha256": "8addfe91b8c9b100c21528c56a3734dfa37c2e44461f57e5185849922a4ad61e"
+    },
+    {
+      "source": "docs/RESEARCH-AND-FINDINGS.md",
+      "destination": "docs/RESEARCH-AND-FINDINGS.md",
+      "mode": "100644",
+      "size": 39313,
+      "sha256": "b0c9d9410cac858b90913a9c887731d6caa97ada2454c4a71b9fa3a40173dad7"
+    },
+    {
+      "source": "docs/REVIEW-2026-09-02.md",
+      "destination": "docs/REVIEW-2026-09-02.md",
+      "mode": "100644",
+      "size": 19713,
+      "sha256": "11283be2a915aad94eaaeaa4a325d5cb3f80d6383ba0bbee31558a1448e81af3"
+    },
+    {
+      "source": "docs/REVIEW-2026-09-04.md",
+      "destination": "docs/REVIEW-2026-09-04.md",
+      "mode": "100644",
+      "size": 62516,
+      "sha256": "a80675b5a689706e03a738a217634dbaa3488a9c0c0eaf8d997aa7fd4d604d20"
+    },
+    {
+      "source": "docs/REVIEW-2026-09-24.md",
+      "destination": "docs/REVIEW-2026-09-24.md",
+      "mode": "100644",
+      "size": 67450,
+      "sha256": "8d4e40cc9b6f9bf82721d9bb380dd246a75c4f4fe94178c9e7a19dd842316d3f"
+    },
+    {
+      "source": "docs/reviews/2026-09-15-conjunct-shaping-gate-verification.md",
+      "destination": "docs/reviews/2026-09-15-conjunct-shaping-gate-verification.md",
+      "mode": "100644",
+      "size": 20702,
+      "sha256": "f3dae80a4119b4641423dff7403b7e50b49e2fedcd124bc3d9570b70f88212f9"
+    },
+    {
+      "source": "docs/reviews/2026-09-15-conjunct-shaping-gate.md",
+      "destination": "docs/reviews/2026-09-15-conjunct-shaping-gate.md",
+      "mode": "100644",
+      "size": 11058,
+      "sha256": "a36a534a30a5d4ce476381f95116a5c1a1cd2a6a7cb8ebb1e8416bc1823f37f2"
+    },
+    {
+      "source": "docs/reviews/2026-09-15-pr1-canary-delivery.md",
+      "destination": "docs/reviews/2026-09-15-pr1-canary-delivery.md",
+      "mode": "100644",
+      "size": 5770,
+      "sha256": "a8ce6bcb956303f834b226d8b40abb8601695725b67d8162728fa61c18fe54bd"
+    },
+    {
+      "source": "docs/reviews/2026-09-15-pr2-core-library-packaging.md",
+      "destination": "docs/reviews/2026-09-15-pr2-core-library-packaging.md",
+      "mode": "100644",
+      "size": 8386,
+      "sha256": "7759296e685fce74620dd820b775094eee31349aa22104605449c1b6d886f072"
+    },
+    {
+      "source": "docs/reviews/2026-09-15-pr2-f1-verdict-completeness.md",
+      "destination": "docs/reviews/2026-09-15-pr2-f1-verdict-completeness.md",
+      "mode": "100644",
+      "size": 4512,
+      "sha256": "59e073e33950cb8fb7e0b3fe0f06895ce5fc9f2d33ca69e50e41c3e111fdc96d"
+    },
+    {
+      "source": "docs/reviews/2026-09-16-cjk-request-assessment.md",
+      "destination": "docs/reviews/2026-09-16-cjk-request-assessment.md",
+      "mode": "100644",
+      "size": 9703,
+      "sha256": "7a2fb8f6fe533efa4dd37b3d435dff3830b36ad700d5b16918a4f19ab8be29aa"
+    },
+    {
+      "source": "docs/reviews/2026-09-16-han-forms-gate.md",
+      "destination": "docs/reviews/2026-09-16-han-forms-gate.md",
+      "mode": "100644",
+      "size": 37026,
+      "sha256": "e25de03e7d7a42ff74dd38bd2707f5f7fdbe1940ad6002d5a3b37e6994155ed6"
+    },
+    {
+      "source": "docs/reviews/2026-09-16-kinsoku-gate.md",
+      "destination": "docs/reviews/2026-09-16-kinsoku-gate.md",
+      "mode": "100644",
+      "size": 15120,
+      "sha256": "888ef6c68f9f372c92b1472cab63cb829e41898f1aa9389649731edcbe492576"
+    },
+    {
+      "source": "docs/reviews/2026-09-16-leak-cjk-gate.md",
+      "destination": "docs/reviews/2026-09-16-leak-cjk-gate.md",
+      "mode": "100644",
+      "size": 17878,
+      "sha256": "ad8b0a310e7cf6e3d540c0c33b6b86bcb01455f28ae489b2aaa58b745b0e470b"
+    },
+    {
+      "source": "docs/reviews/2026-09-16-stale-verify-report.md",
+      "destination": "docs/reviews/2026-09-16-stale-verify-report.md",
+      "mode": "100644",
+      "size": 3516,
+      "sha256": "6df87038dfd397854a32b081e6f6dc33d095ff2e31d98bab3d3e1cdee5cc0784"
+    },
+    {
+      "source": "docs/reviews/2026-09-16-verify-report.md",
+      "destination": "docs/reviews/2026-09-16-verify-report.md",
+      "mode": "100644",
+      "size": 12670,
+      "sha256": "5435b45edba077d5e42930d779a1da7c9011c16246d0ca728ddaca1abc501c30"
+    },
+    {
+      "source": "docs/reviews/2026-09-17-terminology-loop.md",
+      "destination": "docs/reviews/2026-09-17-terminology-loop.md",
+      "mode": "100644",
+      "size": 16938,
+      "sha256": "80759de27f46a671656db45cbd97163b5156d16dc580b25a2a8902de658e5d88"
+    },
+    {
+      "source": "docs/reviews/2026-09-18-consumer-surface.md",
+      "destination": "docs/reviews/2026-09-18-consumer-surface.md",
+      "mode": "100644",
+      "size": 14158,
+      "sha256": "5889a0ff72c0ceafbcf5d2f405ef9daa31a58cb07b83996989c108706fd97cfd"
+    },
+    {
+      "source": "docs/reviews/2026-09-19-b1-captured-case.md",
+      "destination": "docs/reviews/2026-09-19-b1-captured-case.md",
+      "mode": "100644",
+      "size": 4730,
+      "sha256": "c59b0b5874ea10646c282247ef0949d58f7831e9ace0aed8972c901505c552ab"
+    },
+    {
+      "source": "docs/reviews/2026-09-19-b1-design-canvas.md",
+      "destination": "docs/reviews/2026-09-19-b1-design-canvas.md",
+      "mode": "100644",
+      "size": 6404,
+      "sha256": "960d50aa446ed7de1c4bb1241915f129fd1fbba4ef9ad82dfcbb8ec8a816d3f3"
+    },
+    {
+      "source": "docs/reviews/2026-09-19-b1-local-inputs.md",
+      "destination": "docs/reviews/2026-09-19-b1-local-inputs.md",
+      "mode": "100644",
+      "size": 2769,
+      "sha256": "92d718102ab356915eb690ccae5263de09a5761dc9fb9e6a6f0c1bd65372d3c0"
+    },
+    {
+      "source": "docs/reviews/2026-09-19-b1-product-inputs.md",
+      "destination": "docs/reviews/2026-09-19-b1-product-inputs.md",
+      "mode": "100644",
+      "size": 3197,
+      "sha256": "0794abbc225e55f1f259235926f967414f248419fb0d9fbbacbfe44d83d40649"
+    },
+    {
+      "source": "docs/reviews/2026-09-19-b1-recovery-probe.md",
+      "destination": "docs/reviews/2026-09-19-b1-recovery-probe.md",
+      "mode": "100644",
+      "size": 11925,
+      "sha256": "877264edcf92f6900795cd4ac0279adcad9d92f89734831fc51e41d6d1bf07f2"
+    },
+    {
+      "source": "docs/reviews/2026-09-19-public-readiness.md",
+      "destination": "docs/reviews/2026-09-19-public-readiness.md",
+      "mode": "100644",
+      "size": 45725,
+      "sha256": "aa7b0747204424e4d93683a50d7eaccb4edb66586a3ee1b44588a01b9d3103c1"
+    },
+    {
+      "source": "docs/reviews/2026-09-20-concurrency-guidance.md",
+      "destination": "docs/reviews/2026-09-20-concurrency-guidance.md",
+      "mode": "100644",
+      "size": 4216,
+      "sha256": "a09bb48576104d57f6d4ed5cdd194df04a255c3b46a47770d27e71edb1af78e3"
+    },
+    {
+      "source": "docs/reviews/2026-09-20-readme-facts.md",
+      "destination": "docs/reviews/2026-09-20-readme-facts.md",
+      "mode": "100644",
+      "size": 3633,
+      "sha256": "89d5a04be30eff4f8ab73dd4ea4ca105482c0ba04bbfb80ec1a88d607c99b17d"
+    },
+    {
+      "source": "docs/reviews/2026-09-20-typography-capability.md",
+      "destination": "docs/reviews/2026-09-20-typography-capability.md",
+      "mode": "100644",
+      "size": 8876,
+      "sha256": "ae07536d046fe2ce821f85a84c04964858fc6b41ad5bef76a8876ecb622fc218"
+    },
+    {
+      "source": "docs/reviews/2026-09-20-typography-implementation.md",
+      "destination": "docs/reviews/2026-09-20-typography-implementation.md",
+      "mode": "100644",
+      "size": 28584,
+      "sha256": "4f6eb5a01cede11babbd9bacab3f7700c6811355eceb131071b1d5d0fcaef1e3"
+    },
+    {
+      "source": "docs/reviews/2026-09-20-verification-examples.md",
+      "destination": "docs/reviews/2026-09-20-verification-examples.md",
+      "mode": "100644",
+      "size": 4818,
+      "sha256": "5e06ce14aafadb499673a6a696cdf32187d767917010c875f234ceebccfcb440"
+    },
+    {
+      "source": "docs/reviews/2026-09-21-b1-baseline-anchoring.md",
+      "destination": "docs/reviews/2026-09-21-b1-baseline-anchoring.md",
+      "mode": "100644",
+      "size": 6030,
+      "sha256": "85f6a14e25c6642c39a1073522b92d23c3a14359f7cdace4e5c6a8a94e2ad31f"
+    },
+    {
+      "source": "docs/reviews/2026-09-22-a01-invalid-review-refusal.md",
+      "destination": "docs/reviews/2026-09-22-a01-invalid-review-refusal.md",
+      "mode": "100644",
+      "size": 6092,
+      "sha256": "f92017c1549350a736d83b4650b1e4e634b7ea19bfcb704a1718f914bf533aaf"
+    },
+    {
+      "source": "docs/reviews/2026-09-22-a03-stale-rebuild-report.md",
+      "destination": "docs/reviews/2026-09-22-a03-stale-rebuild-report.md",
+      "mode": "100644",
+      "size": 7718,
+      "sha256": "908a751150379b0e118b151cf5803ec7d1ef0b4a2a8cf2e1f97427412e97eefb"
+    },
+    {
+      "source": "docs/reviews/2026-09-22-simplify-review.md",
+      "destination": "docs/reviews/2026-09-22-simplify-review.md",
+      "mode": "100644",
+      "size": 2693,
+      "sha256": "c8f49b8c43e177b372b0c17b46326191311e891d6f04617007ce0652ba574721"
+    },
+    {
+      "source": "docs/reviews/2026-09-22-upstream-simplify-041447e-review.md",
+      "destination": "docs/reviews/2026-09-22-upstream-simplify-041447e-review.md",
+      "mode": "100644",
+      "size": 8111,
+      "sha256": "79c17e1cc06685adf52b3a174ecdbc1f1062e7bb946066858e11c4d23d502dcf"
+    },
+    {
+      "source": "docs/reviews/2026-09-22-yesterday-review.md",
+      "destination": "docs/reviews/2026-09-22-yesterday-review.md",
+      "mode": "100644",
+      "size": 12829,
+      "sha256": "a42ad7e4eaea99e6228a08f08fc7ea89a984ff4550ec9d25866d297480dbb1b2"
+    },
+    {
+      "source": "docs/reviews/2026-09-23-a02-page-parity.md",
+      "destination": "docs/reviews/2026-09-23-a02-page-parity.md",
+      "mode": "100644",
+      "size": 8746,
+      "sha256": "a00d651c1f56f4ca1a5c924434908bf2417b0300fa7ecb0f6ca9516aa44b88dd"
+    },
+    {
+      "source": "docs/reviews/2026-09-23-a06-rebuild-mapping-checks.md",
+      "destination": "docs/reviews/2026-09-23-a06-rebuild-mapping-checks.md",
+      "mode": "100644",
+      "size": 10200,
+      "sha256": "416e8ccac03faaca4507af0d2a1a041a7684d7065dc116b9113ae58dc5edf782"
+    },
+    {
+      "source": "docs/reviews/2026-09-23-b1-checkout-reconciliation.md",
+      "destination": "docs/reviews/2026-09-23-b1-checkout-reconciliation.md",
+      "mode": "100644",
+      "size": 13676,
+      "sha256": "2870aec494477129b3a3c2e215340bb51aba6af7e1f6a48d64f4321e473bc7fa"
+    },
+    {
+      "source": "docs/reviews/2026-09-23-simplify-85d731b-review.md",
+      "destination": "docs/reviews/2026-09-23-simplify-85d731b-review.md",
+      "mode": "100644",
+      "size": 11438,
+      "sha256": "1b6f8edca1e7ce4ce569a78126b86e3d42819c49ef937ef55c453a2c462206d3"
+    },
+    {
+      "source": "docs/reviews/2026-09-23-simplify-c828dd6-integration-review.md",
+      "destination": "docs/reviews/2026-09-23-simplify-c828dd6-integration-review.md",
+      "mode": "100644",
+      "size": 15214,
+      "sha256": "b855a25a2fe64737c1885a8f95c98196026253d2a311eec53997fb9b5c336ce1"
+    },
+    {
+      "source": "docs/reviews/2026-09-24-e12-measurement.md",
+      "destination": "docs/reviews/2026-09-24-e12-measurement.md",
+      "mode": "100644",
+      "size": 9392,
+      "sha256": "448972d061212fdf0e61581d1d841e7f0fb8abc34e49a35a5cfe67793bf862d0"
+    },
+    {
+      "source": "docs/reviews/2026-09-24-r01-strip-graphics-state.md",
+      "destination": "docs/reviews/2026-09-24-r01-strip-graphics-state.md",
+      "mode": "100644",
+      "size": 7149,
+      "sha256": "c233619f09673baa5a08b5f7160c4db75c5eeeb199556eed15e9401ce3421344"
+    },
+    {
+      "source": "docs/reviews/2026-09-24-r02-small-print.md",
+      "destination": "docs/reviews/2026-09-24-r02-small-print.md",
+      "mode": "100644",
+      "size": 9234,
+      "sha256": "465143ffd0b12a98b6aa87584620a088ca7134d749aa7ea0c1a9c2844c6eed7e"
+    },
+    {
+      "source": "docs/reviews/2026-09-24-r03-widget-text-names.md",
+      "destination": "docs/reviews/2026-09-24-r03-widget-text-names.md",
+      "mode": "100644",
+      "size": 8826,
+      "sha256": "dcc79c76d09dc32989c4a513f6b4d365ed2dbbec903efcd24abbb14664478f62"
+    },
+    {
+      "source": "docs/reviews/2026-09-24-r04-role-faces.md",
+      "destination": "docs/reviews/2026-09-24-r04-role-faces.md",
+      "mode": "100644",
+      "size": 4825,
+      "sha256": "d8f211431204076408d410069c693a3cd47f8a520b6bc0f972c14de9e9fdef4a"
+    },
+    {
+      "source": "docs/reviews/2026-09-24-r05-output-alias.md",
+      "destination": "docs/reviews/2026-09-24-r05-output-alias.md",
+      "mode": "100644",
+      "size": 5711,
+      "sha256": "fbe1adcb7501fe69c837c33454f9bfea1488a5411698eb80819c4f3a0fcbe83b"
+    },
+    {
+      "source": "docs/reviews/2026-09-24-r06-story-escaping.md",
+      "destination": "docs/reviews/2026-09-24-r06-story-escaping.md",
+      "mode": "100644",
+      "size": 5928,
+      "sha256": "57a8b963f2f55b318dc6167b7cf6a655c927e1bb0ec42f8c9a9124652f2cae5c"
+    },
+    {
+      "source": "docs/reviews/2026-09-24-rotate-pages.md",
+      "destination": "docs/reviews/2026-09-24-rotate-pages.md",
+      "mode": "100644",
+      "size": 14996,
+      "sha256": "8202842a4467b1889fead9da020fcfa2b086532b8d3347bec69c354f1aaac829"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-lang-keeps-region.md",
+      "destination": "docs/reviews/2026-09-25-lang-keeps-region.md",
+      "mode": "100644",
+      "size": 4172,
+      "sha256": "c0ad7fe6864b3c387f478cfff1548b067ef72f4ffbebf870ed4b209d95752366"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r100-dead-code.md",
+      "destination": "docs/reviews/2026-09-25-r100-dead-code.md",
+      "mode": "100644",
+      "size": 5830,
+      "sha256": "70733861d9c5f68c5a8128dbb205286412e7110aec03e06a57082594bd69aacb"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r110-spdx-licence.md",
+      "destination": "docs/reviews/2026-09-25-r110-spdx-licence.md",
+      "mode": "100644",
+      "size": 3741,
+      "sha256": "fbe9591d0bae15b4a20d43c8f232fdba0825c232a4a267e1c97ea57bd1e55969"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r27-field-font-instance.md",
+      "destination": "docs/reviews/2026-09-25-r27-field-font-instance.md",
+      "mode": "100644",
+      "size": 7011,
+      "sha256": "86b6a38f3695cd2123d013f513c9ad88e42ee52372303cc57f4acaa54c18193a"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r33-field-appearance.md",
+      "destination": "docs/reviews/2026-09-25-r33-field-appearance.md",
+      "mode": "100644",
+      "size": 7765,
+      "sha256": "ae526452e46c40f0209e6c4c47fbbc6ca4f24376e7b150a3ad74f72f9aae44c2"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r40-capture-source-pdf.md",
+      "destination": "docs/reviews/2026-09-25-r40-capture-source-pdf.md",
+      "mode": "100644",
+      "size": 5745,
+      "sha256": "a3239e1d1027ae51ccc75f67cc2574d7c76eb2f578522f41fa7e32ba3e79044f"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r42-content-refusal-names-text.md",
+      "destination": "docs/reviews/2026-09-25-r42-content-refusal-names-text.md",
+      "mode": "100644",
+      "size": 8413,
+      "sha256": "621524f8a7261da00c12652234e1a993dc27e0df31754840b2dd3b64dce839a3"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r47-typography-verify-page-loads.md",
+      "destination": "docs/reviews/2026-09-25-r47-typography-verify-page-loads.md",
+      "mode": "100644",
+      "size": 9731,
+      "sha256": "a028be0d872fa69c8db7c217ea9700a8c2a72967e4be5f4f0f588eb326bf86a5"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r48-r49-pixel-loops.md",
+      "destination": "docs/reviews/2026-09-25-r48-r49-pixel-loops.md",
+      "mode": "100644",
+      "size": 8961,
+      "sha256": "2ff03463f9d637fb11d2d18217347fe3500ae74713dad00f51202246839a39f8"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r50-subset-before-instancing.md",
+      "destination": "docs/reviews/2026-09-25-r50-subset-before-instancing.md",
+      "mode": "100644",
+      "size": 8778,
+      "sha256": "1e522cc0c5dd14f1f9513e7ecd45d4acfb85c16b87a5b1565f8e7fe9304bdec5"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r51-test-font-instances.md",
+      "destination": "docs/reviews/2026-09-25-r51-test-font-instances.md",
+      "mode": "100644",
+      "size": 9662,
+      "sha256": "a494081aaebb79a61b2f78fc284d297688e77279ab3fc12ad4a79d4947f814ca"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r69-r97-ci-discovery-and-font-cache.md",
+      "destination": "docs/reviews/2026-09-25-r69-r97-ci-discovery-and-font-cache.md",
+      "mode": "100644",
+      "size": 6691,
+      "sha256": "105fd61a035fb125b69a2de96f9283163ab314c0a46a81abb9c47ad0156939a8"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r79-r83-docs-quick-wins.md",
+      "destination": "docs/reviews/2026-09-25-r79-r83-docs-quick-wins.md",
+      "mode": "100644",
+      "size": 7152,
+      "sha256": "b6e7ff55301abc6010e1a8ab564332766f3220d1c28d10eeadf1ca475759226e"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-r99-resource-warnings.md",
+      "destination": "docs/reviews/2026-09-25-r99-resource-warnings.md",
+      "mode": "100644",
+      "size": 3345,
+      "sha256": "f5748d07863277c9ec49b6da462b25d0946057c6220362c7729ae96faf75658f"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-widget-text-gate.md",
+      "destination": "docs/reviews/2026-09-25-widget-text-gate.md",
+      "mode": "100644",
+      "size": 4421,
+      "sha256": "5eac9e293a4b8c4bb7fd8ccbe669498a291e0a90c9c3e0e94f20a79e024263aa"
+    },
+    {
+      "source": "docs/reviews/2026-09-25-widget-text-kept.md",
+      "destination": "docs/reviews/2026-09-25-widget-text-kept.md",
+      "mode": "100644",
+      "size": 3875,
+      "sha256": "facebed6d23eae769f6fdc28cd83984604aa5fe101b4002bf12ace9665378644"
+    },
+    {
+      "source": "docs/reviews/2026-09-26-cli-input-logging.md",
+      "destination": "docs/reviews/2026-09-26-cli-input-logging.md",
+      "mode": "100644",
+      "size": 7950,
+      "sha256": "1a69d74415e7708b617b93e3459925c58108dc2c2307a3d33fbd4aefdf23e75a"
+    },
+    {
+      "source": "docs/reviews/2026-09-26-docs-batch-capture-document-r42.md",
+      "destination": "docs/reviews/2026-09-26-docs-batch-capture-document-r42.md",
+      "mode": "100644",
+      "size": 3634,
+      "sha256": "fe818c884c1be9c43cf7fb3fd56e55862f87108ff2f819c132e4ca44d0383e13"
+    },
+    {
+      "source": "docs/reviews/2026-09-26-ink-ratio-investigation.md",
+      "destination": "docs/reviews/2026-09-26-ink-ratio-investigation.md",
+      "mode": "100644",
+      "size": 10312,
+      "sha256": "18356d2babe3d0d8d7a068871ab85ea1186045390ac5d539fd3f2fe0fcc754e6"
+    },
+    {
+      "source": "docs/reviews/2026-09-26-multi-span-line-box.md",
+      "destination": "docs/reviews/2026-09-26-multi-span-line-box.md",
+      "mode": "100644",
+      "size": 5054,
+      "sha256": "2f7e11fbbb5a50cbb97430c9cc6a7e650035ee0d745a8d8508b9d89d69f24019"
+    },
+    {
+      "source": "docs/reviews/2026-09-26-rotated-neighbour-layout.md",
+      "destination": "docs/reviews/2026-09-26-rotated-neighbour-layout.md",
+      "mode": "100644",
+      "size": 8954,
+      "sha256": "ad23f219ae151be63bd901b69884e527e76e5ea4238b1b5eef4dccdcdec214e7"
+    },
+    {
+      "source": "docs/reviews/2026-09-26-rotated-run-features.md",
+      "destination": "docs/reviews/2026-09-26-rotated-run-features.md",
+      "mode": "100644",
+      "size": 5425,
+      "sha256": "d97ca77048dda78e379be98204283f6692e0279c057dcb9757a49cac9f2c0b33"
+    },
+    {
+      "source": "docs/reviews/2026-09-26-rtl-source-anchor-parked.md",
+      "destination": "docs/reviews/2026-09-26-rtl-source-anchor-parked.md",
+      "mode": "100644",
+      "size": 4253,
+      "sha256": "f09f36c90b57420736f0d3a3acbf7983b5383571f1dfc68177111884ec54638b"
+    },
+    {
+      "source": "docs/reviews/2026-09-26-typography-width-geometry.md",
+      "destination": "docs/reviews/2026-09-26-typography-width-geometry.md",
+      "mode": "100644",
+      "size": 9909,
+      "sha256": "b534d412f38fb8670acae8feb4cf577b6ba9834a3ab2f11911c12aa07b64af51"
+    },
+    {
+      "source": "docs/reviews/2026-09-26-upgrade-note-v54-v81.md",
+      "destination": "docs/reviews/2026-09-26-upgrade-note-v54-v81.md",
+      "mode": "100644",
+      "size": 4089,
+      "sha256": "2524c9118e2c515861e5a1c2b72f34abc88215cec3f1dc8f78e3374a14fdb488"
+    },
+    {
+      "source": "docs/reviews/assets/b1-duplicate-selection.png",
+      "destination": "docs/reviews/assets/b1-duplicate-selection.png",
+      "mode": "100644",
+      "size": 24639,
+      "sha256": "cafa68327e5012e65dd0ea328dfc125ace52ef36033652eb2c8a5d9699b6673d"
+    },
+    {
+      "source": "docs/reviews/assets/b1-wrapped-column.png",
+      "destination": "docs/reviews/assets/b1-wrapped-column.png",
+      "mode": "100644",
+      "size": 29286,
+      "sha256": "3f097ca30a1766358c906cc5c7cfe5ef6ac0a1e862641028c0e964c307f66fd9"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-19-b1-captured-case-audit.json",
+      "destination": "docs/reviews/data/2026-09-19-b1-captured-case-audit.json",
+      "mode": "100644",
+      "size": 2430,
+      "sha256": "fa44f8ae31d8e1ae2168a19f1e8570d37ae46da6cdfeaf6a91f6aab224ef7ddb"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-19-b1-captured-files-manifest.json",
+      "destination": "docs/reviews/data/2026-09-19-b1-captured-files-manifest.json",
+      "mode": "100644",
+      "size": 4364,
+      "sha256": "ff024f5c1c167fcb1ab2ff3da757a681fbb701c5ef2edeb0c75e1ceb4a9da3cc"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-19-b1-independent-audit.json",
+      "destination": "docs/reviews/data/2026-09-19-b1-independent-audit.json",
+      "mode": "100644",
+      "size": 4401,
+      "sha256": "56c87e12cb3616a078f83f3fd540aade10b6979fb1003a8d424d9ed58e099881"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-19-b1-local-inputs.json",
+      "destination": "docs/reviews/data/2026-09-19-b1-local-inputs.json",
+      "mode": "100644",
+      "size": 6134,
+      "sha256": "35ee2d786ee7115d2aa0123e8b5b16eefbf8d5afd10e87b5da60f23562879851"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-19-b1-recovery.json",
+      "destination": "docs/reviews/data/2026-09-19-b1-recovery.json",
+      "mode": "100644",
+      "size": 49887,
+      "sha256": "ec0431bf3f63ce66f8d162467a652d6d611e61d1e47f3f0cd1af45c902d1dc08"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-19-public-readiness.json",
+      "destination": "docs/reviews/data/2026-09-19-public-readiness.json",
+      "mode": "100644",
+      "size": 21197,
+      "sha256": "a424117d23ae6a0eaedfa0f062124a14a676f9ffc8a8e70117bc27e16e0f9570"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-20-typography-capability.json",
+      "destination": "docs/reviews/data/2026-09-20-typography-capability.json",
+      "mode": "100644",
+      "size": 9010,
+      "sha256": "6e9dece3292a7c5021b938433eebd5098f4a57c6ce906b6dfa16c2e5bb5a69fc"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-20-verification-examples.json",
+      "destination": "docs/reviews/data/2026-09-20-verification-examples.json",
+      "mode": "100644",
+      "size": 12430,
+      "sha256": "7c22514a123d3ae41574888722ce83e4d8e8ba5ebdf03b5394e6869756fa12b6"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-22-yesterday-review.json",
+      "destination": "docs/reviews/data/2026-09-22-yesterday-review.json",
+      "mode": "100644",
+      "size": 4747,
+      "sha256": "26bfeb74406e8dae518754139689fce44a513e1fc10df271687f6ba1a1e4ab9b"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-23-a02-page-parity.json",
+      "destination": "docs/reviews/data/2026-09-23-a02-page-parity.json",
+      "mode": "100644",
+      "size": 5911,
+      "sha256": "75954bf567fd3f3e7f196e8b03afc2cc6d9e274a00abb70f40d61a40bf0ddeaa"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-23-a06-rebuild-mapping-checks.json",
+      "destination": "docs/reviews/data/2026-09-23-a06-rebuild-mapping-checks.json",
+      "mode": "100644",
+      "size": 14235,
+      "sha256": "c539c998008e55f907788b1b80c764bcf51e3706eb793874de95bd400eed1142"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-25-r48-r49/after-rows.json",
+      "destination": "docs/reviews/data/2026-09-25-r48-r49/after-rows.json",
+      "mode": "100644",
+      "size": 8412,
+      "sha256": "424adeff46dfdadd6acc778704e738405efc6cea9dbe2e083f7770ff307ee1bd"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-25-r48-r49/base-rows.json",
+      "destination": "docs/reviews/data/2026-09-25-r48-r49/base-rows.json",
+      "mode": "100644",
+      "size": 8057,
+      "sha256": "7e9e6c5aab992935f71eb0a1d72b1bd6eca84856669125f5adaa60dbec6305cf"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-25-r48-r49/cjk-verify-after.json",
+      "destination": "docs/reviews/data/2026-09-25-r48-r49/cjk-verify-after.json",
+      "mode": "100644",
+      "size": 1665,
+      "sha256": "07ffa450b86e6c910c945c7ceda72c1e4e92d17c6d51ade95844560b4a0efb43"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-25-r48-r49/cjk-verify-base.json",
+      "destination": "docs/reviews/data/2026-09-25-r48-r49/cjk-verify-base.json",
+      "mode": "100644",
+      "size": 1665,
+      "sha256": "7d3a357fa6895fa23c729223519f6ef26c4377323dcd82baf7eb161bd0123f81"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-25-r48-r49/compare.txt",
+      "destination": "docs/reviews/data/2026-09-25-r48-r49/compare.txt",
+      "mode": "100644",
+      "size": 3758,
+      "sha256": "79304b2bbfa5e6f1a5f205556760c395a482d2fb59a08b7ed8e0671f4706a5ba"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-25-r48-r49/fl150-after-rows.json",
+      "destination": "docs/reviews/data/2026-09-25-r48-r49/fl150-after-rows.json",
+      "mode": "100644",
+      "size": 467,
+      "sha256": "7e179da9b48e8d001f32721b33898783979373ff9029b96619cc70e9fcc8c4e6"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-25-r48-r49/fl150-base-rows.json",
+      "destination": "docs/reviews/data/2026-09-25-r48-r49/fl150-base-rows.json",
+      "mode": "100644",
+      "size": 467,
+      "sha256": "d6f9a0ace9e64fbee46e2590c453b6b50183fc2745844d1ac950fc9979e0c044"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-25-r48-r49/fl150-compare.txt",
+      "destination": "docs/reviews/data/2026-09-25-r48-r49/fl150-compare.txt",
+      "mode": "100644",
+      "size": 496,
+      "sha256": "f4e81850b059d3a859b996f654f4302aeacefffc6e670c86f90c4d1c09599671"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-25-r50/prepare-font-after.json",
+      "destination": "docs/reviews/data/2026-09-25-r50/prepare-font-after.json",
+      "mode": "100644",
+      "size": 14446,
+      "sha256": "1a6a4ec75ea80a90db67d0bafd6e93b633524e88a0289aa9abdf467d8cf5d817"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-25-r50/prepare-font-base.json",
+      "destination": "docs/reviews/data/2026-09-25-r50/prepare-font-base.json",
+      "mode": "100644",
+      "size": 16051,
+      "sha256": "e8084d5ae5ebf6b7adb8ed344974ca08f062be99edc62b509a94622d5104175b"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-26-ink-ratio-investigation.json",
+      "destination": "docs/reviews/data/2026-09-26-ink-ratio-investigation.json",
+      "mode": "100644",
+      "size": 57832,
+      "sha256": "3ba2cd30895091152953abdc9634d9947d461b9ec6b8526cb66037effc1a61e3"
+    },
+    {
+      "source": "docs/reviews/data/2026-09-26-upgrade-note/verified-entries.json",
+      "destination": "docs/reviews/data/2026-09-26-upgrade-note/verified-entries.json",
+      "mode": "100644",
+      "size": 138275,
+      "sha256": "4142b56b84bcb6bb21abe32e849de5665596d8449584b763e02e34e3075e27ab"
+    },
+    {
+      "source": "docs/sessions/Session_Log_2026-09-17_FL150_Japanese_And_Gate_Fixes.md",
+      "destination": "docs/sessions/Session_Log_2026-09-17_FL150_Japanese_And_Gate_Fixes.md",
+      "mode": "100644",
+      "size": 13762,
+      "sha256": "8ef5b0efcd87cea3f6c1609ec448bc29679441d8a622310f35dccd09173f1df8"
+    },
+    {
+      "source": "LICENSE",
+      "destination": "history/upstream-v89/LICENSE",
+      "mode": "100644",
+      "size": 1070,
+      "sha256": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f"
+    },
+    {
+      "source": "pdf-translate/corpus/ar_source.pdf",
+      "destination": "corpus/ar_source.pdf",
+      "mode": "100644",
+      "size": 3238089,
+      "sha256": "844cd734cdee83e3290365550028bab86d3a32adb153a9f1ee8a8d82b84c65d5"
+    },
+    {
+      "source": "pdf-translate/corpus/choice_fields.pdf",
+      "destination": "corpus/choice_fields.pdf",
+      "mode": "100644",
+      "size": 2305,
+      "sha256": "3fb7a4f28c31b400e1d71c6d589e10be64116109622c2960f7bead4c1d044e60"
+    },
+    {
+      "source": "pdf-translate/corpus/colored.pdf",
+      "destination": "corpus/colored.pdf",
+      "mode": "100644",
+      "size": 88884,
+      "sha256": "64804ca31eddeabf49b6c171521a49967abd417380ceedddcf9895c52d57fa68"
+    },
+    {
+      "source": "pdf-translate/corpus/dense_table.pdf",
+      "destination": "corpus/dense_table.pdf",
+      "mode": "100644",
+      "size": 93453,
+      "sha256": "2909e7269868155edc5264c6d15a652f248f6efd2fd78c649c666e0f662e2302"
+    },
+    {
+      "source": "pdf-translate/corpus/encrypted.pdf",
+      "destination": "corpus/encrypted.pdf",
+      "mode": "100644",
+      "size": 89465,
+      "sha256": "d464ef511796985b950304be3e8feaadff04d6a38fb3259d3bf7e9245b8c12b2"
+    },
+    {
+      "source": "pdf-translate/corpus/expansion.pdf",
+      "destination": "corpus/expansion.pdf",
+      "mode": "100644",
+      "size": 89511,
+      "sha256": "52c5c56247ca3a48ba3b809e43d2e976599f2f27370a812ae2ce1d0fa3e38dc2"
+    },
+    {
+      "source": "pdf-translate/corpus/image_only.pdf",
+      "destination": "corpus/image_only.pdf",
+      "mode": "100644",
+      "size": 543567,
+      "sha256": "4ddad9349b47530db2964fc7f144aa41452fc538f7f37ac950b2fd959abf6042"
+    },
+    {
+      "source": "pdf-translate/corpus/ja_source.pdf",
+      "destination": "corpus/ja_source.pdf",
+      "mode": "100644",
+      "size": 3569212,
+      "sha256": "acb87c30c14e9bbdc012464af186698bbc2fdd6ebc743879a8a8aa08e1a58b5c"
+    },
+    {
+      "source": "pdf-translate/corpus/multicolumn.pdf",
+      "destination": "corpus/multicolumn.pdf",
+      "mode": "100644",
+      "size": 89870,
+      "sha256": "35d7ef5b91092d1e15085701ca4e0e1fb498520cc464e6661177efce1d9c844a"
+    },
+    {
+      "source": "pdf-translate/corpus/nested_xobject.pdf",
+      "destination": "corpus/nested_xobject.pdf",
+      "mode": "100644",
+      "size": 2774,
+      "sha256": "05287c09f9fe1a44f6e82b744f493c0582d3cd72cd1de471a7c67709e7bc7211"
+    },
+    {
+      "source": "pdf-translate/corpus/ocr_layer.pdf",
+      "destination": "corpus/ocr_layer.pdf",
+      "mode": "100644",
+      "size": 6315347,
+      "sha256": "438181842aa3e601b6230e082e22902964239f4f0f860a1cde3195f91ca5afb6"
+    },
+    {
+      "source": "pdf-translate/corpus/pale_blank.pdf",
+      "destination": "corpus/pale_blank.pdf",
+      "mode": "100644",
+      "size": 646,
+      "sha256": "05133e4770a8993b9b5cc701dcfd41f8009c1bcf7e04ad5a375035bfa494b95a"
+    },
+    {
+      "source": "pdf-translate/corpus/README.md",
+      "destination": "corpus/README.md",
+      "mode": "100644",
+      "size": 2010,
+      "sha256": "db42bb1fdb9a89d739a020bd6a2f7db47cd1a7ca33c019c0e9333800c230b7f4"
+    },
+    {
+      "source": "pdf-translate/corpus/rotated_text.pdf",
+      "destination": "corpus/rotated_text.pdf",
+      "mode": "100644",
+      "size": 1700,
+      "sha256": "8fae2539ff2e181ad81ab4c428988b9c52c3a6970c997a96e3ad2d797cff5596"
+    },
+    {
+      "source": "pdf-translate/corpus/rotated.pdf",
+      "destination": "corpus/rotated.pdf",
+      "mode": "100644",
+      "size": 88738,
+      "sha256": "551dafba13cbd5508bb299fa6be6da369e228eb873985b6746e84c468b94d19f"
+    },
+    {
+      "source": "pdf-translate/corpus/rtl_source.pdf",
+      "destination": "corpus/rtl_source.pdf",
+      "mode": "100644",
+      "size": 89475,
+      "sha256": "2522ec11562ddb686c0791b58a696bb157fc884d17700d7259868d7bed4b52a9"
+    },
+    {
+      "source": "pdf-translate/corpus/verdicts.json",
+      "destination": "corpus/verdicts.json",
+      "mode": "100644",
+      "size": 540,
+      "sha256": "12c3ef38137b85d6d4fde64b264521eacb5cc64c6b666bd09ec60da1723785b1"
+    },
+    {
+      "source": "pdf-translate/corpus/xobject_text.pdf",
+      "destination": "corpus/xobject_text.pdf",
+      "mode": "100644",
+      "size": 34686,
+      "sha256": "9d027c395bc8888e48f7fe802d0f96c14587c105a86314e46e042aded8087a16"
+    },
+    {
+      "source": "pdf-translate/evals/evals.json",
+      "destination": "evals/evals.json",
+      "mode": "100644",
+      "size": 2304,
+      "sha256": "0d8dbc786b374a0d719613db5188fcf75f44d4caba713106635895f1f3d1edf7"
+    },
+    {
+      "source": "pdf-translate/evals/garden-flyer-french/case.yaml",
+      "destination": "evals/garden-flyer-french/case.yaml",
+      "mode": "100644",
+      "size": 420,
+      "sha256": "0ef6800a952b6cb936152b5b8b2dc92bbe5fe58e9d58a5db8bd789bfc20617a9"
+    },
+    {
+      "source": "pdf-translate/evals/garden-flyer-french/graders/gates.md",
+      "destination": "evals/garden-flyer-french/graders/gates.md",
+      "mode": "100644",
+      "size": 468,
+      "sha256": "29b18865d4e31889d836725cfe534b0ce6ab129ce77a71bdc6ef01fc81f6ab0d"
+    },
+    {
+      "source": "pdf-translate/evals/garden-flyer-french/graders/honest-delivery.md",
+      "destination": "evals/garden-flyer-french/graders/honest-delivery.md",
+      "mode": "100644",
+      "size": 912,
+      "sha256": "d7af226e4f8c46d76d7fb4d19d92a6f63807f060954c2069f6b8115980d05fa9"
+    },
+    {
+      "source": "pdf-translate/evals/garden-flyer-french/graders/identifiers.md",
+      "destination": "evals/garden-flyer-french/graders/identifiers.md",
+      "mode": "100644",
+      "size": 295,
+      "sha256": "c5e926ab6c0c2ec0c78ad2a8912f3be5ee8ce1d339fca3cccf21a26ebe771522"
+    },
+    {
+      "source": "pdf-translate/evals/garden-flyer-french/graders/identity-record.md",
+      "destination": "evals/garden-flyer-french/graders/identity-record.md",
+      "mode": "100644",
+      "size": 899,
+      "sha256": "7b9b501883d66f2524ae829b8e8423f8f30442326075dc58911d1c837bfe0c31"
+    },
+    {
+      "source": "pdf-translate/evals/garden-flyer-french/graders/no-leak.md",
+      "destination": "evals/garden-flyer-french/graders/no-leak.md",
+      "mode": "100644",
+      "size": 305,
+      "sha256": "d7842cf9b083d7c308cc3e9a29f1b05f9c2de39dc967c870bb6e8ab3abc87aba"
+    },
+    {
+      "source": "pdf-translate/evals/garden-flyer-french/graders/translations-present.md",
+      "destination": "evals/garden-flyer-french/graders/translations-present.md",
+      "mode": "100644",
+      "size": 298,
+      "sha256": "babc89bb0297bd2285ff959dc3b8ce24eeacaf6e1369887314a0c7e245d243c0"
+    },
+    {
+      "source": "pdf-translate/evals/make_fixtures.py",
+      "destination": "evals/make_fixtures.py",
+      "mode": "100644",
+      "size": 6360,
+      "sha256": "7a8ce3fd96dfd66cdf90fc94696374ab04b3ae5b47b6c000b0e856aa5b2ec50e"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-japanese/case.yaml",
+      "destination": "evals/permission-slip-japanese/case.yaml",
+      "mode": "100644",
+      "size": 679,
+      "sha256": "8b8309feef3a7ba3cf67add17812afa2e5c8381732e00d7511dd7291afd270f0"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-japanese/graders/gates.md",
+      "destination": "evals/permission-slip-japanese/graders/gates.md",
+      "mode": "100644",
+      "size": 468,
+      "sha256": "29b18865d4e31889d836725cfe534b0ce6ab129ce77a71bdc6ef01fc81f6ab0d"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-japanese/graders/honest-delivery.md",
+      "destination": "evals/permission-slip-japanese/graders/honest-delivery.md",
+      "mode": "100644",
+      "size": 912,
+      "sha256": "d7af226e4f8c46d76d7fb4d19d92a6f63807f060954c2069f6b8115980d05fa9"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-japanese/graders/identifiers.md",
+      "destination": "evals/permission-slip-japanese/graders/identifiers.md",
+      "mode": "100644",
+      "size": 295,
+      "sha256": "c5e926ab6c0c2ec0c78ad2a8912f3be5ee8ce1d339fca3cccf21a26ebe771522"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-japanese/graders/identity-record.md",
+      "destination": "evals/permission-slip-japanese/graders/identity-record.md",
+      "mode": "100644",
+      "size": 899,
+      "sha256": "7b9b501883d66f2524ae829b8e8423f8f30442326075dc58911d1c837bfe0c31"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-japanese/graders/no-leak.md",
+      "destination": "evals/permission-slip-japanese/graders/no-leak.md",
+      "mode": "100644",
+      "size": 305,
+      "sha256": "d7842cf9b083d7c308cc3e9a29f1b05f9c2de39dc967c870bb6e8ab3abc87aba"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-japanese/graders/opt-parity.md",
+      "destination": "evals/permission-slip-japanese/graders/opt-parity.md",
+      "mode": "100644",
+      "size": 355,
+      "sha256": "99fb07b168bb44362ad814eaed53e1815dc5fa10cc6033f8001d0cf76e830685"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-japanese/graders/translations-present.md",
+      "destination": "evals/permission-slip-japanese/graders/translations-present.md",
+      "mode": "100644",
+      "size": 298,
+      "sha256": "babc89bb0297bd2285ff959dc3b8ce24eeacaf6e1369887314a0c7e245d243c0"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-spanish/case.yaml",
+      "destination": "evals/permission-slip-spanish/case.yaml",
+      "mode": "100644",
+      "size": 370,
+      "sha256": "524df800229ff225a78e9dc1261026b5a9d6a6271fa7a132a65baf2112496799"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-spanish/graders/gates.md",
+      "destination": "evals/permission-slip-spanish/graders/gates.md",
+      "mode": "100644",
+      "size": 468,
+      "sha256": "29b18865d4e31889d836725cfe534b0ce6ab129ce77a71bdc6ef01fc81f6ab0d"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-spanish/graders/honest-delivery.md",
+      "destination": "evals/permission-slip-spanish/graders/honest-delivery.md",
+      "mode": "100644",
+      "size": 912,
+      "sha256": "d7af226e4f8c46d76d7fb4d19d92a6f63807f060954c2069f6b8115980d05fa9"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-spanish/graders/identifiers.md",
+      "destination": "evals/permission-slip-spanish/graders/identifiers.md",
+      "mode": "100644",
+      "size": 295,
+      "sha256": "c5e926ab6c0c2ec0c78ad2a8912f3be5ee8ce1d339fca3cccf21a26ebe771522"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-spanish/graders/identity-record.md",
+      "destination": "evals/permission-slip-spanish/graders/identity-record.md",
+      "mode": "100644",
+      "size": 899,
+      "sha256": "7b9b501883d66f2524ae829b8e8423f8f30442326075dc58911d1c837bfe0c31"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-spanish/graders/no-leak.md",
+      "destination": "evals/permission-slip-spanish/graders/no-leak.md",
+      "mode": "100644",
+      "size": 305,
+      "sha256": "d7842cf9b083d7c308cc3e9a29f1b05f9c2de39dc967c870bb6e8ab3abc87aba"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-spanish/graders/opt-parity.md",
+      "destination": "evals/permission-slip-spanish/graders/opt-parity.md",
+      "mode": "100644",
+      "size": 355,
+      "sha256": "99fb07b168bb44362ad814eaed53e1815dc5fa10cc6033f8001d0cf76e830685"
+    },
+    {
+      "source": "pdf-translate/evals/permission-slip-spanish/graders/translations-present.md",
+      "destination": "evals/permission-slip-spanish/graders/translations-present.md",
+      "mode": "100644",
+      "size": 298,
+      "sha256": "babc89bb0297bd2285ff959dc3b8ce24eeacaf6e1369887314a0c7e245d243c0"
+    },
+    {
+      "source": "pdf-translate/evals/README.md",
+      "destination": "evals/README.md",
+      "mode": "100644",
+      "size": 5406,
+      "sha256": "5e1f48b767fded0d151ea91541c7fc434d28e6c51eaa35edbbccf591879bb599"
+    },
+    {
+      "source": "pdf-translate/LICENSE",
+      "destination": "LICENSE",
+      "mode": "100644",
+      "size": 1070,
+      "sha256": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/__init__.py",
+      "destination": "pdf_translate/__init__.py",
+      "mode": "100644",
+      "size": 3802,
+      "sha256": "3a2289f4f8e7e0f457960b0d2b7bb43c7aeaa3645b96d3e88db2a97856b0183c"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/_console.py",
+      "destination": "pdf_translate/_console.py",
+      "mode": "100644",
+      "size": 3884,
+      "sha256": "92a4304d57a5345d5d515da8cecc4712b07f4f180c58bffb29ecb0f191f4f45a"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/_lang.py",
+      "destination": "pdf_translate/_lang.py",
+      "mode": "100644",
+      "size": 2565,
+      "sha256": "018908e55dc90aea5cce1e9c92db23aecc6f686dd2029b1575e526702244d9cd"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/_pixels.py",
+      "destination": "pdf_translate/_pixels.py",
+      "mode": "100644",
+      "size": 2189,
+      "sha256": "c0cf619e65536d03196cfe54aa257d70bfe93084fb0c36893a60cdf1128b3bc1"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/_requirements.py",
+      "destination": "pdf_translate/_requirements.py",
+      "mode": "100644",
+      "size": 3410,
+      "sha256": "03fd23c461d38b9dacbe54f00a551424244ad6ef36ea843fb5f9e905ab10c39f"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/bilingual.py",
+      "destination": "pdf_translate/bilingual.py",
+      "mode": "100644",
+      "size": 3319,
+      "sha256": "e4fa997310a01f3b72c3b8d22fc4366fac6e6d74915953bb12229450032acee7"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/capture.py",
+      "destination": "pdf_translate/capture.py",
+      "mode": "100644",
+      "size": 19653,
+      "sha256": "b0a96a37a50b4ff8b598080b0b4738d7ae786247aa5b4f7f1b89cb2da7e1bd1e"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/cjk_tell.py",
+      "destination": "pdf_translate/cjk_tell.py",
+      "mode": "100644",
+      "size": 3861,
+      "sha256": "a2934a748bbd6b7791b6c318c583725b03833691b86f8961801e76c8e9e1f4fd"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/compare.py",
+      "destination": "pdf_translate/compare.py",
+      "mode": "100644",
+      "size": 4589,
+      "sha256": "77977273924761262d4a47d41479cb791210057672a5bcdc5bf91a8edaa32de5"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/extract_segments.py",
+      "destination": "pdf_translate/extract_segments.py",
+      "mode": "100644",
+      "size": 42006,
+      "sha256": "5c0652e2bb504840c237cb29460ec358c19fefad4048977380ade21234e98a8c"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/field_fonts.py",
+      "destination": "pdf_translate/field_fonts.py",
+      "mode": "100644",
+      "size": 10062,
+      "sha256": "187dedecb53c81e856d2f5192d844ea9605574ee51961d083759808e2e67b86f"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/han_forms.py",
+      "destination": "pdf_translate/han_forms.py",
+      "mode": "100644",
+      "size": 15477,
+      "sha256": "540597d82af372ad4861da42b378d7922e43dde7b5c5becc69ebd26d7495573b"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/mapping.py",
+      "destination": "pdf_translate/mapping.py",
+      "mode": "100644",
+      "size": 20530,
+      "sha256": "d7bee78aeec467bc05aa909e21ada968ffd7cd05c82ce04e4a40a8f41b62308c"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/pipeline.py",
+      "destination": "pdf_translate/pipeline.py",
+      "mode": "100644",
+      "size": 34401,
+      "sha256": "f442b4f2e758db5187fb7b977ae705d5c070f845a50e121cc29bb9b33a64b6a5"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/prepare_font.py",
+      "destination": "pdf_translate/prepare_font.py",
+      "mode": "100644",
+      "size": 20042,
+      "sha256": "e685065e750ebc050cc97f919960a8779380c7aa36232363198557c08464da24"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/qa_check.py",
+      "destination": "pdf_translate/qa_check.py",
+      "mode": "100644",
+      "size": 17606,
+      "sha256": "5cb0adeec99a78b8d7364d7b770126c7c31042c1ba1dc99986da43a6aeb6b944"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/render_pages.py",
+      "destination": "pdf_translate/render_pages.py",
+      "mode": "100644",
+      "size": 2400,
+      "sha256": "516244ec81413617c07a6d6dfdae9b79ca487adcce45ce8e16300fcdb5ab18b7"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/results.py",
+      "destination": "pdf_translate/results.py",
+      "mode": "100644",
+      "size": 8127,
+      "sha256": "d035428c39edce777ac4a812653b8b7595f78b70d7fe86488b703cd1512e6619"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/retypeset.py",
+      "destination": "pdf_translate/retypeset.py",
+      "mode": "100644",
+      "size": 113319,
+      "sha256": "2ebad69e93c44df0bda8a5e834c845ca2a954269802c9c66d8a9e7ff808f420d"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/review.py",
+      "destination": "pdf_translate/review.py",
+      "mode": "100644",
+      "size": 29732,
+      "sha256": "58a1d4489a2b8e61fe13fb97cfa003c31e8a2089af060c83cdb4685e47a6dad5"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/shaping_probe.py",
+      "destination": "pdf_translate/shaping_probe.py",
+      "mode": "100644",
+      "size": 14358,
+      "sha256": "a07d16188e0400438b818623a05a50206efc8e23084f3b579ef7c230e17192a2"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/strip_text.py",
+      "destination": "pdf_translate/strip_text.py",
+      "mode": "100644",
+      "size": 40786,
+      "sha256": "4120085de8bb35dee93922ac8a7046ff33486515ac4363719ba6419ba6564fee"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/typography_content.py",
+      "destination": "pdf_translate/typography_content.py",
+      "mode": "100644",
+      "size": 10948,
+      "sha256": "0c1d7e07ec4487e6ea4828f47dc38da70c4c25e2ff08850ee1a76e0c5480f82a"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/typography_verify.py",
+      "destination": "pdf_translate/typography_verify.py",
+      "mode": "100644",
+      "size": 22696,
+      "sha256": "cd7d99eb4c3fedcc347e596d95c6a26aed1e954fc7b7a154794df6a945c53f5b"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/typography.py",
+      "destination": "pdf_translate/typography.py",
+      "mode": "100644",
+      "size": 10187,
+      "sha256": "63551d3919a12c5643c59eeeb559ada4da8d2e88454f44e824edb248aefdc206"
+    },
+    {
+      "source": "pdf-translate/pdf_translate/verify.py",
+      "destination": "pdf_translate/verify.py",
+      "mode": "100644",
+      "size": 114526,
+      "sha256": "e982374d7b026eecfe152fbb0bcf94082c7fa106a6a3ea90beb45368366dcce4"
+    },
+    {
+      "source": "pdf-translate/pyproject.toml",
+      "destination": "history/upstream-v89/relocated-originals/pdf-translate/pyproject.toml",
+      "mode": "100644",
+      "size": 484,
+      "sha256": "67639bf4d88ba8addcc3aaac79c0b188d3821079073721d760ed83b2aa228e21",
+      "successor": {
+        "path": "pyproject.toml",
+        "size": 983,
+        "sha256": "2b239c69bd08db9c58fd22e64c6ec54e8c2e0d9b98318cf61548a5f3687e0874"
+      }
+    },
+    {
+      "source": "pdf-translate/README.md",
+      "destination": "README.md",
+      "mode": "100644",
+      "size": 10633,
+      "sha256": "e846aee2fde08b3ba6a5f25460996fdc1aee826ff5c2ead3518777f9867f0e98"
+    },
+    {
+      "source": "pdf-translate/references/compliance.md",
+      "destination": "references/compliance.md",
+      "mode": "100644",
+      "size": 7572,
+      "sha256": "a5e24f59ec3af0289dd505bdde02de1efa70d4209520d78a937b7e83727b8f29"
+    },
+    {
+      "source": "pdf-translate/references/consumer-guide.md",
+      "destination": "references/consumer-guide.md",
+      "mode": "100644",
+      "size": 18522,
+      "sha256": "ed843ec46e7c3c16df915f11bc419c71eae2324cbdc0cf5f14474040d2d797ac"
+    },
+    {
+      "source": "pdf-translate/references/failure-modes.md",
+      "destination": "references/failure-modes.md",
+      "mode": "100644",
+      "size": 16259,
+      "sha256": "274776d15b00ca31d8acc7d573796c22b7862e035a6ca42ce897a88b0ee19e20"
+    },
+    {
+      "source": "pdf-translate/references/fonts.md",
+      "destination": "references/fonts.md",
+      "mode": "100644",
+      "size": 10145,
+      "sha256": "09b3fd5e9f7f1c5f04d66b0fb0c8226543e4d0082c22ff305d94307c2192d894"
+    },
+    {
+      "source": "pdf-translate/references/gates.md",
+      "destination": "references/gates.md",
+      "mode": "100644",
+      "size": 25019,
+      "sha256": "474a1c15e48dd8b754af17333453c41cd289a880ad38db1cf9bd856b68d8d2bd"
+    },
+    {
+      "source": "pdf-translate/references/retypeset.md",
+      "destination": "references/retypeset.md",
+      "mode": "100644",
+      "size": 14605,
+      "sha256": "71e9e6ec28a0e016aedfa783a7f5724804d5e97b163f153fba75cc8d473b57ac"
+    },
+    {
+      "source": "pdf-translate/references/review.md",
+      "destination": "references/review.md",
+      "mode": "100644",
+      "size": 8588,
+      "sha256": "a271d86c50945cde35c1fe6df5e94bb72188b73b92390c377dff924c0ee74840"
+    },
+    {
+      "source": "pdf-translate/references/terminology-failure-modes.md",
+      "destination": "references/terminology-failure-modes.md",
+      "mode": "100644",
+      "size": 5219,
+      "sha256": "43572af7bc64e9baf502533d1f0261122e0fdc6530dcf252544a95abb2de0b4d"
+    },
+    {
+      "source": "pdf-translate/references/translations-format.md",
+      "destination": "references/translations-format.md",
+      "mode": "100644",
+      "size": 13870,
+      "sha256": "7f8f31215be7bc617273a9aa377e5b32ecfaec7f1c2c1aab829e099c206e1c61"
+    },
+    {
+      "source": "pdf-translate/references/typography.md",
+      "destination": "references/typography.md",
+      "mode": "100644",
+      "size": 10833,
+      "sha256": "1b7ea46ad3c48646757b436e05bfe4de07dad755b457be8511382632a9371986"
+    },
+    {
+      "source": "pdf-translate/references/upgrading.md",
+      "destination": "references/upgrading.md",
+      "mode": "100644",
+      "size": 34378,
+      "sha256": "7724135b30b8bfdad16512dec51c0ec9b0e5b7ba1743179cb7f3e9b8b43db946"
+    },
+    {
+      "source": "pdf-translate/references/widget-text.md",
+      "destination": "references/widget-text.md",
+      "mode": "100644",
+      "size": 4714,
+      "sha256": "18f23b377c126a1fff5f408df15493b46d5335f656573c7946b1b5fcdf669747"
+    },
+    {
+      "source": "pdf-translate/requirements.txt",
+      "destination": "requirements.txt",
+      "mode": "100644",
+      "size": 567,
+      "sha256": "07627092448150978d3e135cbfb126ba12f127b8fba8409ff01c9ce7bc9b1c6c"
+    },
+    {
+      "source": "pdf-translate/scripts/bilingual.py",
+      "destination": "scripts/bilingual.py",
+      "mode": "100644",
+      "size": 1082,
+      "sha256": "f1a38f43b801fb4cbbafcbedf4967d4c0cf1b249fc0fd52defcb5c3bf1802857"
+    },
+    {
+      "source": "pdf-translate/scripts/compare.py",
+      "destination": "scripts/compare.py",
+      "mode": "100644",
+      "size": 1074,
+      "sha256": "fa03c6f6055b87465a7a6d39c09ab2e7d8940f9638336364515f52c02eea3774"
+    },
+    {
+      "source": "pdf-translate/scripts/extract_segments.py",
+      "destination": "scripts/extract_segments.py",
+      "mode": "100644",
+      "size": 1110,
+      "sha256": "8100742995516f80d2977a4379825e1b6eb2eb876f23ccd31f5ec745e00e4dce"
+    },
+    {
+      "source": "pdf-translate/scripts/field_fonts.py",
+      "destination": "scripts/field_fonts.py",
+      "mode": "100644",
+      "size": 1090,
+      "sha256": "606a14b31d45985f913fb1a43ae762a289e845b92becdce1bc499546ea5a5008"
+    },
+    {
+      "source": "pdf-translate/scripts/pipeline.py",
+      "destination": "scripts/pipeline.py",
+      "mode": "100644",
+      "size": 1078,
+      "sha256": "59004343b76720c1fda90eb8e15ab4cb6f5b537ee459cec080f2287333bf2d58"
+    },
+    {
+      "source": "pdf-translate/scripts/prepare_font.py",
+      "destination": "scripts/prepare_font.py",
+      "mode": "100644",
+      "size": 1094,
+      "sha256": "152df2e55c093389806f618a4f17fcb8977c7848c66e9c64298549cfd9f6541c"
+    },
+    {
+      "source": "pdf-translate/scripts/qa_check.py",
+      "destination": "scripts/qa_check.py",
+      "mode": "100644",
+      "size": 1078,
+      "sha256": "9218fa95d43445a10684b1d5cc5ffe23d761fcfe315fe76b434ac726dc436e24"
+    },
+    {
+      "source": "pdf-translate/scripts/render_pages.py",
+      "destination": "scripts/render_pages.py",
+      "mode": "100644",
+      "size": 1094,
+      "sha256": "e51df619dc49a4a4a4b55285ac9c3c1477403c251d67cbfaa4045bb813944cd6"
+    },
+    {
+      "source": "pdf-translate/scripts/retypeset.py",
+      "destination": "scripts/retypeset.py",
+      "mode": "100644",
+      "size": 1082,
+      "sha256": "4ec24acd2a6473f60bd7a2321802d1b942c0b47dd552f6204cd202095de9b9de"
+    },
+    {
+      "source": "pdf-translate/scripts/strip_text.py",
+      "destination": "scripts/strip_text.py",
+      "mode": "100644",
+      "size": 1086,
+      "sha256": "e3ab0a8d48d478f0bb3a104c6fd620bb03ea74ad0624d928340ccc7e1a3e70db"
+    },
+    {
+      "source": "pdf-translate/scripts/verify.py",
+      "destination": "scripts/verify.py",
+      "mode": "100644",
+      "size": 1070,
+      "sha256": "01b95d53aee3380af7389bab37312e199df381d07de74227899126600f4af7e4"
+    },
+    {
+      "source": "pdf-translate/SKILL.md",
+      "destination": "history/upstream-v89/pdf-translate/SKILL.md",
+      "mode": "100644",
+      "size": 37427,
+      "sha256": "d6baf6e56089805b9dd4151d774e01b864369fc721b0db737d0724c50faf49be"
+    },
+    {
+      "source": "pdf-translate/tests/__init__.py",
+      "destination": "tests/__init__.py",
+      "mode": "100644",
+      "size": 39,
+      "sha256": "5a8638964991584ee7359535798b3222cf79a1e02cfea8f16faf28985f81f6cb"
+    },
+    {
+      "source": "pdf-translate/tests/fonts/README.md",
+      "destination": "tests/fonts/README.md",
+      "mode": "100644",
+      "size": 3584,
+      "sha256": "5ae107dff19689fa733332985adcead8cbc4e390894cc6af11a58ef5becd9a63"
+    },
+    {
+      "source": "pdf-translate/tests/test_cjk_leak.py",
+      "destination": "tests/test_cjk_leak.py",
+      "mode": "100644",
+      "size": 23566,
+      "sha256": "28d5f924136f00ccddab9b4eaa35b01c852aa90fcef3e4f29ee8d29fa288232c"
+    },
+    {
+      "source": "pdf-translate/tests/test_cjk.py",
+      "destination": "history/upstream-v89/relocated-originals/tests/test_cjk.py",
+      "mode": "100644",
+      "size": 23756,
+      "sha256": "1fcc302415d30a756c085c8d7ba83196e8ab6cb5cf0583a6afb600e5f16854fb",
+      "successor": {
+        "path": "tests/test_cjk.py",
+        "size": 23756,
+        "sha256": "bd963c2ff0364c5ea12f876fdf21425c30491ad1ec6eba4b82699ecda317dae1"
+      }
+    },
+    {
+      "source": "pdf-translate/tests/test_cli_input_logging.py",
+      "destination": "tests/test_cli_input_logging.py",
+      "mode": "100644",
+      "size": 9636,
+      "sha256": "3bc51dfc3af818a105b099e505624f3cfd631d93bc51c2c4bb5386370d8e67bf"
+    },
+    {
+      "source": "pdf-translate/tests/test_consumer_contract.py",
+      "destination": "tests/test_consumer_contract.py",
+      "mode": "100644",
+      "size": 20329,
+      "sha256": "7f8df88602b1d7490d27bf1fe810f117e9990217f4552bf8880f660fb0908f02"
+    },
+    {
+      "source": "pdf-translate/tests/test_corpus_verdicts.py",
+      "destination": "tests/test_corpus_verdicts.py",
+      "mode": "100644",
+      "size": 10040,
+      "sha256": "b6f8c927c3661497fe09ed2910ce75843d7a49e4c79344f2d2bbd4edfafbcb37"
+    },
+    {
+      "source": "pdf-translate/tests/test_han_forms.py",
+      "destination": "tests/test_han_forms.py",
+      "mode": "100644",
+      "size": 34340,
+      "sha256": "d320d00b44473481121e728d8b60487c1dc103464576c91116683e9766586481"
+    },
+    {
+      "source": "pdf-translate/tests/test_import_surface.py",
+      "destination": "tests/test_import_surface.py",
+      "mode": "100644",
+      "size": 38284,
+      "sha256": "adec0cf41315b92596c39bfb7856cb44d34e85300ef555646c40c290d1635c13"
+    },
+    {
+      "source": "pdf-translate/tests/test_lang_tag.py",
+      "destination": "tests/test_lang_tag.py",
+      "mode": "100644",
+      "size": 9069,
+      "sha256": "474e7dccaaaaf783b359ee4199c409b282f0a4a808e785470fae75cabbe50665"
+    },
+    {
+      "source": "pdf-translate/tests/test_multispan_box.py",
+      "destination": "tests/test_multispan_box.py",
+      "mode": "100644",
+      "size": 3070,
+      "sha256": "705083e5444f2859a9b55ba14ba1d96277c218b67d5e7df5347744fa072b9fea"
+    },
+    {
+      "source": "pdf-translate/tests/test_page_parity.py",
+      "destination": "tests/test_page_parity.py",
+      "mode": "100644",
+      "size": 12566,
+      "sha256": "106efa51c06120cd98e392e3ad4f8a98720785b8fb724f567fb4048fc1691da7"
+    },
+    {
+      "source": "pdf-translate/tests/test_pipeline.py",
+      "destination": "tests/test_pipeline.py",
+      "mode": "100644",
+      "size": 397038,
+      "sha256": "32209ba4c26d05da89b0ba13c15b91a3be554420aa9831e0593b3066ca2b1f2a"
+    },
+    {
+      "source": "pdf-translate/tests/test_pixels.py",
+      "destination": "tests/test_pixels.py",
+      "mode": "100644",
+      "size": 8188,
+      "sha256": "6e857d19df8ddf1281171f8ecfb468bbc3faa6891ee7f20aec00d06be67342bb"
+    },
+    {
+      "source": "pdf-translate/tests/test_prepare_font_instancing.py",
+      "destination": "tests/test_prepare_font_instancing.py",
+      "mode": "100644",
+      "size": 6136,
+      "sha256": "10e45ca95a579ff4093e2f88ab0f43f0c09608e17d25065c4857b80ad7d0938d"
+    },
+    {
+      "source": "pdf-translate/tests/test_rebuild_attempt.py",
+      "destination": "tests/test_rebuild_attempt.py",
+      "mode": "100644",
+      "size": 14441,
+      "sha256": "e6ec6c6d4d223d51fb08c8c2bef39b35816af6c5a0b453cd88304becb059ec9c"
+    },
+    {
+      "source": "pdf-translate/tests/test_results.py",
+      "destination": "tests/test_results.py",
+      "mode": "100644",
+      "size": 6663,
+      "sha256": "828c93205a7177508b57b3cca3bb040d31c12ed57945d69dcf3192499ea5fd5c"
+    },
+    {
+      "source": "pdf-translate/tests/test_retypeset_capture.py",
+      "destination": "tests/test_retypeset_capture.py",
+      "mode": "100644",
+      "size": 35417,
+      "sha256": "e1bfa9d99ebf1ea88c957814477820353f18200d8c937d363e183352a8f56c13"
+    },
+    {
+      "source": "pdf-translate/tests/test_review.py",
+      "destination": "tests/test_review.py",
+      "mode": "100644",
+      "size": 37816,
+      "sha256": "46cb3b75c56f5085a3cac802cfd164a0cc94bda0627dd9435a4e0dc721ca010a"
+    },
+    {
+      "source": "pdf-translate/tests/test_rotated_features.py",
+      "destination": "tests/test_rotated_features.py",
+      "mode": "100644",
+      "size": 7637,
+      "sha256": "9aa0639743c3308d655fecd6eb9e360762ebf371d86b5bcc195b0a59335ba18c"
+    },
+    {
+      "source": "pdf-translate/tests/test_rotated_neighbours.py",
+      "destination": "tests/test_rotated_neighbours.py",
+      "mode": "100644",
+      "size": 9747,
+      "sha256": "6cb2ddcfe0b9426630a57e8caa8260fd5ff203a68d944e7a9b763441d99ee78c"
+    },
+    {
+      "source": "pdf-translate/tests/test_shaping_probe.py",
+      "destination": "tests/test_shaping_probe.py",
+      "mode": "100644",
+      "size": 16156,
+      "sha256": "9f58bda630fad409872faae28d6d04ae4bc7c2812446223c6dcb32a6a47e2b3a"
+    },
+    {
+      "source": "pdf-translate/tests/test_shipped_docs.py",
+      "destination": "history/upstream-v89/relocated-originals/tests/test_shipped_docs.py",
+      "mode": "100644",
+      "size": 10703,
+      "sha256": "905c85c869ff841f35d568d705b2a4a22825bb913b5a0dc7e46941c6df24f2c0",
+      "successor": {
+        "path": "tests/test_shipped_docs.py",
+        "size": 10734,
+        "sha256": "6d6e3877838946151fdf3e3af66d28c0c8527557c98b1260e21897b493942b61"
+      }
+    },
+    {
+      "source": "pdf-translate/tests/test_typography_acceptance.py",
+      "destination": "history/upstream-v89/relocated-originals/tests/test_typography_acceptance.py",
+      "mode": "100644",
+      "size": 11231,
+      "sha256": "85b1964427afd73e238ad2679e2ae7010a047c0492f8627da501c1417f801703",
+      "successor": {
+        "path": "tests/test_typography_acceptance.py",
+        "size": 11203,
+        "sha256": "ed5159da68a4aa9e7c5ac8be1c7e5385b16d8c918578b4151aa31461904c8647"
+      }
+    },
+    {
+      "source": "pdf-translate/tests/test_typography_extract.py",
+      "destination": "tests/test_typography_extract.py",
+      "mode": "100644",
+      "size": 10247,
+      "sha256": "e7cb2a5296939335d98348ff5d4506b7f926773ab062ed072a79c92183fdd180"
+    },
+    {
+      "source": "pdf-translate/tests/test_typography_fonts.py",
+      "destination": "tests/test_typography_fonts.py",
+      "mode": "100644",
+      "size": 11969,
+      "sha256": "58394cf906ab48fad38fdae8e1395551f01e1f63e5565c5e8a6e960ad86ff8f5"
+    },
+    {
+      "source": "pdf-translate/tests/test_typography_mapping.py",
+      "destination": "tests/test_typography_mapping.py",
+      "mode": "100644",
+      "size": 15866,
+      "sha256": "4f3effe02cdc010f81bae1265b4ba9e44a6ab20cb998b4c2f27f9dbbea7cad25"
+    },
+    {
+      "source": "pdf-translate/tests/test_typography_metrics.py",
+      "destination": "tests/test_typography_metrics.py",
+      "mode": "100644",
+      "size": 16962,
+      "sha256": "4766ff66ca7c845e66cbe22d3254fd02347ab020f063964f1ff70f647de2d0c6"
+    },
+    {
+      "source": "pdf-translate/tests/test_typography_pipeline.py",
+      "destination": "tests/test_typography_pipeline.py",
+      "mode": "100644",
+      "size": 13619,
+      "sha256": "93e3dfd7b44e9930b87992ce4cb61a5024e74ea954250d4bf664a7e8564bae22"
+    },
+    {
+      "source": "pdf-translate/tests/test_typography_retypeset.py",
+      "destination": "tests/test_typography_retypeset.py",
+      "mode": "100644",
+      "size": 20020,
+      "sha256": "741fc53a7ba052b01444e2c9e5f7b943c5dbcb2465f577302d2415049d03137a"
+    },
+    {
+      "source": "pdf-translate/tests/test_typography_review.py",
+      "destination": "tests/test_typography_review.py",
+      "mode": "100644",
+      "size": 10419,
+      "sha256": "5e7239d10e2a81cdf7ca2df9bd93f9442c0e97add989b432287ae80ca3f3d439"
+    },
+    {
+      "source": "pdf-translate/tests/test_typography_verify.py",
+      "destination": "tests/test_typography_verify.py",
+      "mode": "100644",
+      "size": 20958,
+      "sha256": "cff2a470ed23439b76a5896c077ae5feda995ece6dc5a2fd88518f174f874bcf"
+    },
+    {
+      "source": "pdf-translate/tests/test_verify_report.py",
+      "destination": "tests/test_verify_report.py",
+      "mode": "100644",
+      "size": 35915,
+      "sha256": "86840ab1fda701b213a61fbe2531908d0636fe0dbe358c8a6e42f5a9b5002eea"
+    },
+    {
+      "source": "pdf-translate/tests/test_widget_text_authored.py",
+      "destination": "tests/test_widget_text_authored.py",
+      "mode": "100644",
+      "size": 6092,
+      "sha256": "1646d8b29438ec500be825e96968a23e59dcfa071faf3b3806b2f052d12811da"
+    },
+    {
+      "source": "pdf-translate/tests/test_widget_text_gate.py",
+      "destination": "tests/test_widget_text_gate.py",
+      "mode": "100644",
+      "size": 6482,
+      "sha256": "33c3879c0339e65c76d9f7ad9fa2ae9b4c0adf167d626908eb06f58042ed7237"
+    },
+    {
+      "source": "pdf-translate/tests/typography_fixtures.py",
+      "destination": "tests/typography_fixtures.py",
+      "mode": "100644",
+      "size": 4772,
+      "sha256": "c9026a07cf93074d47d9c245ad7732a18a1680c0d52dae33dd09ff1e94d23140"
+    },
+    {
+      "source": "pdf-translate/tools/fetch_test_fonts.py",
+      "destination": "tools/fetch_test_fonts.py",
+      "mode": "100644",
+      "size": 10184,
+      "sha256": "d70ef0305a628de8fb02bdf39b5cd8785fdb8e7cb589fa1c40f1571dc6053eed"
+    },
+    {
+      "source": "pyrightconfig.json",
+      "destination": "history/upstream-v89/pyrightconfig.json",
+      "mode": "100644",
+      "size": 259,
+      "sha256": "79ca575b8e4182354ac5223d15a10fce1fde5a6b2a212c1549a4e53816b154ce"
+    },
+    {
+      "source": "README.md",
+      "destination": "history/upstream-v89/README.md",
+      "mode": "100644",
+      "size": 6543,
+      "sha256": "e8efc9efe32ffea5328788ec99f2de0aa0a698e6bc22379cdcdc6edd472e9d25"
+    }
+  ]
+}

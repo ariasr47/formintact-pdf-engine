@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "lock_policy": "Any carrier, schema, generator, verifier, expected hash, reference, crop, matrix, or comparator change is GATE Z and requires a new operator ruling.",
+  "canonicalization": {
+    "runtime": "CPython 3.12.13",
+    "json": "UTF-8; sorted object keys; array order preserved; separators comma/colon; finite binary64 shortest-round-trip numbers; signed zero normalized positive; no trailing newline"
+  },
+  "source_pdf": {
+    "path": "apps/api/tests/fixtures/benchmark-invoice.pdf",
+    "sha256": "8007b9772e75998af9652afa04ec9bcbfba07ba8763610a5009da7d8cc572533",
+    "page_number": 1
+  },
+  "carrier_schema": {
+    "path": "apps/api/tests/reference/cjk-carriers/carrier.schema.json",
+    "sha256": "0d288a14f573c750c3dbbe6942e5510ac32691dd3dc3a0bddcd146866fb00323",
+    "unknown_fields": "rejected recursively"
+  },
+  "verifier": {
+    "path": "apps/api/tests/reference/cjk-carriers/verify_provenance.py",
+    "sha256": "0e79e44d69ffe21fa1a528af954e174f38851fe7a43ac4a7463b1b2f1fe90a3b",
+    "construction_archive_excludes": "apps/api/tests/reference",
+    "command": "cd apps/api && uv run python tests/reference/cjk-carriers/verify_provenance.py"
+  },
+  "current_expected_cases": {
+    "page1": {"cardinality": 4, "ordered_unit_ids": ["1-0#0", "1-1#0", "1-2#0", "1-3#0"]},
+    "ellipsis_middle_dot": {"cardinality": 4, "ordered_unit_ids": ["1-0#0", "1-1#0", "1-2#0", "1-3#0"]}
+  },
+  "cases": [
+    {
+      "case_id": "page1",
+      "historical_commit": "93bdf67e812796c69a61cb90e0413b7ff6fd2da0",
+      "historical_identity_kind": "unit_id",
+      "historical_ordered_ids": ["1-0#0", "1-1#0", "1-2#0", "1-3#0"],
+      "carrier_path": "apps/api/tests/reference/cjk-carriers/page1.json",
+      "carrier_bytes": 1937,
+      "carrier_sha256": "70484d30062d4dfb4337adafa5e160f553ad9abb81c06db8e9b078c912d46252",
+      "capture_path": "apps/api/tests/reference/cjk-carriers/generators/capture_page_93bdf67.py",
+      "capture_sha256": "3106ff59c5b7d3c692c28b6e7c14a2dbb59ade9b52cb8e70bcf05a9a2a94c2c8",
+      "reference_path": "apps/api/tests/reference/cjk-e2e-page1-truth.png",
+      "reference_sha256": "b159d580e2c2b490db8fc6f43363391580b4ccbee73034855d5b7573097bdfb6",
+      "fresh_binding_replay_pixel_diff_ratio": 0.0
+    },
+    {
+      "case_id": "ellipsis_middle_dot",
+      "historical_commit": "1cad9b96cae733c75a4cb49fc69311e432ca4c34",
+      "historical_identity_kind": "block_id",
+      "historical_ordered_ids": ["1-0", "1-1", "1-2", "1-3"],
+      "carrier_path": "apps/api/tests/reference/cjk-carriers/ellipsis-middle-dot.json",
+      "carrier_bytes": 1750,
+      "carrier_sha256": "a1061fabf0181a427abd87780024191802523df2f89e77e0a122ad7d44a28ee5",
+      "capture_path": "apps/api/tests/reference/cjk-carriers/generators/capture_ellipsis_1cad9b9.py",
+      "capture_sha256": "949ce622ea218d3edca76fc872c7cffef1b78ce4790480d7db8bede78eb3cd53",
+      "reference_path": "apps/api/tests/reference/cjk-e2e-ellipsis-middledot-truth.png",
+      "reference_sha256": "3e01dd108ad760a4e79930e221a467f67eb9409ff45f06e80b08209da5f49d4b",
+      "fresh_binding_replay_pixel_diff_ratio": 0.0
+    }
+  ],
+  "historical_environment": {
+    "python": "3.12.13",
+    "pymupdf": "1.28.0",
+    "cjk_font_sha256": "18d2e473fac1ff966fc9782ecf011f3d15a084bdf958f41dcf9a2b4f2ff55f3a"
+  }
+}

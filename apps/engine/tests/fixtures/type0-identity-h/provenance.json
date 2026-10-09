@@ -1,0 +1,37 @@
+{
+  "alpha": false,
+  "artifacts": {
+    "expected-full.png": "f434e2fab0e3db2405c66a157b099ddd3218c1026933c7325daf1c01fdfa387f",
+    "expected-spanish.pdf": "9dcc5bb069ed9252d59a342103e0659214f2c38aefad8a3968d0ba08315938dd",
+    "protected-graphic.png": "4a388b5b2c2768b34b99facf090223ba8fe1c33176a37bbeeae588c4fb470fc1",
+    "protected-widget.png": "43fb2156f5d1ec2f7a29b90ea151b1fc51fb5543390c12e62e6c0733a32fa975",
+    "source-multi-font-identity-h.pdf": "4ba7a6f426fb21e15278b97285372757c36bd87480b0f9e8687572e85f2d2316"
+  },
+  "colorspace": "RGB",
+  "delta_threshold": 8,
+  "expected_words": [
+    "\u00c1rbol",
+    "Casa",
+    "Gasto",
+    "Fecha"
+  ],
+  "font_assets": {
+    "pdft_engine/assets/fonts/NotoSans-Regular.ttf": "478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823",
+    "pdft_engine/assets/fonts/NotoSerif-Regular.ttf": "19e72cd8d595fae5bd74a5206f5d938512e1183d4fed7abb1ec1be1d7efa5f88"
+  },
+  "pdf_metadata_date": "D:20260930000000Z",
+  "pikepdf": "10.12.0",
+  "produced_utc": "2026-10-01T03:25:03.128640Z",
+  "producer": "tests/support/type0_identity_h_fixture.py",
+  "protected_crop_ratio": 0.0,
+  "pymupdf": "1.28.0",
+  "regeneration_intent": "manual review required; never regenerate as a dependency side effect",
+  "source_words": [
+    "Alpha",
+    "Beta",
+    "Gamma",
+    "Delta"
+  ],
+  "whole_page_ratio_max": 0.001,
+  "zoom": 2.0
+}

@@ -1,0 +1,16 @@
+{
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/compat",
+      "path_params": {},
+      "query": {},
+      "required": {
+        "status": "string",
+        "items[].id": "number",
+        "nullable": "string|null",
+        "optional_note": "string?"
+      }
+    }
+  ]
+}

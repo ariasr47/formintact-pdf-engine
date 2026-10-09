@@ -1,0 +1,72 @@
+[project]
+name = "pdft-engine"
+version = "0.1.0"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+  "fastapi==0.141.1",
+  "fonttools==4.65.0",
+  "pdf-translate",
+  "pdft-engine-contract",
+  "pikepdf==10.12.0",
+  "pydantic==2.13.4",
+  "pymupdf==1.28.0",
+  "uvicorn==0.52.1",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.8.2"]       # no httpx: engine tests use stdlib http.client (SPEC §2 "never contains httpx")
+
+[tool.uv.sources]
+pdf-translate = { path = "../../libs/pdf-translate", editable = false }
+pdft-engine-contract = { path = "../../libs/engine-contract", editable = true }
+
+# The engine's code moved out of apps/api, so it keeps apps/api's lint rules (same selection, same
+# line length). apps/web cites pipeline.py, pdfops.py and fit.py by line: a lint fix above a cited
+# range must keep the line count (OPERATOR_RULES §5).
+[tool.ruff]
+exclude = [
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "dist",
+]
+
+line-length = 100
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+  # pycodestyle
+  "E",
+  # Pyflakes
+  "F",
+  # pyupgrade
+  "UP",
+  # flake8-bugbear
+  "B",
+  # flake8-simplify
+  "SIM",
+  # isort
+  "I",
+]
+ignore = []
+
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.isort]
+# These historical capture generators import the pre-split app package on purpose.
+# Keep that legacy boundary as a separate first-party import section so their
+# pinned bytes remain intact while the engine lint stays strict.
+known-first-party = ["api"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["pdft_engine"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

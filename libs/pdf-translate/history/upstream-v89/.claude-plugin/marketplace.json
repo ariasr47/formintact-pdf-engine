@@ -1,0 +1,15 @@
+{
+  "name": "pdf-translate-skill",
+  "owner": {
+    "name": "Rodrigo Arias"
+  },
+  "description": "The pdf-translate skill: layout-faithful PDF translation with form fields intact",
+  "plugins": [
+    {
+      "name": "pdf-translate",
+      "source": "./",
+      "description": "Translate a born-digital PDF into another language with the layout pixel-faithful and every fillable form field working; gates refuse rather than guess",
+      "keywords": ["pdf", "translation", "localization", "forms", "acroform"]
+    }
+  ]
+}

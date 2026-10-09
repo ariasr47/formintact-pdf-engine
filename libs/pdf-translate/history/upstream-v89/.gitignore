@@ -1,0 +1,48 @@
+# Job artifacts (FL-150 run, fonts, renders) — not the skill
+work/
+/runs/
+_edge-pack/
+fl150_original.pdf
+FL-150_ja.pdf
+comparison.html
+/NOTES.md
+/translations.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Session exports and evaluation output — not the skill
+Claude Session Handover/
+Claude-Session-Handover.zip
+bakeoff/
+v1_vs_v2_report.html
+/pdf-translate/quality-bakeoff.html
+/pdf-translate/recommendations.html
+/pdf-translate/CHATGPT_SESSION_PROMPT.md
+
+# Eval fixtures are generated (evals/make_fixtures.py), not committed
+pdf-translate/evals/fixtures/
+
+# Test fonts are fetched (pdf-translate/tools/fetch_test_fonts.py), not committed
+pdf-translate/tests/fonts/*.ttf
+dev/canary/fixtures/
+# score.py rewrites this on every run and it holds absolute paths to files
+# that are themselves gitignored; the durable record is dev/canary/runs/.
+dev/canary/last-score.json
+
+# Wild-corpus PDFs are downloaded by dev/wild (public, recorded by URL and size), never committed
+dev/wild/files/
+dev/wild/work/
+
+# The seeded design canvas is a build output: ~2.5 MB of editor payload that
+# re-seeds from the .dc.html sources and canvas.json beside it in one command.
+docs/design/*/*.html
+!docs/design/*/*.dc.html

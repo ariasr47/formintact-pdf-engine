@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdf-translate"
+version = "89.0.4"
+description = "Layout-faithful PDF translation with working form fields"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.14"
+authors = [{name = "Rodrigo Arias"}]
+dependencies = [
+    "pymupdf>=1.24,<1.30",
+    "pikepdf>=8.0,<11",
+    "fonttools>=4.40,<5",
+]
+
+[tool.setuptools]
+packages = ["pdf_translate"]
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "ruff==0.16.1"]
+
+[tool.uv]
+# Reproduce the adopted engine producer; public runtime bounds stay unchanged.
+constraint-dependencies = ["pymupdf==1.28.0", "pikepdf==10.12.0", "fonttools==4.65.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+# Existing upstream lint scope; history is immutable evidence.
+include = ["pdf_translate/**/*.py", "tools/verify_migration.py", "tests/test_migration_provenance.py"]
+
+[tool.ruff.lint]
+select = ["F"]

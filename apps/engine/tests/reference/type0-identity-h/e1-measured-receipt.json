@@ -1,0 +1,127 @@
+{
+  "schema": "engine-e1-measured-receipt/v1",
+  "producer": "/root/type0_engine_finish",
+  "recorded_local_date": "2026-09-30",
+  "timezone": "America/Los_Angeles",
+  "evidence_policy": "Only outputs observed in the granted E1 process window are recorded. Missing hashes are omitted rather than reconstructed.",
+  "runtime": {
+    "python": "C:\\Dev\\pdf-translator\\.worktrees\\public-offer-polish\\apps\\engine\\.venv\\Scripts\\python.exe",
+    "pythonpath": "C:\\Dev\\pdf-translator\\.worktrees\\session-1-type0-identity-h\\apps\\engine;C:\\Dev\\pdf-translator\\.worktrees\\session-1-type0-identity-h\\libs\\engine-contract",
+    "pymupdf": "1.28.0",
+    "node": "C:\\nvm4w\\nodejs\\node.exe",
+    "jest_runtime": "C:\\Dev\\pdf-translator\\.worktrees\\formintact-session-3\\node_modules\\jest\\bin\\jest.js"
+  },
+  "hashes": {
+    "source_fixture_sha256": "4ba7a6f426fb21e15278b97285372757c36bd87480b0f9e8687572e85f2d2316",
+    "pdfops_sha256_baseline_restore_guard_before_and_after": "a7bd597852bb6aff4a53b6ec7e46be8ecf2b8c05d2339a176814aed75d548e7e",
+    "historical_replay_test_source_sha256": "a8cf158f8275acef304ede47616783496258d169566de9c0366983c6da2468f1",
+    "historical_baseline_commit": "3cd7c28f03e7d4140a50c5343f1aeb122a8e86ac"
+  },
+  "runs": [
+    {
+      "name": "identity_h_focused",
+      "cwd": "apps/engine",
+      "command": "python -m pytest tests/test_strip_match.py tests/test_strip_cross_group_regression.py tests/test_rebuild_strip_path.py -q -k identity_h",
+      "exit_code": 0,
+      "counts": {
+        "passed": 11,
+        "deselected": 12
+      },
+      "elapsed_seconds": 2.19
+    },
+    {
+      "name": "existing_engine_controls",
+      "cwd": "apps/engine",
+      "command": "python -m pytest tests/test_strip_match.py tests/test_strip_cross_group_regression.py tests/test_strip_isolation.py tests/test_wg33_pin_gate.py tests/test_strip_field_parity.py tests/test_terminal_rung_floor.py tests/test_page_count_invariant.py -q",
+      "exit_code": 0,
+      "counts": {
+        "passed": 32
+      },
+      "elapsed_seconds": 85.24
+    },
+    {
+      "name": "targeted_ruff",
+      "cwd": "apps/engine",
+      "command": "python -m ruff check pdft_engine/type0.py pdft_engine/pdfops.py tests/test_rebuild_strip_path.py tests/test_strip_match.py tests/test_strip_cross_group_regression.py tests/support/type0_identity_h_fixture.py",
+      "exit_code": 0,
+      "output": "All checks passed!"
+    },
+    {
+      "name": "floor_guard_jest",
+      "cwd": "apps/web",
+      "environment": {
+        "NODE_PATH": "C:\\Dev\\pdf-translator\\.worktrees\\formintact-session-3\\node_modules"
+      },
+      "command": "C:\\nvm4w\\nodejs\\node.exe C:\\Dev\\pdf-translator\\.worktrees\\formintact-session-3\\node_modules\\jest\\bin\\jest.js -c jest.config.ts --ci --runInBand src/lib/content/languages/floor-guard.spec.ts",
+      "exit_code": 0,
+      "counts": {
+        "test_suites_passed": 1,
+        "tests_passed": 13,
+        "snapshots": 0
+      },
+      "jest_reported_seconds": 4.286,
+      "note": "Jest emitted the existing multiple-lockfile workspace-root warning."
+    },
+    {
+      "name": "current_real_pipeline_pixel_measurement",
+      "cwd": "apps/engine",
+      "command": "Inline Python diagnostic using tests.support.deliver.deliver, tests.test_rebuild_strip_path._pixmap/_pixel_diff, zoom 2.0, RGB alpha false, whole-page channel delta threshold 8, and protected-crop byte comparison.",
+      "exit_code": 0,
+      "delivery_status": "done",
+      "result_path_at_measurement": "apps/engine/reports/task/final-measure/result.pdf",
+      "page_count": 1,
+      "rendered_text": "Árbol\nCasa\nGasto\nFecha\n",
+      "widgets": [
+        {
+          "field_name": "protected-field",
+          "field_value": "UNCHANGED"
+        }
+      ],
+      "whole_page": {
+        "differing_pixels": 0,
+        "ratio": 0.0
+      },
+      "protected_widget": {
+        "width_pixels": 440,
+        "height_pixels": 160,
+        "differing_pixels": 0,
+        "ratio": 0.0,
+        "sample_bytes_equal": true
+      },
+      "protected_graphic": {
+        "width_pixels": 440,
+        "height_pixels": 244,
+        "differing_pixels": 0,
+        "ratio": 0.0,
+        "sample_bytes_equal": true
+      }
+    },
+    {
+      "name": "historical_actual_render_red",
+      "cwd": "apps/engine",
+      "command": "python -m pytest tests/test_rebuild_strip_path.py::test_identity_h_valid_fixture_places_translation -q",
+      "exit_code": 1,
+      "counts": {
+        "failed": 1
+      },
+      "elapsed_seconds": 0.56,
+      "observation": "The 3cd7 baseline plus the page-count compatibility leaf reached deliver and rendered a one-page result, then failed because the intended Spanish words were absent and source content was retained.",
+      "durable_reference": "tests/reference/type0-identity-h/red-before-green.json",
+      "raw_local_receipt": "apps/engine/reports/task/baseline-rendered-replay/receipt.json"
+    },
+    {
+      "name": "new_simple_font_byte_pin_regression",
+      "cwd": "apps/engine",
+      "command": "python -m pytest tests/test_japanese_delivery.py::test_ac9a_a_job_carrying_none_of_the_seven_added_ranges_is_byte_identical -q",
+      "exit_code": 1,
+      "counts": {
+        "failed": 1
+      },
+      "elapsed_seconds": 5.47,
+      "expected_windows_sha256": "483bfee42f2932e2c67fa950d2531e11917dfa0d5a500ad0a16201f7c4a6b8a4",
+      "actual_sha256": "65418bfa8cd9dfdb205679eb4248baa00f39166d872ba8c0455216e0742d35d0",
+      "status": "unresolved; existing pin was not changed"
+    }
+  ],
+  "process_state": "stopped"
+}

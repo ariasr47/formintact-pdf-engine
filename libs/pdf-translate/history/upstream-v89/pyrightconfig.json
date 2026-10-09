@@ -1,0 +1,16 @@
+{
+  "venvPath": "pdf-translate",
+  "venv": ".venv",
+  "include": [
+    "pdf-translate"
+  ],
+  "extraPaths": [
+    "pdf-translate/scripts"
+  ],
+  "exclude": [
+    "**/.venv",
+    "**/__pycache__"
+  ],
+  "typeCheckingMode": "basic",
+  "pythonVersion": "3.14"
+}

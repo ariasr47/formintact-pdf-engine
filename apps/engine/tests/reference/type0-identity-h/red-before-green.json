@@ -1,0 +1,16 @@
+{
+  "test": "tests/test_rebuild_strip_path.py::test_identity_h_valid_fixture_places_translation",
+  "command": "C:\\Dev\\pdf-translator\\.worktrees\\public-offer-polish\\apps\\engine\\.venv\\Scripts\\python.exe -m pytest tests/test_rebuild_strip_path.py::test_identity_h_valid_fixture_places_translation -q",
+  "head_before_replay": "38c0085436040fea56fc14269e86be1cb24c3e0d",
+  "baseline_full_sha": "3cd7c28f03e7d4140a50c5343f1aeb122a8e86ac",
+  "fixture_sha256": "4ba7a6f426fb21e15278b97285372757c36bd87480b0f9e8687572e85f2d2316",
+  "test_source_sha256": "a8cf158f8275acef304ede47616783496258d169566de9c0366983c6da2468f1",
+  "execution": "baseline pdfops.py loaded by read-only git show with only the later page_count leaf appended so real delivery reached rendered output; current bytes finally restored",
+  "production_sha_before": "a7bd597852bb6aff4a53b6ec7e46be8ecf2b8c05d2339a176814aed75d548e7e",
+  "production_sha_after": "a7bd597852bb6aff4a53b6ec7e46be8ecf2b8c05d2339a176814aed75d548e7e",
+  "exit_code": 1,
+  "elapsed_ms": 1213,
+  "failure": "AssertionError: rendered output did not contain all four intended Spanish words; historical strip logic retained the Type0 source instead of placing translation",
+  "observed_output": "1 failed in 0.56s at the rendered-text assertion after actual deliver()",
+  "valid_red": true
+}

@@ -1,0 +1,119 @@
+{
+  "schema": "engine-legacy-regression-replay/v1",
+  "producer": "pytest and PyMuPDF causal replay",
+  "recorded_local_date": "2026-09-30",
+  "runtime": "pre-upgrade external engine venv",
+  "nodes": [
+    "tests/test_japanese_delivery.py::test_ac9a_a_job_carrying_none_of_the_seven_added_ranges_is_byte_identical",
+    "tests/test_form_fidelity_crops.py::test_ac3_all_nine_grey_patch_regions_stay_the_page_colour",
+    "tests/test_form_fidelity_crops.py::test_ac4_the_delivered_page_is_the_same_page_wherever_the_original_had_no_glyphs"
+  ],
+  "replays": [
+    {
+      "source": "3cd7c28f03e7d4140a50c5343f1aeb122a8e86ac plus disclosed page_count compatibility leaf",
+      "pdfops_sha256": "0c5aaac042a675d4c4a3c49a8a21d28b62073d3ef6a4814d91fe323e4ab85ab2",
+      "exit_code": 0,
+      "result": "3 passed",
+      "elapsed_seconds": 24.78
+    },
+    {
+      "source": "46c21a9b plus disclosed page_count compatibility leaf",
+      "pdfops_sha256": "58054d90501232d8ec35684c9efe6c6b2fdf53caf041b611e591f37bdb0c4c41",
+      "exit_code": 1,
+      "result": "1 failed, 2 passed",
+      "elapsed_seconds": 25.26,
+      "latin_pin_expected_sha256": "483bfee42f2932e2c67fa950d2531e11917dfa0d5a500ad0a16201f7c4a6b8a4",
+      "latin_pin_actual_sha256": "d35aed0c885d946211b5ebac3fbed32b4c20c5c12fd8eaf500bbf666bca383ee",
+      "protected_crops": "passed"
+    },
+    {
+      "source": "ab6c81fc plus disclosed page_count compatibility leaf",
+      "pdfops_sha256": "281f8b6ebd181696bf444f4f471ccdeb42352622e6d58c8d40f93e8288e76da7",
+      "exit_code": 1,
+      "result": "3 failed",
+      "elapsed_seconds": 25.8,
+      "latin_pin_expected_sha256": "483bfee42f2932e2c67fa950d2531e11917dfa0d5a500ad0a16201f7c4a6b8a4",
+      "latin_pin_actual_sha256": "65418bfa8cd9dfdb205679eb4248baa00f39166d872ba8c0455216e0742d35d0",
+      "protected_crop_failure": {
+        "page": 1,
+        "rect": [129.96, 203.0, 180.16, 204.0],
+        "ratio": 0.12745098039215685
+      }
+    },
+    {
+      "source": "current saved bytes",
+      "pdfops_sha256": "a7bd597852bb6aff4a53b6ec7e46be8ecf2b8c05d2339a176814aed75d548e7e",
+      "exit_code": 1,
+      "result": "3 failed",
+      "elapsed_seconds": 27.82,
+      "latin_pin_actual_sha256": "65418bfa8cd9dfdb205679eb4248baa00f39166d872ba8c0455216e0742d35d0",
+      "protected_crop_failure": {
+        "page": 1,
+        "rect": [129.96, 203.0, 180.16, 204.0],
+        "ratio": 0.12745098039215685
+      }
+    }
+  ],
+  "diagnosis": {
+    "first_byte_pin_regression": "46c21a9b decodes FL-150 Type0 Identity-H operators, making 31 genuinely fitted source units strip-matchable; the earlier terminal-skipped explanation was disproved by the admission diagnostic.",
+    "first_crop_regression": "ab6c81fc changes unresolved active-font handling to treat every pre-Tf show as an opaque barrier; both protected-crop oracles expose the retained residue.",
+    "discarded_experiment": "A legacy/strict dual-parser source-text selector remained red because FL-150's 31 fitted source units are available only through the strict CMap. Selecting the legacy parser would suppress supported placement rather than distinguish a terminal unit. The experiment was removed.",
+    "admission_diagnostic": {
+      "command": "Existing engine deliver helper on fl150_print.pdf page 1, default SpacelessCJKTranslator, target_lang Spanish; count final UnitCoverage outcomes and hash result.",
+      "related_node": "tests/test_japanese_delivery.py::test_ac9a_a_job_carrying_none_of_the_seven_added_ranges_is_byte_identical",
+      "source_pdf": "tests/fixtures/fl150_print.pdf",
+      "delivered_pdf": "apps/engine/reports/task/ac9a-diagnostic/result.pdf",
+      "output_directory_used": "apps/engine/reports/task/ac9a-diagnostic",
+      "artifact_note": "A read-only SHA-256 check after the parent located the retained artifact verified that result.pdf matches the hash printed by the diagnostic. The directory also retains page-1.pdf.",
+      "translator": "tests.support.translators.SpacelessCJKTranslator",
+      "runtime": "C:\\Dev\\pdf-translator\\.worktrees\\public-offer-polish\\apps\\engine\\.venv\\Scripts\\python.exe (pre-upgrade)",
+      "target_lang": "Spanish",
+      "exit_code": 1,
+      "exit_note": "Delivery and measurement completed; the diagnostic script then referenced the nonexistent UnitCoverage.id attribute while attempting optional per-ID printing.",
+      "delivery_status": "done",
+      "result_sha256": "65418bfa8cd9dfdb205679eb4248baa00f39166d872ba8c0455216e0742d35d0",
+      "total_units": 93,
+      "fitted_units": 31,
+      "skipped_no_room_for_translation_units": 62
+    },
+    "gate_z": "The admission hypothesis is disproved. fit_ops already excludes terminal units before collision admission and strip-unit construction. AC9a has 31 genuinely fitted units, and valid Type0 decoding makes those fitted sources matchable and placeable. The 3cd7 parser cannot decode them, so its strip misses leave the byte pin unchanged. Preserving that byte-identical pin would require disabling supported Type0 placement for this valid PDF or adding a fixture/document/translator exception. The protected crop first fails when ab6c81fc adds the required missing-Tf fail-closed barrier; reverting that condition weakens the feature's required safety behavior. Existing oracles remain unchanged pending a contract ruling."
+    ,"crop_causal_diagnostic": {
+      "source_rect_points": [129.96, 203.0, 180.16, 204.0],
+      "raster_rect_at_zoom_2": [260, 406, 360, 408],
+      "raster_size_pixels": [100, 2],
+      "current": {
+        "result_pdf": "apps/engine/reports/task/crop-causal/current/result.pdf",
+        "result_pdf_sha256": "91143452c78bd829c77d92128a4b72f4b1872334a2f401e6795789f9fa53a831",
+        "page_png_sha256": "0c84e7b0696723984a6714fa0536d4c1f0a0254083906e34b72ede81b3fa105a",
+        "source_crop_sha256": "4d66f8f98d804247b1af0dff232ffa989cb1a84daa9dcb4811adc779e6f6a452",
+        "delivered_crop_sha256": "8f14fb2434e189e97b977e77159545f5ccd2d7f072795f5dd50627cd3ad1ebc9",
+        "diff_crop_sha256": "f2c1bcb24ce0aefa16ed7bb87b3a17cd2d769312e96321e339ed0ac1a9515844",
+        "differing_pixels_delta_gt_8": 26,
+        "ratio": 0.13,
+        "diff_bbox_pixels": [31, 1, 74, 2],
+        "extracted_text": ["丂丑", "丕", "丕丁一丑丄"],
+        "translated_bbox_top_points": 201.64
+      },
+      "first_integration_46c21a9b": {
+        "result_pdf": "apps/engine/reports/task/crop-causal/first46/result.pdf",
+        "result_pdf_sha256": "d01661658b3061a059f3d4449de535d7b27caf7ad17d45db468169820710d7a7",
+        "page_png_sha256": "b4d3b99717790f7fc8594cf67a820fb9f70369a632c60c45c6e8d0f6d7e89a6d",
+        "source_crop_sha256": "4d66f8f98d804247b1af0dff232ffa989cb1a84daa9dcb4811adc779e6f6a452",
+        "delivered_crop_sha256": "4d66f8f98d804247b1af0dff232ffa989cb1a84daa9dcb4811adc779e6f6a452",
+        "diff_crop_sha256": "d93de0daef1b7b103e9335b88d2020dd6cb5978a154eba844d53be4c8bb73343",
+        "differing_pixels_delta_gt_8": 0,
+        "ratio": 0.0,
+        "diff_bbox_pixels": null,
+        "extracted_text": "PETITIONER:",
+        "source_bbox_top_points": 203.1
+      },
+      "measured_cause": "Current output contains inserted CJK translation glyphs whose bbox begins 1.46pt above the source PETITIONER bbox, so translated ink enters the locked blank margin. The first integration leaves source text because Decimal TJ positioning is not yet handled; ab6 Decimal support enables the valid match. This is not retained source, missing-Tf barrier residue, or vector damage."
+    }
+  },
+  "restore": {
+    "expected_sha256": "a7bd597852bb6aff4a53b6ec7e46be8ecf2b8c05d2339a176814aed75d548e7e",
+    "actual_sha256": "a7bd597852bb6aff4a53b6ec7e46be8ecf2b8c05d2339a176814aed75d548e7e",
+    "byte_exact": true,
+    "process_state": "stopped"
+  }
+}
