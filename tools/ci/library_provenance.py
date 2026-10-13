@@ -91,7 +91,7 @@ DOGFOOD_FIXES_RELEASE = {
 # translation with a capital, ascender or accent is no longer shrunk below the
 # floor. Only source_retention differs from 89.0.5. The pin was derived from the
 # committed owner tree before the candidate record or any artifact was written.
-ADOPTED_RELEASE = {
+CAP_LINE_RELEASE = {
     "scope": "behavior-release", "version": "89.0.6",
     "release_id": "pdf-translate-89.0.6-cap-line",
     "adopted_owner_revision": "0ae755cf2858e9b0e187bac318baa3177b59b59e",
@@ -99,9 +99,23 @@ ADOPTED_RELEASE = {
     "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
     "modules": 27,
 }
+# 2026-10-13 answer-area fix (W-4 fidelity review): a line that mixes bold and
+# regular text stops at the drawn rules and controls beside its caption, as a
+# plain line already did, so it no longer writes into a drawn answer cell whose
+# widget covers only the cell's bottom. Only retypeset differs from 89.0.6. The pin
+# was derived from the committed owner tree before the candidate record or any
+# artifact was written.
+ADOPTED_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.7",
+    "release_id": "pdf-translate-89.0.7-answer-area",
+    "adopted_owner_revision": "6b8d4919497dd9f577ba84cc0546ef48a01db92a",
+    "source_digest": "8c77894e353f67eb3a15fc2542cb0be9b4269027d19ff6f4a0d918617cb6bfdd",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
 DEFAULT_VERSION = ADOPTED_RELEASE["version"]
 MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27,
-                 "89.0.5": 27, "89.0.6": 27}
+                 "89.0.5": 27, "89.0.6": 27, "89.0.7": 27}
 PACKAGE_PREFIX = "libs/pdf-translate/pdf_translate/"
 PACKAGE_NAME = "pdf-translate"
 RECORD_KEYS = {

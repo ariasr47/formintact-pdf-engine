@@ -2080,7 +2080,14 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                     mfont = helv_role(seg['bold'], seg.get('italic'))
                     tw.append((bx, oy), mk, font=mfont, fontsize=fs)
                     bx += marker_adv(mfont, fs)
-                avail = right_limit(pno, seg, segs) - bx
+                # The drawn rules and controls beside the source caption bound
+                # this line as they bound a plain one: a writing cell whose
+                # widget covers only its bottom is still the reader's to write in
+                # (W-4 Step 4(a)/(b), 2026-10-13).
+                limit = right_limit(pno, seg, segs)
+                if not mirror:
+                    limit = min(limit, _legacy_field_limit(seg, form_obstacles[pno]))
+                avail = limit - bx
                 # A line that mixes weights (`bold_runs`) is drawn regular under its
                 # markup: the <b> runs carry its bold, so a mostly bold source line
                 # keeps its regular words regular.

@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "release_id": "pdf-translate-89.0.6-cap-line",
+  "release_id": "pdf-translate-89.0.7-answer-area",
   "scope": "behavior-release",
-  "version": "89.0.6",
+  "version": "89.0.7",
   "origin_revision": "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7",
-  "adopted_owner_revision": "0ae755cf2858e9b0e187bac318baa3177b59b59e",
-  "source_digest": "7ab3ef4ad29c9d4fd0eba1e19b477786f9e3e50c94840d1ca86000f47a937403",
+  "adopted_owner_revision": "6b8d4919497dd9f577ba84cc0546ef48a01db92a",
+  "source_digest": "8c77894e353f67eb3a15fc2542cb0be9b4269027d19ff6f4a0d918617cb6bfdd",
   "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
   "files": [
     {
@@ -100,8 +100,8 @@
     },
     {
       "path": "pdf_translate/retypeset.py",
-      "size": 131803,
-      "sha256": "e9e9c1d141fc3f1190a9074ffe7cd95889adeed26e1e673c72061f33bc1e51cf"
+      "size": 132238,
+      "sha256": "4808417aa9b5931c8ba3404f05c7908418a0becc963f736ef640fa1e612bd304"
     },
     {
       "path": "pdf_translate/review.py",

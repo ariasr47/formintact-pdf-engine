@@ -277,3 +277,60 @@ def test_translated_last_glyph_ink_clears_source_field(tmp_path, control, overha
                  if span['text'] == 'Changed']
     assert sizes and min(sizes) >= .75 * 9
     assert _crop_bytes(original, obstacle) == _crop_bytes(job['output'], obstacle)
+
+
+def _glyph_boxes(path: Path, text: str) -> list[pymupdf.Rect]:
+    with pymupdf.open(path) as document:
+        return [pymupdf.Rect(char['bbox'])
+                for block in document[0].get_text('rawdict')['blocks'] if block['type'] == 0
+                for line in block['lines']
+                if text in ''.join(char['c'] for span in line['spans'] for char in span['chars'])
+                for span in line['spans'] for char in span['chars'] if char['c'].strip()]
+
+
+@pytest.mark.parametrize('cell', ['stroked', 'filled'])
+def test_mixed_bold_line_stays_out_of_a_drawn_answer_cell(tmp_path, cell):
+    # A drawn amount cell whose fillable widget covers only its bottom, beside
+    # a caption whose translation mixes bold and regular text. The writing area
+    # is the whole drawn cell, so the line shrinks to end before it (irs-fw4
+    # Step 4(a)/(b), 2026-10-13). A filled background is not a barrier: there
+    # the same line keeps its full size and runs on.
+    target = _target_font(tmp_path / 'target.ttf', chars=' ' + string.ascii_letters)
+    original = tmp_path / 'original.pdf'
+    with pymupdf.open() as document:
+        page = document.new_page(width=300, height=120)
+        if cell == 'stroked':
+            page.draw_rect(pymupdf.Rect(150, 44, 230, 76), color=(0, 0, 0), width=1)
+        else:
+            page.draw_rect(pymupdf.Rect(150, 44, 230, 76), color=None, fill=(.9, .9, .9))
+        widget = pymupdf.Widget()
+        widget.field_type = pymupdf.PDF_WIDGET_TYPE_TEXT
+        widget.field_name = 'amount'
+        widget.rect = pymupdf.Rect(155, 66, 228, 75)
+        page.add_widget(widget)
+        page.insert_text((40, 60), 'Amount', fontname='helv', fontsize=9)
+        document.save(original)
+    stripped = tmp_path / 'stripped.pdf'
+    run_strip(str(original), str(stripped))
+    extracted = run_extract(str(original), str(tmp_path))
+    mapping = tmp_path / 'mapping.json'
+    mapping.write_text(json.dumps({'lang': 'es', 'fonts': {role: str(target) for role in (
+        'regular', 'bold', 'italic', 'bold_italic')},
+        'translations': {'Amount': '<b>Pay</b> amount each check'}}))
+    job = dict(original=original, stripped=stripped, segments=Path(extracted.segments_path),
+               mapping=mapping, output=tmp_path / 'output.pdf', target_text='Pay amount each check')
+    _render(job)
+    boxes = _glyph_boxes(job['output'], 'Pay amount each check')
+    assert boxes, 'the translated line must be placed'
+    right = max(box.x1 for box in boxes)
+    size = _span_size(job['output'], 'Pay amount each check')
+    if cell == 'stroked':
+        # 21 advances of the 0.76/0.36 em test face are 132.8 pt at 9 pt; the
+        # cell leaves 108.5, so the line is drawn at about 0.82 of its size.
+        assert right <= 150
+        assert .75 * 9 <= size < 8.5
+    else:
+        assert right > 150
+        assert size == pytest.approx(9, abs=.05)
+    with pymupdf.open(job['output']) as document:
+        assert [w.rect for w in document[0].widgets()] == [pymupdf.Rect(155, 66, 228, 75)]
