@@ -182,6 +182,54 @@ def test_translated_caption_preserves_source_vertical_ink_clearance(tmp_path):
     assert _crop_bytes(original, job['obstacle']) == _crop_bytes(job['output'], job['obstacle'])
 
 
+def _span_size(path: Path, text: str) -> float:
+    with pymupdf.open(path) as document:
+        sizes = [span['size'] for block in document[0].get_text('dict')['blocks'] if block['type'] == 0
+                 for line in block['lines'] for span in line['spans'] if span['text'] == text]
+    assert len(sizes) == 1, sizes
+    return sizes[0]
+
+
+def test_short_letter_line_may_rise_to_its_faces_measured_cap_line(tmp_path):
+    # Capitals ink to 700 units, lowercase to 500. "accuracy" inks no higher
+    # than its x-height, but its face prints a flat capital at the same size on
+    # the line above, so a translation with a capital reaches the cap line at
+    # full size instead of shrinking to x-height (irs-fw4 page 2, 2026-10-13).
+    source_font = _target_font(tmp_path / 'source-font.ttf', chars=' HEADacury')
+    with TTFont(source_font) as face:
+        lowercase = {f'g{ord(char):04x}' for char in 'acury'}
+        for name in lowercase:
+            glyph = face['glyf'][name]
+            glyph.coordinates = type(glyph.coordinates)((x, y * 5 / 7) for x, y in glyph.coordinates)
+        face.save(tmp_path / 'source-mixed.ttf')
+    target = _target_font(tmp_path / 'target.ttf')
+    original = tmp_path / 'original.pdf'
+    with pymupdf.open() as document:
+        page = document.new_page(width=260, height=180)
+        page.insert_font(fontname='source', fontfile=str(tmp_path / 'source-mixed.ttf'))
+        page.insert_text((40, 36), 'HEAD', fontname='source', fontsize=14)
+        page.insert_text((40, 62), 'accuracy', fontname='source', fontsize=14)
+        document.save(original)
+    stripped = tmp_path / 'stripped.pdf'
+    run_strip(str(original), str(stripped))
+    extracted = run_extract(str(original), str(tmp_path))
+    mapping = tmp_path / 'mapping.json'
+    mapping.write_text(json.dumps({'lang': 'es', 'fonts': {'regular': str(target)},
+                                  'translations': {'HEAD': 'DEBE', 'accuracy': 'Changed'}}))
+    job = dict(original=original, stripped=stripped, segments=Path(extracted.segments_path),
+               mapping=mapping, output=tmp_path / 'output.pdf', target_text='Changed')
+    _render(job)
+    _assert_target_clear(job)
+    # Without the measured cap line the 700-unit target is capped at the
+    # 500-unit source ink: drawn at 14 * 5/7 = 10.
+    assert _span_size(job['output'], 'Changed') == pytest.approx(14, abs=0.05)
+    # Still never above the face's cap line: the band between it and the line
+    # above stays as blank as in the source.
+    band = (40, 42, 160, 51.6)
+    assert set(_crop_bytes(original, band)) == {255}
+    assert _crop_bytes(original, band) == _crop_bytes(job['output'], band)
+
+
 @pytest.mark.parametrize('control', ['checkbox', 'underline'])
 @pytest.mark.parametrize('overhang', [False, True])
 def test_translated_last_glyph_ink_clears_source_field(tmp_path, control, overhang):

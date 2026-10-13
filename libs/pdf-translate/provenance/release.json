@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "release_id": "pdf-translate-89.0.5-dogfood-fixes",
+  "release_id": "pdf-translate-89.0.6-cap-line",
   "scope": "behavior-release",
-  "version": "89.0.5",
+  "version": "89.0.6",
   "origin_revision": "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7",
-  "adopted_owner_revision": "8c77b9380d82ddcbf77956af507359587696347f",
-  "source_digest": "1f39024756a8604202fb4b623ca5303993ea56727b53439fc1787b3f9cf1b2ac",
+  "adopted_owner_revision": "0ae755cf2858e9b0e187bac318baa3177b59b59e",
+  "source_digest": "7ab3ef4ad29c9d4fd0eba1e19b477786f9e3e50c94840d1ca86000f47a937403",
   "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
   "files": [
     {
@@ -115,8 +115,8 @@
     },
     {
       "path": "pdf_translate/source_retention.py",
-      "size": 81176,
-      "sha256": "1472344403ca3cd5e0185ac00157f12005f646e60145a51ef0ce93c06154403c"
+      "size": 83683,
+      "sha256": "adebcb7fcef78fca5af2b5755943138a7c9de98a4e5a4b36d310c808f0662536"
     },
     {
       "path": "pdf_translate/strip_text.py",

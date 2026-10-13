@@ -29,6 +29,9 @@ _TEXT = frozenset({'BT', 'ET', 'Tf', 'Tm', 'Td', 'TD', 'Tj', 'TJ', 'Tr', 'Tc', '
                    'Tz', 'TL', 'Ts', 'w'})
 _DEFAULT_TEXT = {'Tc': 0., 'Tw': 0., 'Tz': 100., 'TL': 0., 'Tr': 0., 'Ts': 0.}
 _NEUTRAL = b'BT 0 Tc 0 Tw 100 Tz 0 TL 0 Tr 0 Ts ET\n'
+# Capitals whose outline top is the face's flat cap line: no apex, no round
+# overshoot. Their vouched ink measures how high the face itself paints.
+_FLAT_CAPS = frozenset(map(ord, 'BDEFHIJKLMNPRTUVWXYZ'))
 _INTENTS = frozenset({'/RelativeColorimetric', '/AbsoluteColorimetric', '/Perceptual', '/Saturation'})
 
 
@@ -742,8 +745,7 @@ def _source_program(document, resource, programs, stack):
     return programs[xref]
 
 
-def _ink_boxes(group, trace, chars, program, *, allow_reflection=True):
-    """Vouch actual GID ink for orthogonal source axes, including reflection."""
+def _outline_axes(group, trace, *, allow_reflection=True):
     matrix = _IDENTITY
     for instruction in group['instructions']:
         if str(instruction.operator) == 'Tm':
@@ -753,7 +755,12 @@ def _ink_boxes(group, trace, chars, program, *, allow_reflection=True):
             not math.isclose(a*c+b*d, 0, abs_tol=1e-8)):
         raise ValueError('unsupported outline transform')
     dx, dy = trace['dir']
-    orientation = math.copysign(math.hypot(c, d) / math.hypot(a, b), a*d-b*c)
+    return dx, dy, math.copysign(math.hypot(c, d) / math.hypot(a, b), a*d-b*c)
+
+
+def _ink_boxes(group, trace, chars, program, *, allow_reflection=True):
+    """Vouch actual GID ink for orthogonal source axes, including reflection."""
+    dx, dy, orientation = _outline_axes(group, trace, allow_reflection=allow_reflection)
     boxes = []
     for cp, gid, origin, _ in chars:
         _, ink = program.glyph(gid)
@@ -934,6 +941,14 @@ def prepare(source_path, destination, segments, translations, *, cancel=None, le
         return {}
     _cancel(cancel)
     retained = {}
+    # A line of short letters only ("accuracy.") inks no higher than its
+    # x-height, yet its face reserves the cap line there: the same face prints
+    # capitals at that size elsewhere. Each face's cap height is measured from
+    # its own vouched flat capitals, and an upright line's envelope rises to it
+    # once the whole document has been read. A face never seen printing a flat
+    # capital keeps its actual ink top.
+    cap_heights = {}
+    cap_lines = []
     with pikepdf.open(source_path) as source_pdf, pymupdf.open(source_path) as source, ExitStack() as stack:
         weights = FontWeights(source)
         programs = {}
@@ -1131,6 +1146,7 @@ def prepare(source_path, destination, segments, translations, *, cancel=None, le
                 for segment in geometry_by_page.get(page_number, []):
                     _cancel(cancel)
                     boxes = []
+                    lines = []
                     try:
                         parts = [part for span in _bind_segment(segment, spans)
                                  for part in _source_parts(span, probes, segment)]
@@ -1165,11 +1181,35 @@ def prepare(source_path, destination, segments, translations, *, cancel=None, le
                             _visible(part, traces, paints, annotation_start, segment,
                                      ink_boxes=ink, text_paints=text_paints)
                             boxes.extend(ink)
+                            dx, dy, orientation = _outline_axes(group, trace, allow_reflection=False)
+                            size = trace['size']
+                            face = (program, dx*orientation > 0)
+                            if dy != 0 or not chars or size <= 0:
+                                lines.append(None)
+                                continue
+                            for cp, gid, origin, _ in chars:
+                                glyph_ink = program.glyph(gid)[1] if cp in _FLAT_CAPS else None
+                                if glyph_ink is not None:
+                                    # The capital's page-space top, as _ink_boxes maps it,
+                                    # in source sizes above (negative) its own baseline.
+                                    top = min(origin[1] + dx*y*orientation*size
+                                              for y in (glyph_ink[1], glyph_ink[3]))
+                                    cap_heights[face] = min(cap_heights.get(face, 0.),
+                                                            (top - origin[1]) / size)
+                            lines.append((face, chars[0][2][1], size))
                         except (TTLibError, ValueError, MappingError, IndexError, KeyError, RuntimeError):
                             boxes = []
                             break
                     if boxes and ink_envelopes is not None:
                         ink_envelopes[id(segment)] = (min(box[1] for box in boxes), max(box[3] for box in boxes))
+                        cap_lines.append((segment, lines))
+    if ink_envelopes is not None:
+        for segment, lines in cap_lines:
+            if not lines or any(line is None or line[0] not in cap_heights for line in lines):
+                continue
+            top, bottom = ink_envelopes[id(segment)]
+            cap_top = min(baseline + size*cap_heights[face] for face, baseline, size in lines)
+            ink_envelopes[id(segment)] = (min(top, cap_top), bottom)
     return retained
 
 

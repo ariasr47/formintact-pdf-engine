@@ -78,7 +78,7 @@ REVIEW_FIXES_RELEASE = {
 # font weight with bold runs reported. extract_segments, mapping, retypeset,
 # source_retention and typography differ from 89.0.4. The pin was derived from the
 # committed owner tree before the candidate record or any artifact was written.
-ADOPTED_RELEASE = {
+DOGFOOD_FIXES_RELEASE = {
     "scope": "behavior-release", "version": "89.0.5",
     "release_id": "pdf-translate-89.0.5-dogfood-fixes",
     "adopted_owner_revision": "8c77b9380d82ddcbf77956af507359587696347f",
@@ -86,9 +86,22 @@ ADOPTED_RELEASE = {
     "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
     "modules": 27,
 }
+# 2026-10-13 cap-line fix (staging order review): a line of short letters only may
+# rise to its face's measured cap line instead of its own x-height ink top, so a
+# translation with a capital, ascender or accent is no longer shrunk below the
+# floor. Only source_retention differs from 89.0.5. The pin was derived from the
+# committed owner tree before the candidate record or any artifact was written.
+ADOPTED_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.6",
+    "release_id": "pdf-translate-89.0.6-cap-line",
+    "adopted_owner_revision": "0ae755cf2858e9b0e187bac318baa3177b59b59e",
+    "source_digest": "7ab3ef4ad29c9d4fd0eba1e19b477786f9e3e50c94840d1ca86000f47a937403",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
 DEFAULT_VERSION = ADOPTED_RELEASE["version"]
 MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27,
-                 "89.0.5": 27}
+                 "89.0.5": 27, "89.0.6": 27}
 PACKAGE_PREFIX = "libs/pdf-translate/pdf_translate/"
 PACKAGE_NAME = "pdf-translate"
 RECORD_KEYS = {
