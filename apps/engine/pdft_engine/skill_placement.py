@@ -35,9 +35,12 @@ import hashlib
 import json
 import logging
 import math
+import re
 import shutil
 import threading
+from collections import Counter
 from dataclasses import dataclass, field
+from itertools import pairwise
 from pathlib import Path
 from uuid import uuid4
 
@@ -54,10 +57,13 @@ from pdf_translate import (
     run_retypeset,
     run_strip,
 )
+from pdf_translate.retypeset import story_text
 from pdf_translate.strip_text import widget_text_scaffold
 
-from pdft_engine import skill_identifiers, skill_widgets
+from pdft_engine import fit_budget, skill_identifiers, skill_widgets
 from pdft_engine.masking import (
+    MASK_TOKEN_RE,
+    MaskResult,
     SlotCounter,
     find_foreign_tokens,
     find_missing_tokens,
@@ -82,10 +88,10 @@ library_logger.propagate = False
 SHRINK_FLOOR = 0.75
 
 _LATIN_ROLES = {
-    "regular": "NotoSans-Regular.ttf",
-    "bold": "NotoSans-Bold.ttf",
-    "italic": "NotoSans-Italic.ttf",
-    "bold_italic": "NotoSans-BoldItalic.ttf",
+    "regular": "FormIntactSans-Regular.ttf",
+    "bold": "FormIntactSans-Bold.ttf",
+    "italic": "FormIntactSans-Italic.ttf",
+    "bold_italic": "FormIntactSans-BoldItalic.ttf",
 }
 _ROLE_FILES = {
     **{
@@ -95,6 +101,7 @@ _ROLE_FILES = {
     "zh-Hans": {"regular": "NotoSansSC-Regular.ttf"},
     "ja": {"regular": "NotoSansJP-Regular.ttf"},
 }
+
 _FONTS_DIR = Path(__file__).parent / "assets" / "fonts"
 
 
@@ -232,6 +239,31 @@ class PlacementResult:
 
 
 @dataclass(frozen=True)
+class ParagraphGroup:
+    """Wrapped lines of one body paragraph, translated as one item and reflowed as one block.
+
+    `lines` are the stripped source texts the library's `merges` entry matches, in
+    reading order; each equals its line's core, and every one occurs exactly once in
+    the document, so the merge cannot match another line and no other occurrence
+    needs the line's own translation.
+    """
+
+    subset_page: int
+    cores: tuple[str, ...]
+    lines: tuple[str, ...]
+    bold: bool
+    italic: bool
+    masked: MaskResult
+    # A paragraph that mixes weights: its masked text with each bold run in <b>...</b>,
+    # which is what the model receives. None when the paragraph is one weight.
+    tagged: str | None = None
+
+    @property
+    def item_text(self) -> str:
+        return self.tagged or self.masked.masked_text
+
+
+@dataclass(frozen=True)
 class DocumentTranslationPreparation:
     """Provider-free, immutable inputs for one imported-library placement run."""
 
@@ -251,6 +283,17 @@ class DocumentTranslationPreparation:
     passthrough_segment_ordinals: tuple[int, ...] = ()
     metadata_cores: tuple[str, ...] = ()
     widget_only_texts: tuple[str, ...] = ()
+    paragraphs: tuple[ParagraphGroup, ...] = ()
+    # Cores printed past the library's right margin guard (page width - 32 pt), in
+    # the right half of the page: page numbers and labels tucked against the edge.
+    # They are anchored on their right edge so a longer translation grows leftward.
+    right_cores: tuple[str, ...] = ()
+    # Single lines that mix weights: (core, its masked text with the bold runs in
+    # <b>...</b>), sent to the model in place of the plain masked text.
+    tagged_lines: tuple[tuple[str, str], ...] = ()
+    # prompt-fit-and-bold: one character budget per masked_texts item (None = no
+    # [max N] marker); () = no budgets at all (a target with no measured advance).
+    item_budgets: tuple[int | None, ...] = ()
 
 
 def _finite_number(value: object) -> float:
@@ -366,14 +409,579 @@ def _native_occurrences(
     return tuple(occurrences)
 
 
+# Targets written without spaces between words keep line-by-line placement: a
+# paragraph the library refuses falls back to its lines by splitting the
+# translation at word boundaries, which needs spaces.
+_SPACELESS_TARGETS = frozenset({"ja", "zh-Hans", "zh-Hant", "ko", "th", "lo", "km", "my", "bo"})
+_SPACELESS_CHAR = re.compile(
+    r"[฀-໿က-႟ក-៿⺀-鿿가-힯豈-﫿"
+    r"＀-￯]"
+)
+_LINE_END = re.compile(r"[.!?:;…。！？：；]['\"”’)\]]*$")
+# Narrower stacks are labels and table cells; they keep line-by-line placement.
+_PARAGRAPH_MIN_WIDTH = 150.0
+# pdf_translate.retypeset._right_limit: page width - 32 pt, less its 1.5 pt slop.
+_RIGHT_MARGIN_GUARD = 33.5
+
+
+def paragraph_reflow_target(lang: str | None) -> bool:
+    return bool(lang) and lang not in _SPACELESS_TARGETS
+
+
+def _horizontal(row: dict) -> bool:
+    direction = row.get("dir") or (1.0, 0.0)
+    try:
+        return abs(float(direction[0]) - 1.0) < 1e-6 and abs(float(direction[1])) < 1e-6
+    except (TypeError, ValueError, IndexError):
+        return False
+
+
+def _width(row: dict) -> float:
+    return row["bbox"][2] - row["bbox"][0]
+
+
+def _overlaps_x(a: dict, b: dict) -> bool:
+    return min(a["bbox"][2], b["bbox"][2]) - max(a["bbox"][0], b["bbox"][0]) > 0
+
+
+def _same_style(a: dict, b: dict) -> bool:
+    # Weight and slant are not compared: the extractor flags a whole line bold when
+    # one word on it is ("In an average year, **thousands of people** in the"). A
+    # short bold heading is kept out by the wrap test in `_split_chain` instead.
+    return (
+        abs(float(a["size"]) - float(b["size"])) < 0.05
+        and a.get("color") == b.get("color")
+    )
+
+
+def _joined_paragraph(lines: tuple[str, ...]) -> str:
+    """The paragraph as one string: lines joined by a space, except inside a spaceless
+    script and after a hyphen that splits a lowercase word."""
+    text = lines[0]
+    for line in lines[1:]:
+        spaceless = (
+            bool(text) and bool(line)
+            and bool(_SPACELESS_CHAR.match(text[-1])) and bool(_SPACELESS_CHAR.match(line[0]))
+        )
+        hyphenated = (
+            len(text) > 1 and text.endswith("-") and text[-2].isalpha() and line[:1].islower()
+        )
+        if spaceless or hyphenated:
+            text += line
+        else:
+            text += " " + line
+    return text
+
+
+# Inline bold through paragraph reflow (dogfood 2026-10-11, CMS-1696: "All fields in
+# Sections 1 and 2 are required unless marked optional." is bold inside a regular
+# paragraph and came out regular). The model receives the bold runs as <b>...</b> and
+# must keep them; anything else that comes back (no tags, unbalanced, nested, another
+# tag) is stripped and the paragraph reads plain. A paragraph whose source already
+# holds "<" or ">" is never tagged, so a tag in an answer is always ours.
+_BOLD_TAG = re.compile(r"</?b>")
+_BOLD_SPLIT = re.compile(r"(</?b>)")
+_ANY_TAG = re.compile(r"<\s*/?\s*(?:b|strong|i|em)\b[^<>]*>?|<[^<>]*>", re.IGNORECASE)
+
+
+def _line_marks(row: dict) -> list[bool | None] | None:
+    """Per character of the line's core: True bold, False regular, None a space."""
+    core = row["core"]
+    runs = row.get("bold_runs")
+    if runs:
+        marks = [False] * len(core)
+        for run in runs:
+            if (
+                not isinstance(run, (list, tuple)) or len(run) != 2
+                or not all(isinstance(v, int) and not isinstance(v, bool) for v in run)
+                or not 0 <= run[0] < run[1] <= len(core)
+            ):
+                return None
+            marks[run[0]:run[1]] = [True] * (run[1] - run[0])
+    else:
+        marks = [bool(row.get("bold"))] * len(core)
+    return [None if ch.isspace() else mark for ch, mark in zip(core, marks, strict=True)]
+
+
+def _paragraph_marks(group: list[dict], plain: str) -> list[bool | None] | None:
+    """Per character of `plain` (the joined paragraph), the weight its source drew,
+    joined the way `_joined_paragraph` joins; None when it cannot be lined up or the
+    paragraph is one weight."""
+    text, marks = "", []
+    for row in group:
+        line_marks = _line_marks(row)
+        if line_marks is None:
+            return None
+        line = row["core"]
+        if text and not plain.startswith(text + line):
+            text += " "
+            marks.append(None)
+        text += line
+        marks.extend(line_marks)
+    seen = {mark for mark in marks if mark is not None}
+    if text != plain or seen != {True, False} or "<" in plain or ">" in plain:
+        return None
+    return marks
+
+
+def _tag_masked(plain: str, marks: list[bool | None], masked: MaskResult) -> str | None:
+    """`masked.masked_text` with each bold run wrapped in <b>...</b>. A mask token
+    counts as bold when most of the text it stands for is. None when the masked text
+    does not line up with `plain` character for character."""
+    source = masked.masked_text
+    units: list[tuple[str, bool | None]] = []
+    pos = cursor = 0
+
+    def literal(chunk: str) -> bool:
+        nonlocal pos
+        if plain[pos:pos + len(chunk)] != chunk:
+            return False
+        units.extend(zip(chunk, marks[pos:pos + len(chunk)], strict=True))
+        pos += len(chunk)
+        return True
+
+    for match in MASK_TOKEN_RE.finditer(source):
+        entry = masked.table.get(match.group(0))
+        if entry is None or not literal(source[cursor:match.start()]):
+            return None
+        original = entry.original_text
+        if plain[pos:pos + len(original)] != original:
+            return None
+        weights = [mark for mark in marks[pos:pos + len(original)] if mark is not None]
+        units.append((
+            match.group(0),
+            None if not weights else sum(weights) * 2 > len(weights),
+        ))
+        pos += len(original)
+        cursor = match.end()
+    if not literal(source[cursor:]) or pos != len(plain):
+        return None
+    runs: list[tuple[int, int]] = []
+    open_at: int | None = None
+    last_bold = -1
+    for index, (_piece, mark) in enumerate(units):
+        if mark is None:
+            continue
+        if mark and open_at is None:
+            open_at = index
+        elif not mark and open_at is not None:
+            runs.append((open_at, last_bold))
+            open_at = None
+        if mark:
+            last_bold = index
+    if open_at is not None:
+        runs.append((open_at, last_bold))
+    if not runs or not any(mark is False for _piece, mark in units):
+        return None
+    pieces = [piece for piece, _mark in units]
+    for start, end in reversed(runs):
+        pieces.insert(end + 1, "</b>")
+        pieces.insert(start, "<b>")
+    return "".join(pieces)
+
+
+def _single_line_marks(core: str, rows: list[dict]) -> list[bool | None] | None:
+    """The weights of a line item that mixes them, when every line printing it is the
+    plain core (no list marker, dot leader or tail), horizontal, and bold in the same
+    places; None otherwise, and the line keeps its majority weight."""
+    if not rows or any(
+        row.get("passthrough") or str(row.get("text") or "").strip() != core
+        or row.get("marker") or row.get("dots") or row.get("tail") or not _horizontal(row)
+        or row.get("bold_runs") != rows[0].get("bold_runs")
+        for row in rows
+    ):
+        return None
+    return _paragraph_marks(rows[:1], core)
+
+
+def _split_bold_answer(answer: str) -> tuple[str, str | None]:
+    """(the answer without tags, the answer with its valid <b> runs or None).
+
+    Valid: at least one run, only `<b>` and `</b>`, alternating from an opening
+    tag, every run holding more than spaces, no other `<` or `>`."""
+    tags = _BOLD_TAG.findall(answer)
+    bare = _BOLD_TAG.sub("", answer)
+    runs = _BOLD_SPLIT.split(answer)[2::4]
+    valid = (
+        bool(tags)
+        and len(tags) % 2 == 0
+        and tags == ["<b>", "</b>"] * (len(tags) // 2)
+        and "<" not in bare and ">" not in bare
+        and all(run.strip() for run in runs)
+    )
+    if valid:
+        return bare, answer
+    return _ANY_TAG.sub("", answer).replace("<", "").replace(">", ""), None
+
+
+def _distribute(text: str, lines: tuple[str, ...]) -> list[str]:
+    """Split a paragraph translation back over its source lines, by word, in
+    proportion to each line's length. Only used when the library refuses the reflow."""
+    words = text.split()
+    count = len(lines)
+    if count == 1:
+        return [" ".join(words)]
+    weights = [max(1, len(line)) for line in lines]
+    total = sum(weights)
+    budget = sum(len(word) + 1 for word in words)
+    pieces: list[str] = []
+    start = used = share = 0
+    for index in range(count - 1):
+        share += weights[index]
+        target = budget * share / total
+        end = start
+        limit = len(words) - (count - 1 - index)  # leave a word for every later line
+        while end < limit and (end == start or used + (len(words[end]) + 1) / 2 <= target):
+            used += len(words[end]) + 1
+            end += 1
+        pieces.append(" ".join(words[start:end]))
+        start = end
+    pieces.append(" ".join(words[start:]))
+    return pieces
+
+
+def _paragraph_line(row: dict, core_count: Counter, texts: Counter, blocked: set[str]) -> bool:
+    core = row.get("core")
+    text = str(row.get("text") or "").strip()
+    return (
+        not row.get("passthrough")
+        and isinstance(core, str)
+        and len(core) >= 2
+        and core == text
+        and not row.get("marker")
+        and not row.get("dots")
+        and not row.get("tail")
+        and _horizontal(row)
+        and core_count[core] == 1
+        and texts[text] == 1
+        and core not in blocked
+        and isinstance(row.get("size"), (int, float))
+        and float(row["size"]) > 0
+    )
+
+
+def _line_chains(lines: list[dict], rows: list[dict]) -> list[list[dict]]:
+    """Each line's next line in its own column: same left edge, same style, one
+    leading below, nothing printed between them."""
+    successor: dict[int, dict] = {}
+    for a in lines:
+        size = float(a["size"])
+        best = None
+        for b in lines:
+            if b is a or not _same_style(a, b) or not _overlaps_x(a, b):
+                continue
+            if abs(b["origin"][0] - a["origin"][0]) > 2.0:
+                continue
+            gap = b["origin"][1] - a["origin"][1]
+            if 0.95 * size <= gap <= 1.75 * size and (best is None or gap < best[0]):
+                best = (gap, b)
+        if best is None:
+            continue
+        b = best[1]
+        between = any(
+            other is not a and other is not b and _overlaps_x(other, a)
+            and a["origin"][1] + 0.5 < other["origin"][1] < b["origin"][1] - 0.5
+            for other in rows
+        )
+        if not between:
+            successor[id(a)] = b
+    targets = Counter(id(b) for b in successor.values())
+    successor = {key: b for key, b in successor.items() if targets[id(b)] == 1}
+    has_predecessor = {id(b) for b in successor.values()}
+    chains = []
+    for a in lines:
+        if id(a) in has_predecessor or id(a) not in successor:
+            continue
+        chain = [a]
+        while id(chain[-1]) in successor:
+            chain.append(successor[id(chain[-1])])
+        chains.append(chain)
+    return chains
+
+
+def _split_chain(chain: list[dict]) -> list[list[dict]]:
+    """Cut a column chain where it is not one wrapped paragraph: a change of
+    leading, a sentence that ends at the line end before a capital, or a line that
+    stopped short although the next line's first word would have fitted."""
+    gaps = [b["origin"][1] - a["origin"][1] for a, b in pairwise(chain)]
+    median = sorted(gaps)[len(gaps) // 2]
+    parts: list[list[dict]] = []
+    current = [chain[0]]
+    for (a, b), gap in zip(pairwise(chain), gaps, strict=True):
+        head = b["core"][:1]
+        sentence_break = bool(_LINE_END.search(a["core"])) and (
+            head.isupper() or head.isdigit() or not head.isalnum()
+        )
+        if abs(gap - median) > 0.12 * median or sentence_break:
+            parts.append(current)
+            current = [b]
+        else:
+            current.append(b)
+    parts.append(current)
+    groups: list[list[dict]] = []
+    for part in parts:
+        if len(part) < 2:
+            continue
+        column = max(_width(row) for row in part)
+        current = [part[0]]
+        for a, b in pairwise(part):
+            text = b["core"]
+            first = text[:1] if _SPACELESS_CHAR.match(text[:1]) else text.split()[0]
+            per_char = _width(b) / max(1, len(text))
+            if _width(a) + per_char * (len(first) + 1) < 0.93 * column:
+                groups.append(current)
+                current = [b]
+            else:
+                current.append(b)
+        groups.append(current)
+    return [
+        group for group in groups
+        if len(group) >= 2 and max(_width(row) for row in group) >= _PARAGRAPH_MIN_WIDTH
+    ]
+
+
+def _page_rules(page) -> list[tuple[float, float, float, float]] | None:
+    """Every straight line and rectangle edge the page draws, as boxes."""
+    try:
+        drawings = page.get_drawings()
+    except Exception:  # noqa: BLE001 -- an unreadable page keeps line-by-line placement
+        return None
+    rules = []
+    for path in drawings:
+        for item in path.get("items") or ():
+            kind = item[0]
+            if kind == "l":
+                p, q = item[1], item[2]
+                rules.append((min(p.x, q.x), min(p.y, q.y), max(p.x, q.x), max(p.y, q.y)))
+            elif kind in ("re", "qu"):
+                r = item[1] if kind == "re" else item[1].rect
+                rules.extend((
+                    (r.x0, r.y0, r.x1, r.y0), (r.x0, r.y1, r.x1, r.y1),
+                    (r.x0, r.y0, r.x0, r.y1), (r.x1, r.y0, r.x1, r.y1),
+                ))
+    return rules
+
+
+def _clear_box(group, rows, widgets, rules) -> bool:
+    """The reflow box holds nothing but the paragraph: no other text, no form field
+    beside it, no rule across it, no cell border along it."""
+    x0 = min(row["bbox"][0] for row in group)
+    y0 = min(row["bbox"][1] for row in group)
+    x1 = max(row["bbox"][2] for row in group)
+    y1 = max(row["bbox"][3] for row in group)
+    members = {id(row) for row in group}
+    for other in rows:
+        if id(other) in members:
+            continue
+        bx0, by0, bx1, by1 = other["bbox"]
+        if min(bx1, x1 - 1) - max(bx0, x0 + 1) > 0 and min(by1, y1 - 1) - max(by0, y0 + 1) > 0:
+            return False
+    for wx0, wy0, wx1, wy1 in widgets:
+        if min(wx1, x1 + 4) - max(wx0, x0 - 4) > 0 and min(wy1, y1 + 4) - max(wy0, y0 - 4) > 0:
+            return False
+    height, width = y1 - y0, x1 - x0
+    for lx0, ly0, lx1, ly1 in rules:
+        if ly1 - ly0 <= 2.0:
+            if y0 + 1 < (ly0 + ly1) / 2 < y1 - 1 and min(lx1, x1) - max(lx0, x0) > 0.3 * width:
+                return False
+        elif lx1 - lx0 <= 2.0:
+            middle = (lx0 + lx1) / 2
+            span = min(ly1, y1) - max(ly0, y0)
+            if (x0 - 8 <= middle <= x0 + 2 or x1 - 2 <= middle <= x1 + 8) and span >= 0.6 * height:
+                return False
+            if x0 + 2 < middle < x1 - 2 and span > 0:
+                return False
+    return True
+
+
+def _continues(group: list[dict], rows: list[dict]) -> bool:
+    """A same-style line runs on into the group's first line, or on from its last:
+    the group is part of a longer unit (a list item, an indented first line)."""
+    first, last = group[0], group[-1]
+    size = float(first["size"])
+    members = {id(row) for row in group}
+    for other in rows:
+        if id(other) in members or not isinstance(other.get("size"), (int, float)):
+            continue
+        if not _same_style(other, first):
+            continue
+        above = first["origin"][1] - other["origin"][1]
+        if (0.9 * size <= above <= 1.75 * size and _overlaps_x(other, first)
+                and not _LINE_END.search(str(other.get("text") or "").strip())):
+            return True
+        below = other["origin"][1] - last["origin"][1]
+        if (0.9 * size <= below <= 1.75 * size and _overlaps_x(other, last)
+                and not _LINE_END.search(last["core"])):
+            return True
+    return False
+
+
+def _layout_plan(
+    segments: tuple[dict, ...],
+    source_pdf: Path,
+    *,
+    blocked: set[str],
+    paragraphs: bool,
+) -> tuple[list[tuple[int, list[dict]]], tuple[str, ...]]:
+    """Paragraph groups (when the target reflows) and right-anchored margin cores."""
+    import fitz
+
+    rows_all = [row for row in segments if isinstance(row, dict)]
+    core_count = Counter(row.get("core") for row in rows_all if isinstance(row.get("core"), str))
+    by_page: dict[int, list[dict]] = {}
+    for row in rows_all:
+        by_page.setdefault(row["page"], []).append(row)
+    groups: list[tuple[int, list[dict]]] = []
+    widths: dict[int, float] = {}
+    try:
+        doc = fitz.open(str(source_pdf))
+    except Exception:  # noqa: BLE001 -- not a PDF this reader opens: plain line placement
+        return [], ()
+    with doc:
+        for page_number in sorted(by_page):
+            if not 0 <= page_number < doc.page_count:
+                continue
+            page = doc[page_number]
+            if page.rotation % 360:
+                continue
+            widths[page_number] = (page.rect * page.derotation_matrix).width
+            if not paragraphs or page.cropbox != page.mediabox:
+                continue
+            rows = by_page[page_number]
+            texts = Counter(str(row.get("text") or "").strip() for row in rows)
+            lines = [row for row in rows if _paragraph_line(row, core_count, texts, blocked)]
+            if len(lines) < 2:
+                continue
+            candidates = [
+                group for chain in _line_chains(lines, rows) for group in _split_chain(chain)
+            ]
+            if not candidates:
+                continue
+            rules = _page_rules(page)
+            if rules is None:
+                continue
+            widgets = [tuple(widget.rect) for widget in page.widgets()]
+            for group in candidates:
+                if _clear_box(group, rows, widgets, rules) and not _continues(group, rows):
+                    groups.append((page_number, group))
+    grouped = {row["core"] for _page, group in groups for row in group}
+    occurrences: dict[str, list[dict]] = {}
+    for row in rows_all:
+        core = row.get("core")
+        if isinstance(core, str) and core and not row.get("passthrough"):
+            occurrences.setdefault(core, []).append(row)
+    right = tuple(
+        core
+        for core, rows in occurrences.items()
+        if core not in grouped and core not in blocked
+        and all(
+            row["page"] in widths
+            and _horizontal(row)
+            and not row.get("marker") and not row.get("dots") and not row.get("tail")
+            and row["bbox"][2] > widths[row["page"]] - _RIGHT_MARGIN_GUARD
+            and row["bbox"][0] > widths[row["page"]] / 2
+            for row in rows
+        )
+    )
+    return groups, right
+
+
+def _heading_pairs(
+    rows: list[dict], source_pdf: Path, paragraph_cores: set[str]
+) -> list[tuple[dict, dict]]:
+    """Two-line bold headings (GATE Z amendment 2, SPEC §2.2): an upright bold line
+    and the line under it, in one style, the second starting where the first's body
+    starts, with nothing else in their box. A row that would join two pairs joins none."""
+    import fitz
+
+    core_count = Counter(
+        row.get("core") for row in rows
+        if isinstance(row.get("core"), str) and not row.get("passthrough")
+    )
+
+    def eligible(row: dict) -> bool:
+        core = row.get("core")
+        return (
+            isinstance(core, str) and bool(core.strip())
+            and not row.get("passthrough") and core_count[core] == 1
+            and core not in paragraph_cores
+            and bool(row.get("bold")) and not row.get("italic") and not row.get("bold_runs")
+            and not row.get("dots") and not row.get("tail")
+            and _horizontal(row)
+            and isinstance(row.get("size"), (int, float)) and float(row["size"]) > 0
+        )
+
+    by_page: dict[int, list[dict]] = {}
+    for row in rows:
+        by_page.setdefault(row["page"], []).append(row)
+    pairs: list[tuple[dict, dict]] = []
+    try:
+        doc = fitz.open(str(source_pdf))
+    except Exception:  # noqa: BLE001 -- not a PDF this reader opens: no pairs
+        return []
+    with doc:
+        for page_number, page_rows in sorted(by_page.items()):
+            lines = [row for row in page_rows if eligible(row)]
+            if len(lines) < 2 or not 0 <= page_number < doc.page_count:
+                continue
+            page = doc[page_number]
+            if page.rotation % 360:
+                continue
+            candidates = []
+            for a in lines:
+                size = float(a["size"])
+                body_x = a["origin"][0] + fit_budget.marker_dx(a)
+                for b in lines:
+                    if b is a or b.get("marker") or not _same_style(a, b):
+                        continue
+                    gap = b["origin"][1] - a["origin"][1]
+                    if 0.95 * size <= gap <= 1.75 * size and abs(b["origin"][0] - body_x) <= 2.0:
+                        candidates.append((a, b))
+            if not candidates:
+                continue
+            rules = _page_rules(page)
+            if rules is None:
+                continue
+            widgets = [tuple(widget.rect) for widget in page.widgets()]
+            pairs.extend(
+                (a, b) for a, b in candidates if _clear_box([a, b], page_rows, widgets, rules)
+            )
+    used = Counter(id(row) for pair in pairs for row in pair)
+    return [pair for pair in pairs if used[id(pair[0])] == 1 and used[id(pair[1])] == 1]
+
+
+def _heading_split(first: str, second: str, *, ratio, floor: float) -> tuple[str, str] | None:
+    """The pair's words re-split at the whole-word boundary whose tighter line is drawn
+    largest (`ratio(line, text)` predicts a line's scale). None when no boundary reaches
+    the floor or the best one is the split the answers already have. Words and their
+    order are unchanged; the lines are joined and split on whitespace."""
+    words = f"{first} {second}".split()
+    current = len(first.split())
+    best = None
+    for cut in range(1, len(words)):
+        top, bottom = " ".join(words[:cut]), " ".join(words[cut:])
+        key = (min(ratio(0, top), ratio(1, bottom)), -abs(cut - current))
+        if best is None or key > best[0]:
+            best = (key, cut, top, bottom)
+    if best is None or best[0][0] < floor or best[1] == current:
+        return None
+    return best[2], best[3]
+
+
 def prepare_document_translation(
     *,
     source_pdf: Path,
     workdir: Path,
     dnt_terms: list[str] | tuple[str, ...] = (),
     selected_original_pages: tuple[int, ...] | None = None,
+    target_lang: str | None = None,
 ) -> DocumentTranslationPreparation:
-    """Extract, filter and mask exactly once without provider/model I/O."""
+    """Extract, filter and mask exactly once without provider/model I/O.
+
+    `target_lang` (the native role tag) turns on paragraph reflow for targets
+    written with spaces: wrapped body lines become one translation item and one
+    reflowed block. Without it every line is its own item, as before.
+    """
 
     workdir.mkdir(parents=True, exist_ok=True)
     # _LIBRARY_LOCK: both calls below are the library's own extraction --
@@ -427,15 +1035,86 @@ def prepare_document_translation(
         if row.get("passthrough") or row.get("core") is None
     )
 
+    document = extracted.document if isinstance(extracted.document, dict) else {}
+    blocked = set(identifiers) | set(widget_texts)
+    blocked.update(
+        value
+        for value in [document.get("title")] + list(document.get("outline") or [])
+        if isinstance(value, str)
+    )
+    if segments:
+        with _LIBRARY_LOCK:
+            groups, right_cores = _layout_plan(
+                segments,
+                source_pdf,
+                blocked=blocked,
+                paragraphs=paragraph_reflow_target(target_lang),
+            )
+    else:
+        groups, right_cores = [], ()
+    first_of: dict[str, list[dict]] = {group[0]["core"]: group for _page, group in groups}
+    page_of = {group[0]["core"]: page for page, group in groups}
+    in_paragraph = {row["core"] for _page, group in groups for row in group}
+
     counter = SlotCounter()
-    masked = {core: mask_block(core, dnt_terms, counter) for core in translatable}
+    masked: dict[str, MaskResult] = {}
+    tagged_lines: dict[str, str] = {}
+    rows_of: dict[str, list[dict]] = {}
+    for row in segments:
+        if isinstance(row, dict) and isinstance(row.get("core"), str):
+            rows_of.setdefault(row["core"], []).append(row)
+    paragraphs: list[ParagraphGroup] = []
+    item_texts: list[str] = []
+    # Parallel to item_texts: where each item's room is measured (fit_budget).
+    item_sources: list = []
+    # Document order, so the model reads each paragraph where its first line stood.
+    for core in translatable:
+        group = first_of.get(core)
+        if group is not None:
+            lines = tuple(row["core"] for row in group)
+            plain = _joined_paragraph(lines)
+            result = mask_block(plain, dnt_terms, counter)
+            # A line that mixes weights is flagged bold as a whole; only lines bold
+            # throughout make a bold paragraph. A mixed one carries its runs as tags.
+            bold = all(bool(row.get("bold")) and not row.get("bold_runs") for row in group)
+            marks = None if bold else _paragraph_marks(group, plain)
+            paragraphs.append(ParagraphGroup(
+                subset_page=page_of[core],
+                cores=lines,
+                lines=lines,
+                bold=bold,
+                italic=all(bool(row.get("italic")) for row in group),
+                masked=result,
+                tagged=_tag_masked(plain, marks, result) if marks else None,
+            ))
+            item_texts.append(paragraphs[-1].item_text)
+            item_sources.append(("paragraph", group, paragraphs[-1]))
+            continue
+        if core in in_paragraph:
+            continue
+        masked[core] = mask_block(core, dnt_terms, counter)
+        line_tagged = None
+        if core not in blocked and core not in right_cores:
+            marks = _single_line_marks(core, rows_of.get(core, []))
+            line_tagged = _tag_masked(core, marks, masked[core]) if marks else None
+        if line_tagged:
+            tagged_lines[core] = line_tagged
+        item_texts.append(line_tagged or masked[core].masked_text)
+        item_sources.append(("line", core, masked[core]))
     masked.update(
         {core: mask_block(core, dnt_terms, counter) for core in extra_widget_texts}
     )
     masked_texts = tuple(
-        [masked[core].masked_text for core in translatable]
-        + [masked[core].masked_text for core in extra_widget_texts]
+        item_texts + [masked[core].masked_text for core in extra_widget_texts]
     )
+    item_sources.extend(None for _ in extra_widget_texts)
+    if segments:
+        with _LIBRARY_LOCK:
+            budgets = fit_budget.item_budgets(
+                source_pdf=source_pdf, segments=segments, item_sources=item_sources,
+                right_cores=set(right_cores), target_tag=target_lang, floor=SHRINK_FLOOR)
+    else:
+        budgets = ()
     return DocumentTranslationPreparation(
         source_pdf=source_pdf,
         workdir=workdir,
@@ -455,6 +1134,10 @@ def prepare_document_translation(
         passthrough_segment_ordinals=passthrough_segment_ordinals,
         metadata_cores=metadata_cores,
         widget_only_texts=tuple(extra_widget_texts),
+        paragraphs=tuple(paragraphs),
+        right_cores=tuple(core for core in right_cores if core in masked),
+        tagged_lines=tuple(tagged_lines.items()),
+        item_budgets=budgets if any(b is not None for b in budgets) else (),
     )
 
 
@@ -483,6 +1166,41 @@ def _write_mapping(path: Path, *, translations: dict[str, str], lang: str,
         ),
         encoding="utf-8",
     )
+
+
+def _write_layout(
+    path: Path,
+    *,
+    merges: list[dict],
+    source_glyphs: list[str],
+    right: list[str],
+) -> None:
+    """Add the layout keys to the mapping `_write_mapping` wrote, only when used."""
+    if not (merges or source_glyphs or right):
+        return
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if merges:
+        payload["merges"] = merges
+    if source_glyphs:
+        payload["source_glyphs"] = source_glyphs
+    if right:
+        payload["right"] = right
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _merge_html(text: str, group: ParagraphGroup, tagged: str | None = None) -> str:
+    if tagged:
+        body = "".join(
+            piece if _BOLD_TAG.fullmatch(piece) else story_text(piece)
+            for piece in _BOLD_SPLIT.split(tagged)
+        )
+    else:
+        body = story_text(text)
+    if group.italic:
+        body = f"<i>{body}</i>"
+    if group.bold:
+        body = f"<b>{body}</b>"
+    return body
 
 
 def _unique_scale_report_path(workdir: Path) -> Path:
@@ -608,6 +1326,7 @@ _REMEDIABLE_REFUSALS = {
     "rotated_shaped",
     "rotated_neighbours",
     "untranslated",
+    "source_glyphs",
 }
 
 
@@ -649,9 +1368,14 @@ def _resolve_failure(
         pair = {item.get("core"), item.get("neighbour")}
         if None in pair or not pair <= known_cores:
             raise failure
-        revert.update(pair)
-        for core in pair:
-            kinds[core] = "rotated_neighbours"
+        # Only the drawn ROTATED run (`neighbour`) takes the room: the library
+        # measures the horizontal run's anchor, not its length, so reverting the
+        # horizontal one never frees it (cms-1490s-en: a diagonal watermark).
+        revert.add(item["neighbour"])
+        kinds[item["neighbour"]] = "rotated_neighbours"
+    for item in failure.refusals.get("source_glyphs", ()):
+        if not isinstance(item, dict) or item.get("core") not in known_cores:
+            raise failure
     return accept, revert, kinds
 
 
@@ -685,6 +1409,7 @@ def place_document(
         workdir=workdir,
         dnt_terms=dnt_terms,
         selected_original_pages=selected_original_pages,
+        target_lang=lang,
     )
     return place_prepared_document(
         prepared=prepared,
@@ -715,6 +1440,8 @@ def place_prepared_document(
     w_cores = list(prepared.widget_cores)
     widget_texts = list(prepared.widget_texts)
     masked = dict(prepared.masked)
+    tagged_lines = dict(prepared.tagged_lines)
+    markup_cores: set[str] = set()
     supplied_masked = (
         translate(list(prepared.masked_texts)) if prepared.masked_texts else {}
     ) or {}
@@ -727,13 +1454,57 @@ def place_prepared_document(
     # translation ("Total" -> "Total", a fully masked code), so the outcome below
     # must not be read off `translations[core] == core`.
     kept_source: set[str] = set()
+    # Paragraphs: one item each, unmasked whole, then drawn as one reflowed block
+    # (a library `merges` entry). Every line also gets its share of the words, which
+    # is what it draws if the library refuses the reflow (`_distribute`).
+    paragraphs = list(prepared.paragraphs)
+    paragraph_of: dict[str, int] = {}
+    active_merges: dict[int, dict] = {}
+    for index, group in enumerate(paragraphs):
+        for core in group.cores:
+            paragraph_of[core] = index
+        returned = supplied_masked.get(group.item_text)
+        tagged_answer = None
+        if returned and group.tagged:
+            # Bold runs that come back broken are dropped, never drawn as tags: the
+            # paragraph then reads plain, as it did before it carried markup.
+            returned, tagged_answer = _split_bold_answer(returned)
+        trusted = bool(returned) and not (
+            find_missing_tokens(returned, group.masked.table)
+            or find_foreign_tokens(returned, group.masked.table)
+        )
+        if not trusted:
+            for core in group.cores:
+                translations[core] = core
+                kept_source.add(core)
+                if returned:
+                    masking_incomplete.add(core)
+            continue
+        text = unmask(returned, group.masked.table)
+        tagged_text = unmask(tagged_answer, group.masked.table) if tagged_answer else None
+        if tagged_text is not None and _BOLD_TAG.sub("", tagged_text) != text:
+            tagged_text = None  # a tag inside a mask token: that token did not unmask
+        for core, piece in zip(group.cores, _distribute(text, group.lines), strict=True):
+            translations[core] = piece
+        active_merges[index] = {
+            "page": group.subset_page,
+            "lines": list(group.lines),
+            "html": _merge_html(text, group, tagged_text),
+            "align": "left",
+        }
     for core in cores:
+        if core in paragraph_of:
+            continue
         if core in identifiers:
             translations[core] = core
             kept_source.add(core)
             continue
         result = masked[core]
-        returned = supplied_masked.get(result.masked_text)
+        line_tagged = tagged_lines.get(core)
+        returned = supplied_masked.get(line_tagged or result.masked_text)
+        tagged_answer = None
+        if returned and line_tagged:
+            returned, tagged_answer = _split_bold_answer(returned)
         if not returned:
             # Cause 2 of the library's eight refusals: ANY segment without a
             # translation fails the whole page. A model that drops one string
@@ -752,6 +1523,12 @@ def place_prepared_document(
             kept_source.add(core)
             continue
         translations[core] = unmask(returned, result.table)
+        if tagged_answer:
+            # The library draws <b>...</b> in a single line with its bold role.
+            tagged_text = unmask(tagged_answer, result.table)
+            if _BOLD_TAG.sub("", tagged_text) == translations[core]:
+                translations[core] = tagged_text
+                markup_cores.add(core)
 
     # Widget text reconciles the SAME way as page body text -- a core the
     # provider never answered, or answered with a broken masking round trip,
@@ -803,6 +1580,129 @@ def place_prepared_document(
     passes = 0
     settled = False
 
+    # Cores refused even as their own source text: their source glyphs are replayed
+    # exactly as printed (the library's `source_glyphs`), so one stuck block stays in
+    # its source form ALONE and the rest of the document still delivers translated.
+    source_glyphs: set[str] = set()
+    right_cores = sorted(set(prepared.right_cores) & set(translations))
+
+    # GATE Z amendment 2 (VIS 2026-10-12: "6. The National Vaccine Injury /
+    # Compensation Program" kept its first line in English at 0.698). A two-line bold
+    # heading whose line the library refuses below the floor gets its answer's words
+    # re-split over both lines, once; refused again, both answers go back and the
+    # usual retention runs (SPEC §2.2).
+    heading_pairs: list[tuple[dict, dict]] = []
+    segment_rows: list[dict] = []
+    if paragraph_reflow_target(lang) and isinstance(font, dict) and "bold" in font:
+        try:
+            payload = json.loads(segments.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            payload = None
+        listed = payload.get("segments") if isinstance(payload, dict) else payload
+        segment_rows = [
+            row for row in listed or () if isinstance(row, dict) and fit_budget.has_geometry(row)
+        ]
+        if segment_rows:
+            with _LIBRARY_LOCK:
+                heading_pairs = _heading_pairs(
+                    segment_rows, page_pdf, {core for group in paragraphs for core in group.cores}
+                )
+    pair_of = {row["core"]: index for index, pair in enumerate(heading_pairs) for row in pair}
+    rebalanced: dict[int, tuple[str, str]] = {}
+    pairs_tried: set[int] = set()
+
+    def rebalance(core: str, fresh: set[int]) -> str | None:
+        """"split" when the pair's answer was re-split this round (do not retain);
+        "restored" when a re-split pair got its answers back (then retain as usual)."""
+        nonlocal allow_scale
+        index = pair_of.get(core)
+        if index is None or index in fresh:
+            return "split" if index in fresh else None
+        pair = tuple(row["core"] for row in heading_pairs[index])
+        if index in rebalanced:
+            for target, text in zip(pair, rebalanced.pop(index), strict=True):
+                translations[target] = text
+                accepted.pop(target, None)
+            return "restored"
+        if index in pairs_tried:
+            return None
+        pairs_tried.add(index)
+        if any(
+            target not in translations or target in reverted or target in kept_source
+            or target in markup_cores or target not in masked or masked[target].table
+            for target in pair
+        ):
+            return None
+        rows = heading_pairs[index]
+        rooms = fit_budget.line_rooms(
+            source_pdf=page_pdf, segments=segment_rows,
+            merge_rows=[
+                (group.subset_page, [
+                    row for row in segment_rows
+                    if row["page"] == group.subset_page and row.get("core") in group.cores
+                ])
+                for group in paragraphs
+            ],
+            right_cores=set(right_cores), rows=rows,
+        )
+        if rooms is None:
+            return None
+        import fitz
+
+        face = fitz.Font(fontfile=str(font["bold"]))
+        markers = [fit_budget.marker_dx(row) for row in rows]
+
+        def ratio(line: int, text: str) -> float:
+            width = markers[line] + face.text_length(text, fontsize=float(rows[line]["size"]))
+            return 1.0 if width <= 0 else min(1.0, rooms[line] / width)
+
+        split = _heading_split(
+            translations[pair[0]], translations[pair[1]], ratio=ratio, floor=floor
+        )
+        if split is None:
+            return None
+        rebalanced[index] = (translations[pair[0]], translations[pair[1]])
+        for target, text in zip(pair, split, strict=True):
+            translations[target] = text
+            accepted.pop(target, None)
+        allow_scale = sorted(set(allow_scale) | set(pair))
+        fresh.add(index)
+        return "split"
+
+    def merge_keys() -> dict[str, int]:
+        # The library names a merge by its first line, which is that line's core.
+        return {paragraphs[index].lines[0]: index for index in active_merges}
+
+    def retain(core: str, kind: str, *, glyphs: bool = False) -> bool:
+        """Hand a refused core back as its source text. Named again as its source
+        text (or with `glyphs`, when its source text cannot help), it is drawn from
+        its source glyphs instead. A line of a paragraph whose reflow was refused
+        takes its paragraph's other lines with it, so a paragraph never reads half
+        translated."""
+        index = paragraph_of.get(core)
+        targets = (
+            paragraphs[index].cores
+            if index is not None and index not in active_merges
+            else (core,)
+        )
+        changed = False
+        for target in targets:
+            if target not in translations:
+                continue
+            named = target == core
+            if target not in reverted:
+                identity = translations[target] == target
+                translations[target] = target
+                reverted.add(target)
+                retention_kinds.setdefault(target, kind)
+                changed = True
+                if named and (identity or glyphs):
+                    source_glyphs.add(target)
+            elif named and target not in source_glyphs:
+                source_glyphs.add(target)
+                changed = True
+        return changed
+
     # _LIBRARY_LOCK: `run_strip` and the whole `run_retypeset` loop below are
     # EVERY remaining call into the library for this placement -- `translate`
     # (above, at `supplied_masked = translate(...)`) has already returned, so
@@ -827,13 +1727,21 @@ def place_prepared_document(
         # MEASURED, not assumed (2026-09-17, FL-150 page 1 at 0.9): reverting a core
         # changes what the page asks of the face, so a round names cores the previous
         # round did not -- 29, then a further 26, then clear. The loop therefore cannot
-        # be bounded by a guessed attempt count. It terminates on a rule instead: a core
-        # named AGAIN after it was already reverted to its source text has no remedy
-        # left, because reverting it twice changes nothing. That page is delivered
-        # untranslated (`a-job-always-delivers`), which is honest and always terminates.
-        for attempt in range(max_passes(len(cores))):
+        # be bounded by a guessed attempt count. Every round must change something: a
+        # refused reflow falls back to its lines, a refused core goes back to its source
+        # text, and a core refused AS its source text is drawn from its source glyphs.
+        # Only when a round changes nothing (or a source run's glyphs cannot be
+        # vouched) is the whole document delivered untouched (`a-job-always-delivers`).
+        rounds = max_passes(len(cores)) + (2 if paragraphs else 0) + 2 * len(heading_pairs)
+        for attempt in range(rounds):
             _write_mapping(mapping, translations=translations, lang=lang, font=font,
                            allow_scale=allow_scale)
+            _write_layout(
+                mapping,
+                merges=[active_merges[index] for index in sorted(active_merges)],
+                source_glyphs=sorted(source_glyphs),
+                right=right_cores,
+            )
             passes = attempt + 1
             scale_path = _unique_scale_report_path(workdir)
             try:
@@ -848,17 +1756,74 @@ def place_prepared_document(
                     resource_root=workdir,
                 )
             except PlacementFailure as failure:
+                unmatched = failure.refusals.get("merges")
+                if unmatched:
+                    by_lines = {
+                        (merge["page"], tuple(merge["lines"])): index
+                        for index, merge in active_merges.items()
+                    }
+                    hit = {
+                        by_lines.get((item.get("page"), tuple(item.get("lines") or ())))
+                        for item in unmatched
+                        if isinstance(item, dict)
+                    } - {None}
+                    if not hit or set(failure.refusals) - {"merges"}:
+                        raise failure
+                    for index in hit:
+                        del active_merges[index]
+                    continue
                 accept, revert, kinds = _resolve_failure(
                     failure, floor, set(translations)
                 )
-                if (revert & reverted) or not (accept or revert):
+                if failure.refusals.get("source_glyphs"):
+                    break  # a source run whose glyphs cannot be vouched: no remedy left
+                keys = merge_keys()
+                changed = False
+                for key in sorted((set(accept) | revert) & set(keys)):
+                    del active_merges[keys[key]]
+                    changed = True
+                for core, ratio in accept.items():
+                    if core not in keys and core not in allow_scale:
+                        accepted[core] = ratio
+                        allow_scale = sorted(set(allow_scale) | {core})
+                        changed = True
+                # A rotated run (`neighbour`) that leaves a horizontal run no room
+                # goes back to its source text first; the horizontal run waits for
+                # the next round. Once the rotated run IS its source text, the
+                # horizontal run is drawn from its source glyphs, where it was
+                # printed beside it (cms-1490s-en: a diagonal watermark).
+                pairs = [
+                    (item["core"], item["neighbour"])
+                    for item in failure.refusals.get("rotated_neighbours", ())
+                ]
+                rotated = {neighbour for _core, neighbour in pairs}
+                changing = {
+                    neighbour
+                    for _core, neighbour in pairs
+                    if neighbour not in keys
+                    and neighbour not in reverted
+                    and translations.get(neighbour) != neighbour
+                }
+                rotated_changed = False
+                for neighbour in sorted(changing):
+                    rotated_changed |= retain(neighbour, "rotated_neighbours")
+                deferred = {core for core, neighbour in pairs if neighbour in changing}
+                for core, neighbour in sorted(pairs):
+                    if neighbour not in changing and core not in keys:
+                        changed |= retain(core, "rotated_neighbours", glyphs=True)
+                fresh: set[int] = set()
+                for core in sorted(revert - rotated - set(keys)):
+                    if core in deferred:
+                        continue  # its rotated neighbour changes this round; look again
+                    kind = kinds.get(core, "overflow_below_floor")
+                    step = rebalance(core, fresh) if kind == "overflow_below_floor" else None
+                    if step == "split":
+                        changed = True
+                        continue
+                    changed |= step == "restored"
+                    changed |= retain(core, kind)
+                if not (changed or rotated_changed):
                     break
-                accepted.update(accept)
-                allow_scale = sorted(set(allow_scale) | set(accept))
-                for core in revert:
-                    translations[core] = core
-                reverted |= revert
-                retention_kinds.update(kinds)
                 continue
             _require_retypeset_output(native_result, scale_path)
             if native_result.output:
@@ -869,24 +1834,41 @@ def place_prepared_document(
                 # drawn. Caught by `test_nothing_is_ever_drawn_below_the_published_floor`
                 # at 0.7056 on `STATE BAR NUMBER:`.
                 drawn = _scaled_runs(scale_path, native_result)
-                too_small = {core for core, ratio in drawn.items() if ratio < floor}
-                if too_small and not (too_small & reverted):
-                    for core in too_small:
-                        translations[core] = core
-                        retention_kinds[core] = "scaled_below_floor"
-                    reverted |= too_small
+                keys = merge_keys()
+                changed = False
+                fresh = set()
+                for key, ratio in sorted(drawn.items()):
+                    if ratio >= floor:
+                        continue
+                    if key in keys:
+                        del active_merges[keys[key]]
+                        changed = True
+                    elif key in translations:
+                        step = rebalance(key, fresh)
+                        if step == "split":
+                            changed = True
+                            continue
+                        changed |= step == "restored"
+                        changed |= retain(key, "scaled_below_floor")
+                if changed:
                     continue
                 # What remains is drawn at or above the floor. These are not failures:
                 # the text is complete and on the page. They are what the reader is owed
                 # a separate word for (`degraded-outcomes-are-named-separately`).
-                accepted.update({c: r for c, r in drawn.items() if r >= floor})
+                for key, ratio in drawn.items():
+                    if key in keys:
+                        for core in paragraphs[keys[key]].cores:
+                            accepted[core] = ratio
+                    elif ratio >= floor:
+                        accepted[key] = ratio
                 job_warnings.extend(_safe_result_warnings(native_result))
                 settled = True
                 break
 
     if not settled:
         # The source document, untouched and complete, rather than a blank or a
-        # failure. `translations` is reset too: reporting a translation that was never
+        # failure: only when a source run's glyphs cannot be vouched or a round
+        # changed nothing. `translations` is reset too: reporting a translation that was never
         # drawn would make every outcome below a lie, which is how this branch read
         # until `test_a_string_that_cannot_fit_is_left_in_its_source_language` caught it.
         shutil.copy2(page_pdf, out)
@@ -898,7 +1880,11 @@ def place_prepared_document(
     outcomes = [
         CoreOutcome(
             core=core,
-            translation=translations.get(core, core),
+            translation=(
+                _BOLD_TAG.sub("", translations[core])
+                if core in markup_cores and core in translations
+                else translations.get(core, core)
+            ),
             outcome=(
                 # A masking round-trip failure is a distinct outcome from a fit
                 # failure, and takes priority: this core's translation is the

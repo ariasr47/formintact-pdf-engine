@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import io
 import math
+import unicodedata
 from contextlib import ExitStack
 from decimal import Decimal
 
@@ -20,7 +21,7 @@ from fontTools.ttLib import TTLibError
 from .results import MappingError
 from .strip_text import page_rawdict_without_annots, resources_of
 from .typography_content import later_paint_intersects, page_drawing
-from .typography import _GlyphProgram
+from .typography import FontWeights, _GlyphProgram, majority_bold
 
 _IDENTITY = (1., 0., 0., 1., 0., 0.)
 _SHOW = frozenset({'Tj', 'TJ', "'", '"'})
@@ -42,6 +43,39 @@ def _refuse(reason, segment=None, **details):
                    core=segment.get('core'), origin=segment.get('origin'))
     raise MappingError('source text retention cannot be vouched: ' + reason,
                        refusals={'source_retention': [row]})
+
+
+# Everything this reader can raise while it vouches one page or occurrence.
+# Cancellation is separate and always propagates.
+_UNVOUCHED = (MappingError, ValueError, TypeError, IndexError, KeyError, AttributeError,
+              ArithmeticError, RuntimeError, TTLibError, pikepdf.PdfError)
+
+
+def _note_unretained(unretained, segment, exc):
+    """Report an identity occurrence that keeps the redraw path, and why."""
+    if unretained is None:
+        return
+    if isinstance(exc, str):
+        reason = exc
+    else:
+        rows = (getattr(exc, 'refusals', None) or {}).get('source_retention') or [{}]
+        reason = rows[0].get('reason') or (type(exc).__name__ if exc is not None else 'unvouched')
+    unretained.append({'page': segment.get('page'), 'segment_id': segment.get('id'),
+                       'core': segment.get('core'), 'reason': reason})
+
+
+def _mostly_overlaps(first, second, share=.5):
+    """True when two extracted runs share at least half the smaller box."""
+    try:
+        a, b = [float(v) for v in first['bbox']], [float(v) for v in second['bbox']]
+    except (KeyError, TypeError, ValueError):
+        return True
+    width = min(a[2], b[2]) - max(a[0], b[0])
+    height = min(a[3], b[3]) - max(a[1], b[1])
+    if width <= 0 or height <= 0:
+        return False
+    smaller = min((a[2]-a[0]) * (a[3]-a[1]), (b[2]-b[0]) * (b[3]-b[1]))
+    return smaller <= 0 or width * height >= share * smaller
 
 
 def _cancel(cancel):
@@ -508,13 +542,17 @@ def _slice_group(source_page, group, span, traces, resource, segment):
     return sliced, observed_spans[0], observed_traces, (start, end)
 
 
-def _spans(page):
+def _spans(page, weights=None):
+    # `weights` (the source document's) adds each span's weight, decided the
+    # way extraction decided the segment's; _bind_segment compares the two.
     spans = []
     for block_index, block in enumerate(page_rawdict_without_annots(page).get('blocks', [])):
         for line_index, line in enumerate(block.get('lines', [])):
             for span in line['spans']:
                 spans.append(dict(span, text=''.join(c['c'] for c in span['chars']),
                                   direction=tuple(line['dir']), line_key=(block_index, line_index)))
+                if weights is not None:
+                    spans[-1]['heavy'] = weights.bold(spans[-1], page)
     return spans
 
 
@@ -611,7 +649,7 @@ def _bind_segment(segment, spans, *, metrics=True):
             (segment.get('font') is not None and first['font'] != segment['font']) or
             first['color'] != segment.get('color', 0) or
             not _close(first['direction'], segment.get('dir', (1., 0.))) or
-            any('Bold' in s['font'] for s in parts) != bool(segment.get('bold')) or
+            majority_bold((s['text'], s['heavy']) for s in parts) != bool(segment.get('bold')) or
             any('Italic' in s['font'] or 'Oblique' in s['font'] for s in parts) != bool(segment.get('italic'))):
         _refuse('stale-occurrence', segment)
     return parts
@@ -870,8 +908,25 @@ def retainable_segments(segments, translations, legacy_conf=None):
 
 
 def prepare(source_path, destination, segments, translations, *, cancel=None, legacy_conf=None,
-            ink_segments=(), ink_envelopes=None):
+            ink_segments=(), ink_envelopes=None, unretained=None, exclude_ids=frozenset()):
+    """Vouch every retainable identity occurrence; return the retained blocks.
+
+    An occurrence this reader cannot vouch is left out of the result (and
+    appended to ``unretained`` when given), so the caller redraws it like any
+    other run. Only inputs that contradict each other (page count, page
+    geometry) still refuse the document. ``exclude_ids`` names segment ids a
+    previous build's final check could not vouch; they are redrawn too.
+    """
     by_page = retainable_segments(segments, translations, legacy_conf)
+    if exclude_ids:
+        for page_number in list(by_page):
+            for segment in by_page[page_number]:
+                if segment.get('id') in exclude_ids:
+                    _note_unretained(unretained, segment, 'retained-output')
+            by_page[page_number] = [segment for segment in by_page[page_number]
+                                    if segment.get('id') not in exclude_ids]
+            if not by_page[page_number]:
+                del by_page[page_number]
     geometry_by_page = {}
     for segment in ink_segments:
         geometry_by_page.setdefault(int(segment['page']), []).append(segment)
@@ -880,6 +935,7 @@ def prepare(source_path, destination, segments, translations, *, cancel=None, le
     _cancel(cancel)
     retained = {}
     with pikepdf.open(source_path) as source_pdf, pymupdf.open(source_path) as source, ExitStack() as stack:
+        weights = FontWeights(source)
         programs = {}
         if source.page_count != destination.page_count:
             _refuse('page-count')
@@ -898,7 +954,7 @@ def prepare(source_path, destination, segments, translations, *, cancel=None, le
                     source_page = source_pdf.pages[page_number]
                     source_fonts = resources_of(source_page.obj).get('/Font', {})
                     destination_fonts = resources_of(stripped_pdf.pages[page_number].obj).get('/Font', {})
-                    spans = _spans(source[page_number])
+                    spans = _spans(source[page_number], weights)
                     traces, paints, annotation_start = page_drawing(source, page_number)
                     page_transform = _unrotated_transform(source[page_number])
                     try:
@@ -915,22 +971,48 @@ def prepare(source_path, destination, segments, translations, *, cancel=None, le
                         probes.append((index, group, probe_spans, probe_traces))
                     source_ink = _vouched_group_ink(source, source_fonts, probes, traces, programs, stack, cancel)
                     text_paints = _text_paints(traces, source_ink, paints=paints)
-                except (MappingError, ValueError, TypeError, IndexError, KeyError,
-                        RuntimeError, TTLibError, pikepdf.PdfError):
-                    if page_segments:
-                        raise
-                    # Only the optional ink envelope needs this page: no source
-                    # text is retained here, so content this reader cannot vouch
-                    # for must not fail the job. Unvouched pages keep the
-                    # established translated-text path; required retention
-                    # above still refuses every gap.
+                except _UNVOUCHED as exc:
+                    # This reader cannot vouch any source text on the page, so
+                    # none of it is replayed. Every identity occurrence keeps the
+                    # established redraw path and the optional ink envelope is
+                    # skipped: one unreadable page must not fail a paid job
+                    # (a-job-always-delivers).
+                    for segment in page_segments:
+                        _note_unretained(unretained, segment, exc)
                     continue
-                bound_spans = [(segment, part) for segment in page_segments
-                               for span in _bind_segment(segment, spans, metrics=False)
-                               for part in _source_parts(span, probes, segment)]
-                claimed = {}
-                for segment, span in bound_spans:
-                    _cancel(cancel)
+
+                def vouch(candidates):
+                    """One complete proof over exactly ``candidates``.
+
+                    A candidate this reader cannot vouch is collected, not
+                    raised. The caller accepts only a pass with no failure, so
+                    every retained block is proved against the final retained
+                    set alone (its group slicing and source claims included).
+                    """
+                    blocks, failed, bound_spans = [], {}, []
+                    for segment in candidates:
+                        try:
+                            parts = [part for span in _bind_segment(segment, spans, metrics=False)
+                                     for part in _source_parts(span, probes, segment)]
+                        except _UNVOUCHED as exc:
+                            failed[id(segment)] = (segment, exc)
+                            continue
+                        bound_spans.extend((segment, part) for part in parts)
+                    claimed = {}
+                    for segment, span in bound_spans:
+                        _cancel(cancel)
+                        if id(segment) in failed:
+                            continue
+                        try:
+                            block, claim = _vouch_span(segment, span, bound_spans, claimed)
+                        except _UNVOUCHED as exc:
+                            failed[id(segment)] = (segment, exc)
+                            continue
+                        claimed.setdefault(claim[0], []).append(claim[1:])
+                        blocks.append(block)
+                    return blocks, failed
+
+                def _vouch_span(segment, span, bound_spans, claimed):
                     matches = [(index, group, probe_span, probe_traces)
                         for index, group, probe_spans, probe_traces in probes
                         for probe_span in probe_spans if _same_span(span, probe_span)]
@@ -962,7 +1044,6 @@ def prepare(source_path, destination, segments, translations, *, cancel=None, le
                     if any(start < old_end and old_start < end
                            for old_start, old_end in claimed.get(index, [])):
                         _refuse('overlapping-source-claims', segment)
-                    claimed.setdefault(index, []).append((start, end))
                     group_key = (index, None)
                     if any(sum(_same_span(candidate_span, observed_span)
                                for _, candidate_span in bound_spans) != 1
@@ -1011,12 +1092,42 @@ def prepare(source_path, destination, segments, translations, *, cancel=None, le
                         _refuse('resource-collision', segment, font=alias, detail=str(exc))
                     if not identical:
                         _refuse('resource-collision', segment, font=alias)
-                    retained.setdefault(page_number, []).append({'bytes': _payload(group),
+                    return ({'bytes': _payload(group),
                         'group_index': group_key,
                         'segment': segment, 'span': span, 'glyphs': source_chars,
                         'geometry': _geometry(source[page_number]), 'alias': alias,
                         'ink_boxes': ink_boxes,
-                        'font_resource': _resource_signature(source_fonts[alias])})
+                        'font_resource': _resource_signature(source_fonts[alias])}, (index, start, end))
+
+                # An identity occurrence this reader cannot vouch is not
+                # retained; it keeps the established redraw path instead of
+                # failing the whole paid job (a-job-always-delivers). Each
+                # pass that is not accepted excludes at least one more
+                # candidate, so this ends within len(page_segments) + 1 passes.
+                # A retained run that a redrawn one would largely cover (a
+                # duplicate or fake-bold occurrence) is redrawn too: the final
+                # visibility check would otherwise refuse the delivered file.
+                excluded = {}
+                blocks = []
+                for _ in range(len(page_segments) + 1):
+                    candidates = [segment for segment in page_segments if id(segment) not in excluded]
+                    blocks, failed = vouch(candidates)
+                    if not failed:
+                        failed = {id(block['segment']): (block['segment'], 'overlaps-redrawn-run')
+                                  for block in blocks
+                                  if any(_mostly_overlaps(block['segment'], other)
+                                         for other, _ in excluded.values())}
+                    if not failed:
+                        break
+                    excluded.update(failed)
+                else:
+                    blocks = []
+                    excluded.update({id(segment): (segment, None) for segment in page_segments
+                                     if id(segment) not in excluded})
+                for segment, failure in excluded.values():
+                    _note_unretained(unretained, segment, failure)
+                if blocks:
+                    retained.setdefault(page_number, []).extend(blocks)
                 for segment in geometry_by_page.get(page_number, []):
                     _cancel(cancel)
                     boxes = []
@@ -1074,6 +1185,352 @@ def attach(destination, retained):
         destination.update_stream(xref, b'q\n' + existing + b'\nQ\n' +
                                   b'\n'.join(unique.values()))
         page.set_contents(xref)
+
+
+UNMAPPED = '\ufffd'
+_OPAQUE = .999
+_COVERED_SHARE = .25
+
+
+def _rect_area(box):
+    return max(0., box[2]-box[0]) * max(0., box[3]-box[1])
+
+
+def _inside(inner, outer, tolerance=.5):
+    return (inner[0] >= outer[0]-tolerance and inner[1] >= outer[1]-tolerance and
+            inner[2] <= outer[2]+tolerance and inner[3] <= outer[3]+tolerance)
+
+
+def _ll_rect(rect):
+    return (rect.x0, rect.y0, rect.x1, rect.y1)
+
+
+class _OutlineWalker(pymupdf.mupdf.FzPathWalker2):
+    """Collect one path's operators, in the coordinates it was built in."""
+
+    def __init__(self):
+        super().__init__()
+        self.use_virtual_moveto()
+        self.use_virtual_lineto()
+        self.use_virtual_curveto()
+        self.use_virtual_closepath()
+        self.ops = []
+
+    def moveto(self, ctx, x, y):
+        self.ops.append(('m', x, y))
+
+    def lineto(self, ctx, x, y):
+        self.ops.append(('l', x, y))
+
+    def curveto(self, ctx, x1, y1, x2, y2, x3, y3):
+        self.ops.append(('c', x1, y1, x2, y2, x3, y3))
+
+    def closepath(self, ctx):
+        self.ops.append(('h',))
+
+
+class _GlyphLog(pymupdf.mupdf.FzDevice2):
+    """Every glyph a page's own content paints inside ``areas``, as outlines.
+
+    MuPDF interprets the page, so each glyph comes with the exact font
+    program, matrix and fill colour the source used, whatever the text
+    object looks like. A glyph is ``unsafe`` (and never replayed) when its
+    painted shape is not just its filled outline: a soft mask, a blend mode
+    or group alpha, a pattern tile, a clip that is not a box containing the
+    glyph, a stroke, or a font without a scalable outline (Type 3).
+    """
+
+    def __init__(self, areas):
+        super().__init__()
+        for name in ('fill_text', 'stroke_text', 'clip_text', 'clip_stroke_text',
+                     'ignore_text', 'fill_path', 'stroke_path', 'clip_path',
+                     'clip_stroke_path', 'fill_shade', 'fill_image', 'fill_image_mask',
+                     'clip_image_mask', 'pop_clip', 'begin_mask', 'end_mask',
+                     'begin_group', 'end_group', 'begin_tile', 'end_tile'):
+            getattr(self, 'use_virtual_' + name)()
+        self.areas = areas
+        self.glyphs, self.fills = [], []
+        self.clips, self.groups = [], []
+        self.masks = self.tiles = self.seq = 0
+        self.failure = None
+
+    def _guard(self, function, *args):
+        # A Python exception must not cross MuPDF's C stack; record it and
+        # let the caller refuse the page.
+        try:
+            function(*args)
+        except Exception as exc:  # noqa: BLE001
+            if self.failure is None:
+                self.failure = exc
+
+    def _state_unsafe(self):
+        if self.masks:
+            return 'soft-mask'
+        if self.tiles:
+            return 'pattern'
+        if not all(self.groups):
+            return 'blend'
+        return None
+
+    def _text(self, text, ctm, kind, colorspace=None, color=None, alpha=1.):
+        mupdf = pymupdf.mupdf
+        ctm = mupdf.FzMatrix(ctm)
+        rgb, unsafe = (0., 0., 0.), self._state_unsafe()
+        if kind == 'fill':
+            if alpha < _OPAQUE:
+                unsafe = unsafe or 'alpha'
+            if colorspace is None:
+                unsafe = unsafe or 'colour'
+            else:
+                rgb = tuple(mupdf.fz_convert_color(
+                    mupdf.FzColorspace(mupdf.ll_fz_keep_colorspace(colorspace)), color,
+                    mupdf.fz_device_rgb(), mupdf.FzColorspace(), mupdf.FzColorParams())[:3])
+        span = text.head
+        while span:
+            wrapped = mupdf.FzTextSpan(span)
+            font, trm = wrapped.font(), wrapped.trm()
+            turned = mupdf.fz_concat(mupdf.FzMatrix(trm.a, trm.b, trm.c, trm.d, 0, 0), ctm)
+            norm = math.hypot(turned.a, turned.b) or 1.
+            writing = (turned.a / norm, turned.b / norm)
+            for index in range(span.len):
+                item = wrapped.items(index)
+                point = mupdf.fz_transform_point(mupdf.fz_make_point(item.x, item.y), ctm)
+                origin = (point.x, point.y)
+                if not any(_inside((*origin, *origin), area, 0.) for area in self.areas):
+                    continue
+                glyph = {'ucs': item.ucs, 'gid': item.gid, 'origin': origin, 'kind': kind,
+                         'seq': self.seq, 'rgb': rgb, 'ops': (), 'ink': None, 'unsafe': unsafe,
+                         'dir': writing}
+                if kind == 'stroke':
+                    glyph['unsafe'] = 'stroked'
+                if kind in ('fill', 'stroke') and item.gid >= 0:
+                    matrix = mupdf.fz_concat(
+                        mupdf.FzMatrix(trm.a, trm.b, trm.c, trm.d, item.x, item.y), ctm)
+                    try:
+                        path = mupdf.fz_outline_glyph(font, item.gid, matrix)
+                    except Exception:  # noqa: BLE001 - no outline is reported below
+                        path = None
+                    if path is None or not path.m_internal:
+                        glyph['unsafe'] = glyph['unsafe'] or 'no-outline'
+                    else:
+                        walker = _OutlineWalker()
+                        mupdf.fz_walk_path(path, walker, walker.m_internal)
+                        glyph['ops'] = tuple(walker.ops)
+                        points = [(op[i], op[i+1]) for op in walker.ops
+                                  for i in range(1, len(op), 2)]
+                        if points:
+                            glyph['ink'] = (min(p[0] for p in points), min(p[1] for p in points),
+                                            max(p[0] for p in points), max(p[1] for p in points))
+                if glyph['ink'] is not None and glyph['unsafe'] is None:
+                    for clip in self.clips:
+                        if clip is None or not _inside(glyph['ink'], clip):
+                            glyph['unsafe'] = 'clipped'
+                            break
+                self.glyphs.append(glyph)
+            span = span.next
+        self.seq += 1
+
+    def _fill(self, rect, alpha):
+        if alpha >= _OPAQUE and not self.masks:
+            self.fills.append((self.seq, rect))
+        self.seq += 1
+
+    def fill_text(self, ctx, text, ctm, colorspace, color, alpha, params):
+        self._guard(self._text, text, ctm, 'fill', colorspace, color, alpha)
+
+    def stroke_text(self, ctx, text, stroke, ctm, colorspace, color, alpha, params):
+        self._guard(self._text, text, ctm, 'stroke')
+
+    def ignore_text(self, ctx, text, ctm):
+        self._guard(self._text, text, ctm, 'ignore')
+
+    def clip_text(self, ctx, text, ctm, scissor):
+        self.clips.append(None)
+
+    def clip_stroke_text(self, ctx, text, stroke, ctm, scissor):
+        self.clips.append(None)
+
+    def fill_path(self, ctx, path, even_odd, ctm, colorspace, color, alpha, params):
+        self._guard(lambda: self._fill(_ll_rect(pymupdf.mupdf.ll_fz_bound_path(path, None, ctm)), alpha))
+
+    def stroke_path(self, ctx, path, stroke, ctm, colorspace, color, alpha, params):
+        self.seq += 1
+
+    def clip_path(self, ctx, path, even_odd, ctm, scissor):
+        try:
+            self.clips.append(_ll_rect(pymupdf.mupdf.ll_fz_bound_path(path, None, ctm)))
+        except Exception:  # noqa: BLE001
+            self.clips.append(None)
+
+    def clip_stroke_path(self, ctx, path, stroke, ctm, scissor):
+        self.clips.append(None)
+
+    def fill_shade(self, ctx, shade, ctm, alpha, params):
+        self._guard(lambda: self._fill(_ll_rect(pymupdf.mupdf.ll_fz_bound_shade(shade, ctm)), alpha))
+
+    def fill_image(self, ctx, image, ctm, alpha, params):
+        self._guard(lambda: self._fill(_ll_rect(pymupdf.mupdf.fz_transform_rect(
+            pymupdf.mupdf.fz_make_rect(0, 0, 1, 1), pymupdf.mupdf.FzMatrix(ctm))), alpha))
+
+    def fill_image_mask(self, ctx, image, ctm, colorspace, color, alpha, params):
+        self._guard(lambda: self._fill(_ll_rect(pymupdf.mupdf.fz_transform_rect(
+            pymupdf.mupdf.fz_make_rect(0, 0, 1, 1), pymupdf.mupdf.FzMatrix(ctm))), alpha))
+
+    def clip_image_mask(self, ctx, image, ctm, scissor):
+        self.clips.append(None)
+
+    def pop_clip(self, ctx):
+        if self.clips:
+            self.clips.pop()
+
+    def begin_mask(self, ctx, area, luminosity, colorspace, color, params):
+        self.masks += 1
+        self.clips.append(None)
+
+    def end_mask(self, ctx, function):
+        self.masks = max(0, self.masks - 1)
+
+    def begin_group(self, ctx, area, colorspace, isolated, knockout, blendmode, alpha):
+        self.groups.append(blendmode == 0 and alpha >= _OPAQUE)
+
+    def end_group(self, ctx):
+        if self.groups:
+            self.groups.pop()
+
+    def begin_tile(self, ctx, area, view, xstep, ystep, ctm, tile_id, doc_id):
+        self.tiles += 1
+        return 0
+
+    def end_tile(self, ctx):
+        self.tiles = max(0, self.tiles - 1)
+
+
+def _blank(ch):
+    return ch.isspace() or unicodedata.category(ch) == 'Cc'
+
+
+def _replay_one(segment, glyphs, fills, area, turn):
+    """The glyphs that draw ``segment``, or the reason they cannot be kept.
+
+    A glyph belongs to the run when its origin is inside the run's box and on
+    its baseline: tight leading puts the next line's baseline inside the box.
+    Bound glyphs must then account for the run's characters exactly.
+    """
+    origin = pymupdf.Point(segment['origin']) * turn
+    direction = pymupdf.Point(segment.get('dir') or (1., 0.)) * pymupdf.Matrix(
+        turn.a, turn.b, turn.c, turn.d, 0, 0)
+    length = math.hypot(direction.x, direction.y) or 1.
+    across = max(.5, .4 * float(segment.get('size') or 0.))
+
+    def on_baseline(point):
+        dx, dy = point[0] - origin.x, point[1] - origin.y
+        return abs(dx * direction.y - dy * direction.x) / length <= across
+
+    # Where the run ends along its own direction. A glyph starts before that:
+    # the next run's first glyph can start exactly at this box's far edge, as
+    # when one word is split into two runs (dogfood 2026-10-10, opm-sf2809
+    # `e` + `nroll ...`), and must not be bound to this one.
+    box = pymupdf.Rect(segment['bbox']) * turn
+    end = max(((x - origin.x) * direction.x + (y - origin.y) * direction.y) / length
+              for x, y in ((box.x0, box.y0), (box.x1, box.y0), (box.x0, box.y1), (box.x1, box.y1)))
+
+    def before_end(point):
+        return ((point[0] - origin.x) * direction.x + (point[1] - origin.y) * direction.y) / length < end - .05
+
+    # Written along the run: a glyph of another line that crosses this baseline
+    # (a diagonal watermark over the text, cms-1490s-en) is not this run's.
+    def along(glyph):
+        dx, dy = glyph.get('dir') or (direction.x / length, direction.y / length)
+        return (dx * direction.x + dy * direction.y) / length > .9
+
+    bound = [glyph for glyph in glyphs if _inside((*glyph['origin'], *glyph['origin']), area, 0.) and
+             on_baseline(glyph['origin']) and before_end(glyph['origin']) and along(glyph)]
+    # A fill-and-stroke run (Tr 2) paints each glyph twice; its fill is the
+    # glyph. A glyph that is only stroked keeps its own record and refuses.
+    filled = {(glyph['gid'], round(glyph['origin'][0], 3), round(glyph['origin'][1], 3))
+              for glyph in bound if glyph['kind'] == 'fill'}
+    bound = [glyph for glyph in bound if not (
+        glyph['kind'] == 'stroke' and
+        (glyph['gid'], round(glyph['origin'][0], 3), round(glyph['origin'][1], 3)) in filled)]
+    # A control character is matched like a space on both sides: a broken
+    # ToUnicode maps a bullet box to U+0007 for the extractor while MuPDF reports
+    # the same glyph as a space (dogfood 2026-10-10, vis-ja-flu `医療...`).
+    expected = sorted(ch for ch in str(segment.get('text') or '') if not _blank(ch))
+    seen = sorted(chr(glyph['ucs']) if 0 < glyph['ucs'] <= 0x10FFFF else UNMAPPED
+                  for glyph in bound if not (0 < glyph['ucs'] <= 0x10FFFF and _blank(chr(glyph['ucs']))))
+    if seen != expected:
+        return None, 'unbound-glyphs'
+    drawn = [glyph for glyph in bound if glyph['kind'] != 'ignore']
+    for glyph in drawn:
+        if glyph['unsafe']:
+            return None, glyph['unsafe']
+        ink = glyph['ink']
+        if ink is None:
+            continue
+        for seq, rect in fills:
+            if seq > glyph['seq']:
+                overlap = (max(ink[0], rect[0]), max(ink[1], rect[1]),
+                           min(ink[2], rect[2]), min(ink[3], rect[3]))
+                if _rect_area(overlap) > _COVERED_SHARE * max(_rect_area(ink), 1e-9):
+                    return None, 'covered-source'
+    return drawn, None
+
+
+def _format(value):
+    return format(value, '.4f').rstrip('0').rstrip('.') or '0'
+
+
+def replay_unmapped(source, target, page_number, segments):
+    """Draw, as filled outlines, the source glyphs of runs that have no Unicode.
+
+    A run the source font cannot map to Unicode extracts as U+FFFD. Redrawn
+    from that text it becomes a row of replacement boxes, or a glyph miss in
+    a face without one. Its exact source glyphs are painted instead, from
+    the font program MuPDF used, at the source matrix and fill colour, over
+    the stripped page ``target``. Returns ``(kept, refused)``: the ids of the segments
+    drawn, and one row per segment whose glyphs cannot be vouched as plain
+    filled outlines; that run is not drawn at all, and the caller reports it.
+    """
+    mupdf = pymupdf.mupdf
+    refused = []
+    if not segments:
+        return set(), refused
+    page = source[page_number]
+    turn = page.rotation_matrix
+    areas = [tuple(pymupdf.Rect(segment['bbox']) * turn + (-.5, -.5, .5, .5)) for segment in segments]
+    log = _GlyphLog(areas)
+    try:
+        mupdf.fz_run_page_contents(page.this, log, mupdf.FzMatrix(), mupdf.FzCookie())
+    except Exception as exc:  # noqa: BLE001
+        log.failure = log.failure or exc
+    if log.failure is not None:
+        return set(), [{'page': page_number, 'segment_id': segment.get('id'),
+                        'core': segment.get('core'), 'reason': 'unreadable-content'}
+                       for segment in segments]
+    shape = target.new_shape()
+    to_pdf = shape.ipctm
+    kept = set()
+    for segment, area in zip(segments, areas):
+        drawn, reason = _replay_one(segment, log.glyphs, log.fills, area, turn)
+        if reason is not None:
+            refused.append({'page': page_number, 'segment_id': segment.get('id'),
+                            'core': segment.get('core'), 'reason': reason})
+            continue
+        for glyph in drawn:
+            if not glyph['ops']:
+                continue
+            parts = []
+            for op in glyph['ops']:
+                if op[0] == 'h':
+                    parts.append('h')
+                    continue
+                points = [pymupdf.Point(op[i], op[i+1]) * to_pdf for i in range(1, len(op), 2)]
+                parts.append(' '.join(f'{_format(p.x)} {_format(p.y)}' for p in points) + ' ' + op[0])
+            shape.draw_cont = '\n'.join(parts) + '\n'
+            shape.finish(color=None, fill=glyph['rgb'], closePath=False)
+        kept.add(id(segment))
+    shape.commit(overlay=True)
+    return kept, refused
 
 
 def verify_final(path, retained, *, cancel=None):

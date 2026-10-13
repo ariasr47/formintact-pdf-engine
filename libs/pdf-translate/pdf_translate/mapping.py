@@ -374,9 +374,9 @@ def _parse_mapping(conf, format_name, *, extraction=None, mapping_dir=None):
         _text(key, 'document source')
         _text(value, 'document target')
     document = data['document']
-    from .extract_segments import PASS
+    from .extract_segments import passes_through
     for value in [document.get('title', '')] + list(document.get('outline') or []):
-        if value and not PASS.match(value) and value not in metadata:
+        if value and not passes_through(value) and value not in metadata:
             refuse('invalid-style-reference', f'document target missing: {value}')
     return MappingDocument(FORMAT, lang=lang, extraction_id=expected,
                            mapping_sha256=canonical_digest(conf), targets=targets,

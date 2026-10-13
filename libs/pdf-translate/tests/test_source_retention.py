@@ -126,6 +126,26 @@ def _spans(path: Path, text: str) -> list[dict]:
     return sorted(rows, key=lambda row: (row["page"], row["origin"]))
 
 
+def _assert_first_keep_redrawn(job, reason, *, stripped, original):
+    """The unvouched page-1 KEEP is redrawn and reported; the job delivers.
+
+    a-job-always-delivers: retention leaves an occurrence it cannot vouch out
+    instead of refusing the document. The source operator is never replayed
+    for it, and the vouched occurrences on page 2 are still retained.
+    """
+    result = run_retypeset(str(stripped), str(job["segments"]), str(job["mapping"]),
+                           str(job["output"]), original=str(original))
+    assert job["output"].exists()
+    rows = [row for row in result.warnings if row["kind"] == "source_not_retained"]
+    assert [(row["page"], row["core"]) for row in rows] == [(0, "KEEP")]
+    if reason is not None:
+        assert rows[0]["reason"] == reason
+    source_font = _spans(job["original"], "KEEP")[0]["font"]
+    drawn = [(span["page"], span["font"]) for span in _spans(job["output"], "KEEP")]
+    assert len(drawn) == 3
+    assert [font == source_font for page, font in sorted(drawn)] == [False, True, True]
+
+
 def _render(job: dict[str, Path]) -> None:
     run_retypeset(
         str(job["stripped"]),
@@ -337,8 +357,6 @@ def _single_tj_job(work: Path, text: bytes) -> dict[str, Path]:
     original = work / "single-tj-original.pdf"
     with pikepdf.open(seed) as document:
         page = document.pages[0]
-        contents = page.Contents
-        streams = contents if isinstance(contents, pikepdf.Array) else [contents]
         page.Contents = document.make_stream(
             b"BT /helv 14 Tf 1 0 0 1 40 180 Tm " + text + b" TJ ET"
         )
@@ -478,12 +496,49 @@ def test_legacy_retention_refuses_tampered_final_publication_atomically(tmp_path
         return result
 
     monkeypatch.setattr(module, "canonicalize_text_layer", tamper)
+    # With no rebuild left, the final check's refusal stands and is atomic.
+    monkeypatch.setattr(module, "_RETAINED_OUTPUT_RETRIES", 0)
     with pytest.raises(MappingError) as caught:
         _render(job)
     assert caught.value.refusals["source_retention"]
     assert caught.value.refusals["source_retention"][0]["reason"] == "retained-output"
     assert job["output"].read_bytes() == prior
     assert report.read_bytes() == prior_report
+
+
+def test_retained_run_the_final_file_cannot_vouch_is_redrawn_not_refused(tmp_path, monkeypatch):
+    # Regression (dogfood F1, 2026-10-09): one retained run covered in the
+    # delivered file failed the paid job at the final check. The build now
+    # runs again with that run redrawn; the other runs stay retained.
+    job = _legacy_job(tmp_path)
+    source_keep = _spans(job["original"], "KEEP")[0]
+    module = importlib.import_module("pdf_translate.retypeset")
+    original_canonicalize = module.canonicalize_text_layer
+    calls = []
+
+    def tamper_once(path, fontfiles, texts, **kwargs):
+        result = original_canonicalize(path, fontfiles, texts, **kwargs)
+        calls.append(path)
+        if len(calls) == 1:
+            tampered = tmp_path / "tampered-final.pdf"
+            with pymupdf.open(path) as document:
+                document[source_keep["page"]].draw_rect(
+                    pymupdf.Rect(source_keep["bbox"]), color=(1, 1, 1), fill=(1, 1, 1),
+                    overlay=True)
+                document.save(tampered)
+            tampered.replace(path)
+        return result
+
+    monkeypatch.setattr(module, "canonicalize_text_layer", tamper_once)
+    result = run_retypeset(str(job["stripped"]), str(job["segments"]), str(job["mapping"]),
+                           str(job["output"]), original=str(job["original"]))
+    assert len(calls) == 2
+    rows = [row for row in result.warnings if row["kind"] == "source_not_retained"]
+    assert [(row["page"], row["core"], row["reason"]) for row in rows] == [
+        (source_keep["page"], "KEEP", "retained-output")]
+    fonts = sorted((span["page"], span["font"] == source_keep["font"])
+                   for span in _spans(job["output"], "KEEP"))
+    assert fonts == [(0, False), (1, True), (1, True)]
 
 
 def test_legacy_retention_keeps_winansi_accented_identity(tmp_path):
@@ -582,12 +637,7 @@ def test_legacy_retention_refuses_stale_same_origin_font_size(tmp_path):
         assert b"14 Tf" in stream
         page.Contents = document.make_stream(stream.replace(b"14 Tf", b"24 Tf", 1))
         document.save(stale)
-    with pytest.raises(MappingError) as caught:
-        run_retypeset(
-            str(job["stripped"]), str(job["segments"]), str(job["mapping"]),
-            str(job["output"]), original=str(stale))
-    assert caught.value.refusals["source_retention"][0]["reason"] == "stale-occurrence"
-    assert not job["output"].exists()
+    _assert_first_keep_redrawn(job, "stale-occurrence", stripped=str(job["stripped"]), original=str(stale))
 
 
 def test_legacy_retention_refuses_transformed_q_cm_context(tmp_path):
@@ -603,16 +653,7 @@ def test_legacy_retention_refuses_transformed_q_cm_context(tmp_path):
         )
         document.save(transformed)
 
-    with pytest.raises(MappingError) as caught:
-        run_retypeset(
-            str(job["stripped"]),
-            str(job["segments"]),
-            str(job["mapping"]),
-            str(job["output"]),
-            original=str(transformed),
-        )
-    assert caught.value.refusals["source_retention"]
-    assert not job["output"].exists()
+    _assert_first_keep_redrawn(job, None, stripped=str(job["stripped"]), original=str(transformed))
 
 
 def test_legacy_retention_refuses_later_opaque_paint_over_source(tmp_path):
@@ -632,12 +673,7 @@ def test_legacy_retention_refuses_later_opaque_paint_over_source(tmp_path):
             f"\nq\n{x0} {pdf_y0} {x1 - x0} {pdf_y1 - pdf_y0} re\nf\nQ\n"
         ).encode("ascii"))
         document.save(covered)
-    with pytest.raises(MappingError) as caught:
-        run_retypeset(
-            str(job["stripped"]), str(job["segments"]), str(job["mapping"]),
-            str(job["output"]), original=str(covered))
-    assert caught.value.refusals["source_retention"][0]["reason"] == "covered-source"
-    assert not job["output"].exists()
+    _assert_first_keep_redrawn(job, "covered-source", stripped=str(job["stripped"]), original=str(covered))
 
 
 def test_legacy_retention_refuses_inherited_text_scale_state(tmp_path):
@@ -650,12 +686,7 @@ def test_legacy_retention_refuses_inherited_text_scale_state(tmp_path):
         stream = b"\n".join(item.read_bytes() for item in streams)
         page.Contents = document.make_stream(b"80 Tz\n" + stream)
         document.save(scaled)
-    with pytest.raises(MappingError) as caught:
-        run_retypeset(
-            str(job["stripped"]), str(job["segments"]), str(job["mapping"]),
-            str(job["output"]), original=str(scaled))
-    assert caught.value.refusals["source_retention"][0]["reason"] == "inherited-state"
-    assert not job["output"].exists()
+    _assert_first_keep_redrawn(job, "inherited-state", stripped=str(job["stripped"]), original=str(scaled))
 
 
 def test_legacy_retention_refuses_multiple_source_shows(tmp_path):
@@ -670,12 +701,7 @@ def test_legacy_retention_refuses_multiple_source_shows(tmp_path):
         page.Contents = document.make_stream(stream.replace(
             token, token + b" (KEEP) " + token, 1))
         document.save(malformed)
-    with pytest.raises(MappingError) as caught:
-        run_retypeset(
-            str(job["stripped"]), str(job["segments"]), str(job["mapping"]),
-            str(job["output"]), original=str(malformed))
-    assert caught.value.refusals["source_retention"][0]["reason"] == "multiple-show"
-    assert not job["output"].exists()
+    _assert_first_keep_redrawn(job, "multiple-show", stripped=str(job["stripped"]), original=str(malformed))
 
 
 def test_legacy_retention_cancellation_has_no_output(tmp_path):
@@ -759,16 +785,7 @@ def test_legacy_retention_refuses_changed_same_alias_resource(tmp_path, mutation
         fonts[alias] = document.make_indirect(changed)
         document.save(conflicting)
 
-    with pytest.raises(MappingError) as caught:
-        run_retypeset(
-            str(conflicting),
-            str(job["segments"]),
-            str(job["mapping"]),
-            str(job["output"]),
-            original=str(job["original"]),
-        )
-    assert caught.value.refusals["source_retention"][0]["reason"] == "resource-collision"
-    assert not job["output"].exists()
+    _assert_first_keep_redrawn(job, "resource-collision", stripped=str(conflicting), original=str(job["original"]))
 
 
 def test_authored_numeric_passthrough_translation_is_not_retained(tmp_path):

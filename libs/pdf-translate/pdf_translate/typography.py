@@ -9,6 +9,7 @@ import io
 import json
 from pathlib import Path
 import re
+from struct import error as struct_error
 
 from fontTools.ttLib import TTFont, TTLibError
 from fontTools.pens.boundsPen import BoundsPen
@@ -79,6 +80,174 @@ def source_digest(path):
 
 def _unsubset(name):
     return re.sub(r'^[A-Z]{6}\+', '', name)
+
+
+# Weight words in a font name's style part. Black, Heavy and Demi faces print
+# heavier than Bold, yet carry neither the bold flag nor 'Bold' in the name
+# (Arial-Black: flags 0), so they were drawn regular: the CMS-1696 title and
+# section headings (dogfood 2026-10-11). Abbreviations are the foundry ones
+# (HelveticaNeueLTStd-Bd/-Hv, NHaasGroteskDSPro-95Blk).
+_HEAVY_WORDS = frozenset({'black', 'heavy', 'bd', 'blk', 'hv', 'hvy'})
+# An explicit lighter weight in the name outranks a numeric weight class.
+# Medium is about 500 and stays regular.
+_LIGHT_WORDS = frozenset({'thin', 'hairline', 'extralight', 'ultralight', 'light',
+                          'lt', 'book', 'bk', 'regular', 'reg', 'rg', 'roman',
+                          'normal', 'medium', 'md', 'med'})
+_NAME_WORD = re.compile(r'[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+')
+# A content stream that sets text render mode 2 (fill, then stroke).
+_FILL_STROKE = re.compile(rb'(?<![\w.\-])2\s+Tr(?![A-Za-z])')
+# A stroke this wide against the font size thickens the letters visibly;
+# a hairline outline does not.
+_SYNTHETIC_STROKE = 0.015
+
+
+def _style_words(name):
+    """The lowercase words of a font name's style part: after the first '-' or
+    ',' when there is one, else every word after the first (the family)."""
+    name = _unsubset(name or '')
+    parts = re.split(r'[-,]', name, maxsplit=1)
+    if len(parts) == 2:
+        words = _NAME_WORD.findall(parts[1])
+    else:
+        words = _NAME_WORD.findall(name)[1:]
+    return [word.lower() for word in words]
+
+
+def name_weight(name):
+    """True: the name says bold or heavier; False: it names a lighter weight;
+    None: it says nothing about weight."""
+    if 'Bold' in (name or ''):
+        return True
+    words = _style_words(name)
+    if any(word.endswith('bold') for word in words) or _HEAVY_WORDS & set(words):
+        return True
+    if 'demi' in words and 'light' not in words:
+        return True
+    if _LIGHT_WORDS & set(words):
+        return False
+    return None
+
+
+def _program_weight(doc, xref):
+    """usWeightClass of the embedded program, else the descriptor's FontWeight."""
+    try:
+        _, _, _, program = doc.extract_font(xref)
+    except (ValueError, RuntimeError):
+        program = b''
+    if program:
+        try:
+            with TTFont(io.BytesIO(program), lazy=True) as font:
+                if 'OS/2' in font:
+                    return int(font['OS/2'].usWeightClass)
+        except (TTLibError, KeyError, ValueError, OSError, AssertionError, struct_error):
+            pass
+    descriptor = None
+    try:
+        kind, value = doc.xref_get_key(xref, 'FontDescriptor')
+        if kind == 'xref':
+            descriptor = int(value.split()[0])
+        else:
+            kind, value = doc.xref_get_key(xref, 'DescendantFonts')
+            found = re.search(r'(\d+) 0 R', value) if kind == 'array' else None
+            if found:
+                kind, value = doc.xref_get_key(int(found.group(1)), 'FontDescriptor')
+                if kind == 'xref':
+                    descriptor = int(value.split()[0])
+        if descriptor:
+            kind, value = doc.xref_get_key(descriptor, 'FontWeight')
+            if kind in ('int', 'float'):
+                return float(value)
+    except (ValueError, RuntimeError):
+        pass
+    return None
+
+
+def majority_bold(parts):
+    """A line's weight from its (text, bold) parts: bold when more than half of
+    its visible characters are. A line bold for one word ("Caution: To claim
+    ...") reads regular and says where its bold is in ``bold_runs``; drawn
+    whole in bold it was wider and wrong (W-4, dogfood 2026-10-11)."""
+    total = heavy = 0
+    for text, bold in parts:
+        count = sum(1 for ch in text if not ch.isspace())
+        total += count
+        heavy += count if bold else 0
+    return 2 * heavy > total
+
+
+class FontWeights:
+    """Decides whether an extracted span prints bold, the same way everywhere.
+
+    Bold when any of: MuPDF's bold flag (16, from the font's own style bits);
+    a bold or heavier weight word in the font name (Bold, SemiBold, Black,
+    Heavy, Demi, Bd, Blk, Hv); the embedded program's OS/2 usWeightClass, or
+    the descriptor's FontWeight, at 600 or more, unless the name says a lighter
+    weight; or synthetic bold, text drawn filled and stroked (render mode 2)
+    with a stroke of at least 1.5 % of its size. Synthetic bold is read from
+    the page's own content stream only (a Form XObject's is not searched).
+    A whitespace-only span is never bold: its weight cannot be seen.
+    """
+
+    def __init__(self, doc):
+        self.doc = doc
+        self._xrefs = None
+        self._names = {}
+        self._stroked = {}
+
+    def _font_xrefs(self):
+        if self._xrefs is None:
+            self._xrefs = {}
+            for page in self.doc:
+                for font in page.get_fonts(full=True):
+                    self._xrefs.setdefault(_unsubset(font[3]), set()).add(font[0])
+        return self._xrefs
+
+    def name_bold(self, name):
+        if name not in self._names:
+            verdict = name_weight(name)
+            if verdict is None:
+                xrefs = self._font_xrefs()
+                # MuPDF names a span's font up to the first space of its BaseFont
+                # ('Weighty Regular' reads 'Weighty'); an exact name wins.
+                found = xrefs.get(name) or {xref for base, refs in xrefs.items()
+                                            if base.split(' ')[0] == name for xref in refs}
+                weights = [_program_weight(self.doc, xref) for xref in sorted(found)]
+                known = [weight for weight in weights if weight is not None]
+                verdict = bool(known) and all(weight >= 600 for weight in known)
+            self._names[name] = bool(verdict)
+        return self._names[name]
+
+    def _stroked_boxes(self, page):
+        if page.number not in self._stroked:
+            boxes = []
+            try:
+                contents = page.read_contents()
+            except (ValueError, RuntimeError):
+                contents = b''
+            if _FILL_STROKE.search(contents or b''):
+                traces = page.get_texttrace()
+                filled = {(t['font'], tuple(t['chars'][0][2]))
+                          for t in traces if t['type'] == 0 and t['chars']}
+                for t in traces:
+                    if (t['type'] == 1 and t['chars'] and t.get('linewidth')
+                            and t['linewidth'] >= _SYNTHETIC_STROKE * t['size']
+                            and (t['font'], tuple(t['chars'][0][2])) in filled):
+                        boxes.append(pymupdf.Rect(t['bbox']))
+            self._stroked[page.number] = boxes
+        return self._stroked[page.number]
+
+    def bold(self, span, page=None):
+        text = span['text'] if 'text' in span else ''.join(
+            c['c'] for c in span.get('chars', ()))
+        if not text.strip():
+            return False
+        if span.get('flags', 0) & 16 or self.name_bold(span.get('font') or ''):
+            return True
+        if page is None:
+            return False
+        x0, y0, x1, y1 = span['bbox']
+        middle = pymupdf.Point((x0 + x1) / 2, (y0 + y1) / 2)
+        return any(box.contains(middle) for box in self._stroked_boxes(page))
 
 
 def _program_observation(data):

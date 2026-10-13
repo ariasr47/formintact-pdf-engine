@@ -228,20 +228,26 @@ def _emit(sink: RenderSink, model) -> None:
     sink.progress(model)
 
 
+def native_items(masked_texts, item_budgets=()) -> tuple[TranslationItem, ...]:
+    """The one builder for native items, at prepare and at render: equal by construction
+    (the quote's items and the render's items must match, or the paid job is refused)."""
+    budgets = tuple(item_budgets) or (None,) * len(masked_texts)
+    return tuple(TranslationItem(id=str(index), text=text, budget=budgets[index])
+                 for index, text in enumerate(masked_texts))
+
+
 def _native_translate_fn(
     target_lang: str,
     sink: RenderSink,
     *,
     translate_outcome: dict[str, str | None],
+    item_budgets: tuple[int | None, ...] = (),
 ):
     def translate(masked_texts: list[str]) -> dict[str, str] | None:
         if sink.is_cancelled():
             raise _NativeTranslateCancelled()
         _emit(sink, StageEvent(type="stage", seq=0, stage="translate", page=None))
-        items = tuple(
-            TranslationItem(id=str(index), text=text)
-            for index, text in enumerate(masked_texts)
-        )
+        items = native_items(masked_texts, item_budgets)
         reply = sink.translate(items, target_lang)
         if reply.status == "translated":
             results = list(reply.results or ())
@@ -268,14 +274,24 @@ def _native_translate_fn(
 
 def _masked_terms(prepared, core: str) -> list[MaskedTermEntry]:
     result = dict(prepared.masked).get(core)
-    if result is None:
-        return []
+    if result is not None:
+        entries = list(result.table.values())
+    else:
+        # A line of a reflowed paragraph was masked as part of its paragraph: it
+        # reports the protected values printed on that line.
+        entries = [
+            entry
+            for group in getattr(prepared, "paragraphs", ())
+            if core in group.cores
+            for entry in group.masked.table.values()
+            if entry.original_text in core
+        ]
     return [
         MaskedTermEntry(
             original_text=entry.original_text,
             category=entry.category,
         )
-        for entry in result.table.values()
+        for entry in entries
     ]
 
 
@@ -546,6 +562,7 @@ def _run_native_document(
                 target_lang,
                 sink,
                 translate_outcome=translate_outcome,
+                item_budgets=prepared_document.item_budgets,
             ),
             lang=lang_tag,
             font=font_roles,
@@ -701,11 +718,9 @@ def prepare_document_state(
         workdir=root / "place",
         dnt_terms=tuple(dnt_terms),
         selected_original_pages=selected_pages,
+        target_lang=skill_tag,
     )
-    items = tuple(
-        TranslationItem(id=str(index), text=text)
-        for index, text in enumerate(document.masked_texts)
-    )
+    items = native_items(document.masked_texts, document.item_budgets)
     requests = (
         (PreparedRequestItems(request_index=0, items=items),)
         if items

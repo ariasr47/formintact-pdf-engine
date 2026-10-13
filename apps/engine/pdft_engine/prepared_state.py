@@ -14,7 +14,11 @@ from pdft_engine.pipeline import (
     PreparedLibraryPlacement,
     PreparedRequestItems,
 )
-from pdft_engine.skill_runtime import DocumentTranslationPreparation, NativeOccurrence
+from pdft_engine.skill_runtime import (
+    DocumentTranslationPreparation,
+    NativeOccurrence,
+    ParagraphGroup,
+)
 from pdft_engine.skill_widgets import WidgetCore
 
 STATE_FILE = "state.json"
@@ -141,6 +145,31 @@ def _occurrence_in(value: dict) -> NativeOccurrence:
     )
 
 
+def _paragraph(group: ParagraphGroup) -> dict:
+    return {
+        "subset_page": group.subset_page,
+        "cores": list(group.cores),
+        "lines": list(group.lines),
+        "bold": group.bold,
+        "italic": group.italic,
+        "masked": _mask(group.masked),
+        # Only a paragraph that mixes weights has it; a state without it reads None.
+        **({"tagged": group.tagged} if group.tagged else {}),
+    }
+
+
+def _paragraph_in(value: dict) -> ParagraphGroup:
+    return ParagraphGroup(
+        subset_page=value["subset_page"],
+        cores=tuple(value["cores"]),
+        lines=tuple(value["lines"]),
+        bold=bool(value["bold"]),
+        italic=bool(value["italic"]),
+        masked=_mask_in(value["masked"]),
+        tagged=value.get("tagged"),
+    )
+
+
 def _library(value: PreparedLibraryPlacement, root: Path) -> dict:
     prepared = value.prepared_document
     if prepared.segments_path is None:
@@ -171,6 +200,13 @@ def _library(value: PreparedLibraryPlacement, root: Path) -> dict:
         "passthrough_segment_ordinals": list(prepared.passthrough_segment_ordinals),
         "metadata_cores": list(prepared.metadata_cores),
         "widget_only_texts": list(prepared.widget_only_texts),
+        "paragraphs": [_paragraph(group) for group in prepared.paragraphs],
+        "right_cores": list(prepared.right_cores),
+        # Only a document with a line that mixes weights has it.
+        **({"tagged_lines": [list(pair) for pair in prepared.tagged_lines]}
+           if prepared.tagged_lines else {}),
+        # Only a document with character budgets (prompt-fit-and-bold) has it.
+        **({"item_budgets": list(prepared.item_budgets)} if prepared.item_budgets else {}),
     }
 
 
@@ -208,6 +244,15 @@ def _library_in(value: dict, root: Path) -> PreparedLibraryPlacement:
         passthrough_segment_ordinals=tuple(value["passthrough_segment_ordinals"]),
         metadata_cores=tuple(value["metadata_cores"]),
         widget_only_texts=tuple(value["widget_only_texts"]),
+        # Absent in a state written before paragraph reflow: that order was quoted
+        # line by line and is placed line by line.
+        paragraphs=tuple(_paragraph_in(group) for group in value.get("paragraphs", ())),
+        right_cores=tuple(value.get("right_cores", ())),
+        tagged_lines=tuple(
+            (core, tagged) for core, tagged in value.get("tagged_lines", ())
+        ),
+        # Absent in a state written before budgets: every item has none.
+        item_budgets=tuple(value.get("item_budgets", ())),
     )
     return PreparedLibraryPlacement(
         prepared_document=preparation,
@@ -235,7 +280,8 @@ def write(root: Path, state: PreparedDocumentState, *, engine_version: str) -> s
             {
                 "request_index": request.request_index,
                 "items": [
-                    [item.id, item.text]
+                    [item.id, item.text] if item.budget is None
+                    else [item.id, item.text, item.budget]
                     for item in request.items
                 ],
             }
@@ -267,7 +313,8 @@ def load_doc(document: dict, root: Path) -> PreparedDocumentState:
             PreparedRequestItems(
                 request_index=request["request_index"],
                 items=tuple(
-                    TranslationItem(id=item[0], text=item[1])
+                    TranslationItem(id=item[0], text=item[1],
+                                    budget=item[2] if len(item) > 2 else None)
                     for item in request["items"]
                 ),
             )

@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "release_id": "pdf-translate-89.0.4-review-fixes",
+  "release_id": "pdf-translate-89.0.5-dogfood-fixes",
   "scope": "behavior-release",
-  "version": "89.0.4",
+  "version": "89.0.5",
   "origin_revision": "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7",
-  "adopted_owner_revision": "b9059acf9981a0fddd863e5e80cdc0831d53e916",
-  "source_digest": "452730b9c265d2b633df8e3bdae3347f7785c73e23d5910229ccee0a833a322e",
+  "adopted_owner_revision": "8c77b9380d82ddcbf77956af507359587696347f",
+  "source_digest": "1f39024756a8604202fb4b623ca5303993ea56727b53439fc1787b3f9cf1b2ac",
   "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
   "files": [
     {
@@ -55,8 +55,8 @@
     },
     {
       "path": "pdf_translate/extract_segments.py",
-      "size": 42006,
-      "sha256": "5c0652e2bb504840c237cb29460ec358c19fefad4048977380ade21234e98a8c"
+      "size": 45394,
+      "sha256": "ae053282bab6f20d5617bec4e96d02b1c2d8fc0a67c1c22834719e1bd751152d"
     },
     {
       "path": "pdf_translate/field_fonts.py",
@@ -70,8 +70,8 @@
     },
     {
       "path": "pdf_translate/mapping.py",
-      "size": 20530,
-      "sha256": "d7bee78aeec467bc05aa909e21ada968ffd7cd05c82ce04e4a40a8f41b62308c"
+      "size": 20544,
+      "sha256": "abfb87e73c381aac10060b9fdaa15ab709d513185fb0d34469d27e8db9e1cbb2"
     },
     {
       "path": "pdf_translate/pipeline.py",
@@ -100,8 +100,8 @@
     },
     {
       "path": "pdf_translate/retypeset.py",
-      "size": 123668,
-      "sha256": "f4780f52a14302eb228b0ae64e8ca1db4c35400c188895825dc4125a2059c1c5"
+      "size": 131803,
+      "sha256": "e9e9c1d141fc3f1190a9074ffe7cd95889adeed26e1e673c72061f33bc1e51cf"
     },
     {
       "path": "pdf_translate/review.py",
@@ -115,8 +115,8 @@
     },
     {
       "path": "pdf_translate/source_retention.py",
-      "size": 60242,
-      "sha256": "9382dcdd18c53fd0a9d60f7d2150e40f3f27c44cc216cc3ff11e00d6e6b95edf"
+      "size": 81176,
+      "sha256": "1472344403ca3cd5e0185ac00157f12005f646e60145a51ef0ce93c06154403c"
     },
     {
       "path": "pdf_translate/strip_text.py",
@@ -125,8 +125,8 @@
     },
     {
       "path": "pdf_translate/typography.py",
-      "size": 11742,
-      "sha256": "899d91e2973243973a480b8807532a5ab236742ae8174f79149dd02fefa7fe24"
+      "size": 19020,
+      "sha256": "4aabd3ce3186d3b4873a082f2925f6a78e56ae70769f5c596b196019c8932c5a"
     },
     {
       "path": "pdf_translate/typography_content.py",

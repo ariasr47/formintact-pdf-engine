@@ -166,7 +166,7 @@ def prepare(req: PrepareRequest) -> PrepareResponse:
         requests=[
             PreparedRequestWire(
                 request_index=r.request_index,
-                items=[WireItem(id=i.id, text=i.text) for i in r.items],
+                items=[WireItem(id=i.id, text=i.text, budget=i.budget) for i in r.items],
             )
             for r in state.requests
         ],

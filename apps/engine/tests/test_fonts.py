@@ -21,6 +21,7 @@ def test_all_nine_faces_present() -> None:
     for name in [*_LATIN_FILES, _CJK_FILE]:
         assert (FONTS_DIR / name).is_file(), f"missing {name}"
     assert (FONTS_DIR / "OFL.txt").is_file()
+    assert (FONTS_DIR / "OFL-NotoSymbols2.txt").is_file()
 
 
 def test_faces_load_with_fitz_and_measure_ascii() -> None:
@@ -29,6 +30,17 @@ def test_faces_load_with_fitz_and_measure_ascii() -> None:
     for name in _LATIN_FILES:
         face = fitz.Font(fontfile=str(FONTS_DIR / name))
         assert face.text_length("Hello", fontsize=12) > 0
+
+
+def test_product_latin_faces_cover_the_w4_triangle() -> None:
+    """GATE Z B: the product role faces must cover the measured pass-through glyph."""
+    import fitz  # test-only import
+
+    for style in ("Regular", "Bold", "Italic", "BoldItalic"):
+        path = FONTS_DIR / f"FormIntactSans-{style}.ttf"
+        assert path.is_file(), f"missing {path.name}"
+        face = fitz.Font(fontfile=str(path))
+        assert face.has_glyph(0x25B2), f"{path.name} missing U+25B2 BLACK UP-POINTING TRIANGLE"
 
 
 def test_cjk_face_covers_the_pinned_substitution_codepoints() -> None:

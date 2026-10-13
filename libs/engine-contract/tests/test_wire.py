@@ -10,6 +10,7 @@ from pdft_engine_contract.wire import (
     CallbackReply,
     CallbackRef,
     CountRequest,
+    PrepareResponse,
     PreparedRef,
     ProbeRequest,
     ProgressLine,
@@ -17,6 +18,7 @@ from pdft_engine_contract.wire import (
     Telemetry,
     TelemetryPage,
     TerminalLine,
+    WireItem,
     WireResult,
 )
 
@@ -158,3 +160,31 @@ def test_terminal_line_rejects_provider_copy_on_the_four_reasons(reason):
     dirty_pages = [_page(_entry(reason=reason, reason_lead="filled by the app", with_unit=True))]
     with pytest.raises(ValidationError):
         _terminal(dirty_pages, [TelemetryPage(page=1, engine_ms=0)])
+
+
+# prompt-fit-and-bold AC 7: the optional per-item budget on the engine wire.
+def test_wire_item_budget_accepts_its_range_and_rejects_everything_else():
+    for budget in (1, 10000):
+        assert WireItem(id="0", text="x", budget=budget).budget == budget  # valid controls
+    for budget in (0, 10001, "5", True, 5.0):
+        with pytest.raises(ValidationError):
+            WireItem.model_validate({"id": "0", "text": "x", "budget": budget})
+    with pytest.raises(ValidationError):
+        WireItem.model_validate({"id": "0", "text": "x", "extra": 1})
+
+
+def test_wire_item_without_a_budget_keeps_todays_bytes():
+    assert WireItem(id="0", text="x").model_dump_json() == '{"id":"0","text":"x"}'
+    assert WireItem.model_validate({"id": "0", "text": "x", "budget": None}).model_dump_json() == (
+        '{"id":"0","text":"x"}')
+    assert WireItem(id="0", text="x", budget=12).model_dump_json() == '{"id":"0","text":"x","budget":12}'
+
+
+def test_prepare_response_round_trips_an_item_with_a_budget():
+    body = {"prepared": PREP_HANDLE, "digest": DIGEST, "route": "japanese-library",
+            "target_lang": "Spanish", "pages": [1],
+            "requests": [{"request_index": 0, "items": [{"id": "0", "text": "a", "budget": 40},
+                                                        {"id": "1", "text": "b"}]}]}
+    parsed = PrepareResponse.model_validate(body)
+    assert [i.budget for i in parsed.requests[0].items] == [40, None]
+    assert PrepareResponse.model_validate_json(parsed.model_dump_json()) == parsed

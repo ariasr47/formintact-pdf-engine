@@ -115,6 +115,24 @@ DOTS = re.compile(r'^(.*?)([.…]{3,})(\s*[$€£¥]?\s*)$')
 # genuinely should stay verbatim (a form number like "FL-150"), map it to
 # itself in translations.json so the decision is explicit and reviewable.
 PASS = re.compile(r'^[^\w]*$|^[\d\s.,:;$€£¥%–—\-()/§*+=&#\'"°]*$', re.UNICODE)
+# A character the source font cannot map to Unicode extracts as U+FFFD. Text
+# holding one is not text anyone can translate: sent to a model it comes back
+# with the boxes (or without them), and drawn it is a row of replacement
+# boxes. The whole run passes through, and retypeset keeps its source glyphs.
+UNMAPPED = '\ufffd'
+
+
+def passes_through(core):
+    """True when a core is drawn as the source drew it, never translated."""
+    return bool(not core or PASS.match(core) or UNMAPPED in core)
+
+
+def _unmapped_only(text):
+    """True for a run that holds unmapped glyphs and nothing else but space."""
+    body = text.strip()
+    return bool(body) and set(body) <= {UNMAPPED}
+
+
 INNER_GAP = re.compile(r'\S(\s{6,})\S')
 # A page with VISIBLE_INK dark pixels (_pixels) counts as "has visible ink"
 # even if get_text() is empty: the scanned-PDF case.
@@ -555,11 +573,46 @@ def run_extract(src, outdir, *, typography=False, gap=12.0, pages=None):
     )
 
 
+def bold_runs(raw, weights):
+    """The bold runs of a line that mixes weights, as [start, end) offsets into
+    ``raw.strip()``; [] when the line is all one weight.
+
+    ``weights`` holds one (start, end, bold) per span, offsets into ``raw``.
+    Whitespace has no visible weight: a run reaches from its first bold
+    character to its last, across the spaces between bold words, and a line
+    whose only regular characters are spaces is not mixed.
+    """
+    lead = len(raw) - len(raw.lstrip())
+    marks = [None] * len(raw)
+    for start, end, bold in weights:
+        for index in range(start, min(end, len(raw))):
+            if not raw[index].isspace():
+                marks[index] = bool(bold)
+    seen = [mark for mark in marks if mark is not None]
+    if all(seen) or not any(seen):
+        return []
+    runs, start, last = [], None, None
+    for index, mark in enumerate(marks):
+        if mark is None:
+            continue
+        if mark and start is None:
+            start = index
+        elif not mark and start is not None:
+            runs.append([start - lead, last + 1 - lead])
+            start = None
+        last = index
+    if start is not None:
+        runs.append([start - lead, last + 1 - lead])
+    return runs
+
+
 def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False):
     """Extract geometry + unique cores. Writes segments.json and to_translate.json."""
     os.makedirs(outdir, exist_ok=True)
     doc = pymupdf.open(src)
     wanted = parse_pages(pages, len(doc))
+    from .typography import FontWeights, majority_bold
+    weights = FontWeights(doc)
     if typography:
         from . import typography as typo
         font_observations = typo.observe_fonts(doc)
@@ -601,8 +654,19 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                 for s in line['spans']:
                     if not typography and not s['text'].strip() and not groups:
                         continue
-                    if groups and (rotated
-                                   or s['bbox'][0] - groups[-1]['bbox'][2] < gap):
+                    # A line that starts with glyphs the font cannot map
+                    # (a Wingdings bullet extracts as U+FFFD) keeps them
+                    # as their own pass-through run. Merged, the whole
+                    # list item passed through and shipped in the source
+                    # language with no outcome to say so (dogfood
+                    # 2026-10-10, flu VIS: eight bullet items).
+                    lead_unmapped = (not rotated and bool(groups)
+                                     and _unmapped_only(groups[-1]['text'])
+                                     and not _unmapped_only(s['text'])
+                                     and bool(s['text'].strip()))
+                    if groups and not lead_unmapped and (
+                            rotated
+                            or s['bbox'][0] - groups[-1]['bbox'][2] < gap):
                         g = groups[-1]
                         g['text'] += s['text']
                         # On a +x line each span starts right of the last, so
@@ -615,7 +679,9 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                                      min(g['bbox'][1], s['bbox'][1]),
                                      max(g['bbox'][2], s['bbox'][2]),
                                      max(g['bbox'][3], s['bbox'][3])]
-                        g['bold'] = g['bold'] or ('Bold' in s['font'])
+                        g['weights'].append((len(g['text']) - len(s['text']),
+                                             len(g['text']),
+                                             weights.bold(s, page)))
                         g['italic'] = g['italic'] or (
                             'Italic' in s['font'] or 'Oblique' in s['font'])
                         if typography:
@@ -627,7 +693,8 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                             'origin': [s['origin'][0], s['origin'][1]],
                             'size': s['size'],
                             'color': s.get('color', 0),
-                            'bold': 'Bold' in s['font'],
+                            'bold': weights.bold(s, page),
+                            'weights': [(0, len(s['text']), weights.bold(s, page))],
                             'italic': ('Italic' in s['font']
                                        or 'Oblique' in s['font']),
                             'dir': [round(ldir[0], 4), round(ldir[1], 4)],
@@ -672,7 +739,13 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                         # how white-on-dark headings turn black-on-dark —
                         # a defect the ink-density gate cannot see.
                         'color': int(g.get('color', 0)),
-                        'bold': g['bold'], 'italic': g['italic'],
+                        'bold': majority_bold((g['text'][lo:hi], bold)
+                                              for lo, hi, bold in g['weights']),
+                        'italic': g['italic'],
+                        # A line that mixes weights says where its bold runs
+                        # are; the line's own 'bold' is its majority weight.
+                        **({'bold_runs': runs}
+                           if (runs := bold_runs(g['text'], g['weights'])) else {}),
                         # Line direction: retypeset rotates the run about
                         # this origin. Without it a 90-degree side label is
                         # re-typeset flat across the page.
@@ -681,7 +754,7 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                         'gap': marker_gap, 'core': core,
                         **({'body_dx': body_dx} if body_dx is not None else {}),
                         'dots': dots or '', 'tail': tail,
-                        'passthrough': bool(not core or PASS.match(core)),
+                        'passthrough': passes_through(core),
                     }
                     if typography:
                         occurrence_id = f's{sid}'
@@ -769,7 +842,7 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
     # The document title and every outline entry are read by the window
     # caption, the bookmarks pane and every screen reader. They are cores.
     for extra in [document['title']] + document['outline']:
-        if extra and not PASS.match(extra):
+        if extra and not passes_through(extra):
             uniq.setdefault(extra, 0)
             uniq[extra] += 1
 

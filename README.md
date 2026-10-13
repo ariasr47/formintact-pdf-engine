@@ -49,6 +49,7 @@ These paths are left out of this copy. Tests that read them are left out with th
 - `apps/engine/tests/test_crop_set_is_red_against_known_bad.py`
 - `apps/engine/tests/test_engine_service_unary.py`
 - `apps/engine/tests/test_field_parity.py`
+- `apps/engine/tests/test_fit_budget_fl150.py`
 - `apps/engine/tests/test_font_provenance.py`
 - `apps/engine/tests/test_form_fidelity_crops.py`
 - `apps/engine/tests/test_form_fidelity_report.py`
@@ -65,6 +66,7 @@ These paths are left out of this copy. Tests that read them are left out with th
 - `apps/engine/tests/test_pdf_byte_evidence.py`
 - `apps/engine/tests/test_pdfops.py`
 - `apps/engine/tests/test_prepared_state.py`
+- `apps/engine/tests/test_prepared_state_budget.py`
 - `apps/engine/tests/test_print_ac20_baseline.py`
 - `apps/engine/tests/test_skill_identifiers.py`
 - `apps/engine/tests/test_skill_library_import.py`
@@ -80,6 +82,7 @@ These paths are left out of this copy. Tests that read them are left out with th
 - `libs/pdf-translate/tests/test_cli_input_logging.py`
 - `libs/pdf-translate/tests/test_consumer_contract.py`
 - `libs/pdf-translate/tests/test_corpus_verdicts.py`
+- `libs/pdf-translate/tests/test_font_weight.py`
 - `libs/pdf-translate/tests/test_han_forms.py`
 - `libs/pdf-translate/tests/test_lang_tag.py`
 - `libs/pdf-translate/tests/test_migration_provenance.py`

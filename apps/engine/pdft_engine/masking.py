@@ -194,7 +194,17 @@ def _marker(n: int) -> str:
 # rather than re-deriving the shape by hand.
 
 _DATE_RE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
-_NUMBER_RE = re.compile(r"#?\d[\w.-]*")
+# A number starts with an ASCII digit and never runs on into the letters of a script
+# written without spaces. `\w` matches kana, Han, Hangul and Thai, so `10月から5月の`
+# was one "number" and came back verbatim inside the token; and a fullwidth or
+# other-script digit (`１０`, `٤`) came back as itself. Either is drawn in the target
+# face, which may have no glyph for it (dogfood 2026-10-10: vis-ja-flu, vis-ja-mmr,
+# irs-p1zht `1號刊物`). An unmasked fullwidth digit is the model's to render.
+_SPACELESS_LETTERS = (
+    "\u0e00-\u0eff\u1000-\u109f\u1100-\u11ff\u1780-\u17ff\u2e80-\u9fff"
+    "\ua960-\ua97f\uac00-\ud7af\uf900-\ufaff\uff21-\uff3a\uff41-\uff5a\uff66-\uffdc"
+)
+_NUMBER_RE = re.compile(rf"#?[0-9](?:[0-9]|(?![{_SPACELESS_LETTERS}])[\w.-])*")
 _URL_RE = re.compile(r"\bhttps?://\S+\b")
 _EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
 

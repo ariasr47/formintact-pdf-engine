@@ -95,8 +95,8 @@ from .mapping import FORMAT, charset_for, load_mapping, refuse
 from .strip_text import GEOMETRY_SPACE
 from .source_retention import (attach as attach_source_retention,
                                prepare as prepare_source_retention,
-                               verify_final as verify_retained_output,
-                               RetentionCancelled)
+                               replay_unmapped, verify_final as verify_retained_output,
+                               RetentionCancelled, UNMAPPED)
 from .typography import field_identities, page_geometry, source_digest, validate_font
 
 # `python -m` runs this module as __main__; keep its log under console().
@@ -114,6 +114,10 @@ SCALE_REPORT = 'scale_report.json'
 # Every refusal list the console prints stops here. The exception carries
 # them whole, so this is a reading limit, not a data limit.
 CONSOLE_LIST = 30
+# Rebuilds allowed when the delivered file cannot vouch a retained run. Each
+# one redraws one more run; past this the refusal stands (a rebuild costs a
+# full placement pass).
+_RETAINED_OUTPUT_RETRIES = 8
 
 
 def more_not_shown(items, shown=CONSOLE_LIST):
@@ -918,6 +922,14 @@ def _row_obstacles(seg, segs, drawn_boxes=None, *, left=False):
             continue
         box = drawn_boxes.get(id(other), other['bbox'])
         if id(other) in drawn_boxes:
+            source = other['bbox']
+            if (min(seg['bbox'][2], source[2]) - max(seg['bbox'][0], source[0]) > 1 and
+                    min(seg['bbox'][3], source[3]) - max(seg['bbox'][1], source[1]) > 1):
+                # The rotated run already crossed this one in the source: a
+                # diagonal watermark or a stamp printed over the text. That
+                # overlap is the design, not room the translation took
+                # (dogfood 2026-10-10, cms-1490s-en).
+                continue
             ahead = box[0] < seg['bbox'][2] if left else box[2] > seg['origin'][0]
             same_row = box[3] > y0 and box[1] < y1
         else:
@@ -1339,7 +1351,7 @@ def retypeset(stripped, segf, trf, out, *, original=None, capture_dir=None,
 
 def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                   scale_report=_DEFAULT, resource_root=None, original=None,
-                  capture_dir=None, capture_below=None):
+                  capture_dir=None, capture_below=None, _unretained_ids=()):
     """Place translations onto a stripped PDF.
 
     Silent. Returns a RetypesetResult. Raises on refusal — `GlyphError` when
@@ -1422,6 +1434,13 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
     right = set(conf.get('right') or [])
     skip = set(conf.get('skip', []))
     allow_scale = set(conf.get('allow_scale') or [])
+    # Cores a consumer could not place even as their own source text: a run
+    # past the page margin, beside a neighbour that leaves no room, or in a
+    # script the target face cannot draw. An occurrence whose translation is
+    # its own source is not redrawn: its source glyphs are replayed as
+    # printed (replay_unmapped), so one stuck run never costs the document.
+    # A run whose glyphs cannot be vouched refuses by name (`source_glyphs`).
+    source_glyphs = set(conf.get('source_glyphs') or [])
     overrides = conf.get('overrides', [])
     notices = conf.get('notices') or []
     overflow = []
@@ -1453,6 +1472,10 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
         by_page.setdefault(s['page'], []).append(s)
 
     merge_jobs = []
+    # Each merge's box, kept as an obstacle for the runs around it: its lines
+    # leave the page's segment list, and a neighbour in the next column must
+    # not grow into the reflowed paragraph (dogfood 2026-10-10, vis-en-flu).
+    merge_boxes = {}
     unauthored_merges = []
     # Horizontal-only features asked of a run drawn along its own direction:
     # (page, core, feature). Refused by name before anything is drawn.
@@ -1517,6 +1540,9 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                                           'box': m['box'],
                                           'why': 'empty or inverted'}]})
             r = pymupdf.Rect(bx0, by0, bx1, by1)
+        merge_boxes.setdefault(m['page'], []).append(
+            {'bbox': [r.x0, r.y0, r.x1, r.y1], 'origin': [r.x0, r.y1], 'core': None,
+             'text': ''})
         size = max(page_segs[i]['size'] for i in idxs)
         # Derive leading from the ORIGINAL baselines rather than assuming a
         # ratio: a flyer set 11pt on 16pt leading re-flows visibly compressed
@@ -1683,6 +1709,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
     retained_ids = set()
     retained_blocks = {}
     source_inks = {}
+    # Identity occurrences the reader could not vouch: redrawn, and reported.
+    unretained = []
     if original:
         try:
             ink_segments = [segment for segment in segments
@@ -1698,7 +1726,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 not (has_inline_markup(T[segment['core']]) or needs_shaping(T[segment['core']]) or is_rtl_text(T[segment['core']]))]
             retained_blocks = prepare_source_retention(
                 original, doc, segments, T, cancel=cancel,
-                legacy_conf=conf, ink_segments=ink_segments, ink_envelopes=source_inks)
+                legacy_conf=conf, ink_segments=ink_segments, ink_envelopes=source_inks,
+                unretained=unretained, exclude_ids=frozenset(_unretained_ids))
             retained_ids = {id(block['segment']) for blocks in retained_blocks.values()
                             for block in blocks}
             attach_source_retention(doc, retained_blocks)
@@ -1747,7 +1776,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
     # segments.json and every drawing call share; page.rect is the rotated
     # view and has the wrong width on a /Rotate 90 or 270 page.
     frames = {p.number: unrotated_frame(p) for p in doc}
-    form_obstacles = {p.number: _legacy_form_obstacles(p, by_page.get(p.number, [])) for p in doc}
+    form_obstacles = {p.number: _legacy_form_obstacles(
+        p, by_page.get(p.number, []) + merge_boxes.get(p.number, [])) for p in doc}
     ink_cache = {}
     font_paths = {id(font_r): f_regular, id(font_b): f_bold,
                   id(font_i): f_italic, id(font_bi): f_bold_italic}
@@ -1795,6 +1825,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 note_blocked_neighbour(pno, seg, other)
 
     def right_limit(pno, seg, segs):
+        segs = segs + merge_boxes.get(pno, [])
         limit = _right_limit(frames[pno], seg, segs, widg.get(pno, []),
                              drawn_rotated_boxes)
         if limit <= seg['origin'][0]:
@@ -1809,6 +1840,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
         obstacle's right edge, or the page margin — not the room on its
         right, which is where the field it labels usually sits.
         """
+        segs = segs + merge_boxes.get(pno, [])
         y0, y1 = seg['bbox'][1], seg['bbox'][3]
         lim = 32.0
         for _, box in _row_obstacles(seg, segs,
@@ -1848,6 +1880,13 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
 
     rotated_shaped = []
     leaders_dropped = []
+    # Pass-through runs with characters the source cannot map to Unicode
+    # (U+FFFD). They are never redrawn from that text; see replay_unmapped.
+    unmapped_jobs = {}
+    unmapped_dropped = []
+    unmapped_kept = 0
+    source_glyph_jobs = {}
+    source_glyphs_refused = []
     glyph_misses = []
     seen_glyph_miss = set()
 
@@ -1931,11 +1970,15 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 continue
             if id(seg) in retained_ids:
                 continue
+            ov = override_for(pno, text)
+            if (seg['core'] in source_glyphs and T.get(seg['core']) == seg['core']
+                    and not ov):
+                source_glyph_jobs.setdefault(pno, []).append(seg)
+                continue
             fs = seg['size']
             ox, oy = seg['origin']
             dx, dy = seg_dir(seg)
             rot = is_rotated(dx, dy)
-            ov = override_for(pno, text)
             if ov:
                 for part in ov['parts']:
                     t = part['text']
@@ -1998,9 +2041,24 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 return f.text_length(t, fsz)
             jp = T.get(core)
             if jp is None:  # passthrough: an untranslated core refused above
-                f = helv_role(seg['bold'], seg.get('italic'))
                 raw = seg['text'].rstrip()
-                check_glyphs(pno, f, raw, raw, 'Helvetica (pass-through)')
+                if UNMAPPED in raw:
+                    # Drawn from U+FFFD this is a row of replacement boxes, or
+                    # a glyph miss in a face without one (dogfood 2026-10-10,
+                    # Form 1040 of 1913 and DS-64). Its source glyphs are
+                    # replayed after the page loop, or it is reported.
+                    unmapped_jobs.setdefault(pno, []).append(seg)
+                    continue
+                f = helv_role(seg['bold'], seg.get('italic'))
+                label = 'Helvetica (pass-through)'
+                # Base-14 Helvetica has no ▲ ► ✓ ☐ and the like. A pass-through run
+                # Helvetica cannot draw is set in the job's own role face instead,
+                # which may carry those symbols; check_glyphs still refuses when
+                # neither face has them (dogfood 2026-10-10, six government forms).
+                if any(not ch.isspace() and not f.has_glyph(ord(ch)) for ch in raw):
+                    f = role(seg['bold'], seg.get('italic'))
+                    label = 'role face (pass-through)'
+                check_glyphs(pno, f, raw, raw, label)
                 if rot:
                     place_rotated(ox, oy, [(raw, f, fs)],
                                   int(seg.get('color', 0)), dx, dy)
@@ -2023,8 +2081,12 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                     tw.append((bx, oy), mk, font=mfont, fontsize=fs)
                     bx += marker_adv(mfont, fs)
                 avail = right_limit(pno, seg, segs) - bx
+                # A line that mixes weights (`bold_runs`) is drawn regular under its
+                # markup: the <b> runs carry its bold, so a mostly bold source line
+                # keeps its regular words regular.
                 inline_jobs.append((bx, oy, inline_markup_html(jp.replace('‖', '')),
-                                    bool(seg['bold']), bool(seg.get('italic')),
+                                    bool(seg['bold']) and not seg.get('bold_runs'),
+                                    bool(seg.get('italic')),
                                     fs, int(seg.get('color', 0)), avail, core,
                                     plain))
                 continue
@@ -2130,7 +2192,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 # measured rotated neighbours on either side of the center.
                 maxw = (seg['bbox'][2] - left_limit(pno, seg, segs, measured=False)
                         if core in right else
-                        _right_limit(frame, seg, segs, widg.get(pno, [])) - ox)
+                        _right_limit(frame, seg, segs + merge_boxes.get(pno, []),
+                                     widg.get(pno, [])) - ox)
                 maxw = centered_room(pno, seg, segs, maxw)
             elif core in right:
                 # Measured against the room it will occupy, not the room to
@@ -2251,6 +2314,31 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             consider_ratio(pno, key, scale)
         _tick()
 
+    if unmapped_jobs:
+        if original:
+            with pymupdf.open(original) as source_doc:
+                for pno, jobs in sorted(unmapped_jobs.items()):
+                    kept, refused = replay_unmapped(source_doc, doc[pno], pno, jobs)
+                    unmapped_kept += len(kept)
+                    unmapped_dropped.extend(refused)
+        else:
+            unmapped_dropped.extend(
+                {'page': pno, 'segment_id': seg.get('id'), 'core': seg.get('core'),
+                 'reason': 'no-original'}
+                for pno, jobs in sorted(unmapped_jobs.items()) for seg in jobs)
+
+    if source_glyph_jobs:
+        if original:
+            with pymupdf.open(original) as source_doc:
+                for pno, jobs in sorted(source_glyph_jobs.items()):
+                    _, refused = replay_unmapped(source_doc, doc[pno], pno, jobs)
+                    source_glyphs_refused.extend(refused)
+        else:
+            source_glyphs_refused.extend(
+                {'page': pno, 'segment_id': seg.get('id'), 'core': seg.get('core'),
+                 'reason': 'no-original'}
+                for pno, jobs in sorted(source_glyph_jobs.items()) for seg in jobs)
+
     for (pno, r, html, align, size, lh, color, merge_key, merge_opt,
          boxed) in merge_jobs:
         if _cancelled():
@@ -2367,9 +2455,16 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
         for p, core, neighbour in blocked_rotated_neighbours[:CONSOLE_LIST]:
             block.append(f'  p{p} {core}: rotated neighbour {neighbour}')
         block.extend(more_not_shown(blocked_rotated_neighbours))
+    if source_glyphs_refused:
+        block.append(f'FAIL: {len(source_glyphs_refused)} source_glyphs run(s) whose '
+                     'source glyphs cannot be vouched as plain filled outlines:')
+        for row in source_glyphs_refused[:CONSOLE_LIST]:
+            block.append(f"  p{row['page']} {row['reason']}: {str(row['core'])[:60]}")
+        block.extend(more_not_shown(source_glyphs_refused))
     block.extend(refusal_tail(overflow, glyph_misses, rotated_shaped,
-                              blocked_rotated_neighbours))
-    if overflow or rotated_shaped or glyph_misses or blocked_rotated_neighbours:
+                              blocked_rotated_neighbours, source_glyphs_refused))
+    if (overflow or rotated_shaped or glyph_misses or blocked_rotated_neighbours or
+            source_glyphs_refused):
         doc.close()
         refusals = {
             # Always empty here: an untranslated core refused before drawing.
@@ -2389,6 +2484,10 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             refusals['rotated_neighbours'] = [
                 {'page': p, 'core': c, 'neighbour': n}
                 for p, c, n in blocked_rotated_neighbours]
+        if source_glyphs_refused:
+            refusals['source_glyphs'] = [
+                {'page': row['page'], 'core': row['core'], 'reason': row['reason']}
+                for row in source_glyphs_refused]
         summary = ', '.join(
             f'{len(v)} {k.replace("_", " ")}' for k, v in refusals.items() if v)
         # Precedence names the exception; `refusals` carries every kind. A
@@ -2402,7 +2501,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
         first = (overflow[0] if overflow else None)
         unscaled = (rotated_shaped[0] if rotated_shaped
                     else blocked_rotated_neighbours[0][:2] if blocked_rotated_neighbours
-                    else None)
+                    else (source_glyphs_refused[0]['page'], source_glyphs_refused[0]['core'])
+                    if source_glyphs_refused else None)
         placement_exc = PlacementError(
             summary, console_line='\n'.join(block), exit_code=1,
             page=(first[0] if first else unscaled[0]),
@@ -2506,6 +2606,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
     # space and NBSP share a glyph, reported NBSP for every space.
     fontfiles = list(dict.fromkeys([f_regular, f_bold, f_italic, f_bold_italic]))
     pending = None
+    retry_ids = ()
     try:
         save_path = out
         if retained_blocks:
@@ -2525,15 +2626,34 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
         else:
             n = canonicalize_text_layer(save_path, fontfiles, placed)
         if retained_blocks:
-            verify_retained_output(save_path, retained_blocks, cancel=cancel)
-            os.replace(save_path, out)
-            pending = None
+            try:
+                verify_retained_output(save_path, retained_blocks, cancel=cancel)
+            except MappingError as exc:
+                # The delivered file cannot vouch one retained run (another
+                # draw covers it). Rebuild with that run redrawn instead of
+                # failing the paid job (a-job-always-delivers); the check
+                # above still guards every run that stays retained.
+                rows = (exc.refusals or {}).get('source_retention') or [{}]
+                failed_id = rows[0].get('segment_id')
+                if (rows[0].get('reason') != 'retained-output' or failed_id is None or
+                        failed_id in _unretained_ids or
+                        len(_unretained_ids) >= _RETAINED_OUTPUT_RETRIES):
+                    raise
+                retry_ids = (*_unretained_ids, failed_id)
+            else:
+                os.replace(save_path, out)
+                pending = None
     except RetentionCancelled:
         return RetypesetResult(output=None, cancelled=True,
                               pages=len(segd.get('pages') or []) or len(by_page), placed=0)
     finally:
         if pending is not None:
             os.unlink(pending)
+    if retry_ids:
+        return run_retypeset(stripped, segf, trf, out, progress=progress, cancel=cancel,
+                             scale_report=scale_report, resource_root=resource_root,
+                             original=original, capture_dir=capture_dir,
+                             capture_below=capture_below, _unretained_ids=retry_ids)
     # A refused retained candidate must leave the report describing the
     # previous published PDF intact, just as it leaves that PDF intact.
     if report and retained_blocks:
@@ -2550,6 +2670,23 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             log.info(f'  p{p}: {c[:60]}')
         for line in more_not_shown(leaders_dropped):
             log.info(line)
+    if unretained:
+        log.info(f'NOTE: {len(unretained)} unchanged run(s) redrawn because their source '
+                 f'text could not be vouched for retention:')
+        for row in unretained[:CONSOLE_LIST]:
+            log.info(f"  p{row['page']}: {str(row['core'])[:60]} ({row['reason']})")
+        for line in more_not_shown(unretained):
+            log.info(line)
+    if unmapped_kept:
+        log.info(f'NOTE: {unmapped_kept} run(s) with no Unicode mapping drawn from their '
+                 f'source glyphs')
+    if unmapped_dropped:
+        log.info(f'NOTE: {len(unmapped_dropped)} run(s) with no Unicode mapping not drawn: '
+                 f'their source glyphs cannot be vouched and U+FFFD is never drawn:')
+        for row in unmapped_dropped[:CONSOLE_LIST]:
+            log.info(f"  p{row['page']}: {str(row['core'])[:60]} ({row['reason']})")
+        for line in more_not_shown(unmapped_dropped):
+            log.info(line)
     log.info(f'saved {out}')
     return RetypesetResult(
         output=out, pages=len(segd.get('pages') or []) or len(by_page),
@@ -2558,7 +2695,9 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
         cancelled=False,
         scale_report_path=(report or ''),
         warnings=tuple({'kind': 'leaders_dropped', 'page': p, 'core': c}
-                       for p, c in leaders_dropped))
+                       for p, c in leaders_dropped) +
+                 tuple(dict(row, kind='source_not_retained') for row in unretained) +
+                 tuple(dict(row, kind='unmapped_text_not_drawn') for row in unmapped_dropped))
 
 
 def main(argv=None):

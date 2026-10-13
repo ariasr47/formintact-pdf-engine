@@ -6,7 +6,7 @@ import json
 from typing import Annotated, Literal, Union
 
 from pydantic import (AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, TypeAdapter,
-                      model_validator)
+                      model_serializer, model_validator)
 from pydantic.json_schema import models_json_schema
 
 from pdft_engine_contract.coverage import PageCoverage
@@ -119,6 +119,16 @@ class CountResponse(_Strict):
 class WireItem(_Strict):
     id: str
     text: str
+    # prompt-fit-and-bold: the most characters the translation should hold. Optional,
+    # absent == null, and never emitted as null, so a budget-free item keeps today's bytes.
+    budget: int | None = Field(default=None, ge=1, le=10000, strict=True)
+
+    @model_serializer(mode="wrap")
+    def _omit_null_budget(self, handler):
+        data = handler(self)
+        if data.get("budget") is None:
+            data.pop("budget", None)
+        return data
 
 
 class PrepareRequest(_Strict):

@@ -38,7 +38,7 @@ class CallbackClient:
                 job_id=self._job_id,
                 seq=seq,
                 target_lang=target_lang,
-                items=[WireItem(id=i.id, text=i.text) for i in items],
+                items=[WireItem(id=i.id, text=i.text, budget=i.budget) for i in items],
             )
             .model_dump_json()
             .encode()

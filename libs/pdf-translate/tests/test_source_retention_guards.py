@@ -7,7 +7,6 @@ import pymupdf
 import pytest
 
 from pdf_translate import run_extract, run_retypeset, run_strip
-from pdf_translate.results import MappingError
 from .test_source_retention import _target_font, _spans
 
 
@@ -73,6 +72,26 @@ def _native_text(path, text):
                     })
                     start = painted.find(text, start + len(text))
     return spans, glyphs
+
+
+def _assert_redrawn(job, reason=None, core='KEEP'):
+    """An unvouched identity run is redrawn and reported, never replayed.
+
+    The document still delivers (a-job-always-delivers): retention leaves the
+    run out instead of refusing the job, and the source operator is not copied.
+    """
+    source_fonts = {span['font'] for span in _native_text(job['original'], core)[0]}
+    assert source_fonts
+    result = _render(job)
+    assert job['output'].exists()
+    rows = [row for row in result.warnings
+            if row['kind'] == 'source_not_retained' and row['core'] == core]
+    assert rows, result.warnings
+    if reason is not None:
+        assert rows[0]['reason'] == reason
+    drawn = _native_text(job['output'], core)[0]
+    assert drawn and not any(span['font'] in source_fonts for span in drawn)
+    return result
 
 
 def _rgb_pixels(path, *, clip=None):
@@ -156,10 +175,7 @@ def test_retained_line_advance_refuses_unproved_objects(tmp_path, program):
     job = _job(tmp_path, body=(
         b'BT /helv 14 Tf 1 0 0 1 40 180 Tm ' + program + b' ET\n'))
     assert len(_spans(job['original'], 'KEEP')) == 1
-    with pytest.raises(MappingError) as caught:
-        _render(job)
-    assert caught.value.refusals['source_retention'][0]['reason'] == 'unsupported-text-object'
-    assert not job['output'].exists()
+    _assert_redrawn(job, 'unsupported-text-object')
 
 
 def test_retained_line_advance_refuses_a_later_second_show(tmp_path):
@@ -168,20 +184,34 @@ def test_retained_line_advance_refuses_a_later_second_show(tmp_path):
     job = _job(tmp_path, body=(
         b'BT /helv 14 Tf 40 TL 1 0 0 1 40 180 Tm (KEEP) Tj T* (X) Tj ET\n'))
     assert len(_spans(job['original'], 'KEEP')) == len(_spans(job['original'], 'X')) == 1
-    with pytest.raises(MappingError) as caught:
-        _render(job)
-    assert caught.value.refusals['source_retention'][0]['reason'] == 'multiple-show'
-    assert not job['output'].exists()
+    _assert_redrawn(job, 'multiple-show')
 
 
 def test_retained_text_refuses_clip_from_prior_unretained_text_show(tmp_path):
     # Resetting Tr does not undo the clipping path accumulated at ET.
     job = _job(tmp_path, b'BT /helv 140 Tf 1 0 0 1 20 170 Tm 7 Tr (X) Tj 0 Tr ET\n')
     assert len(_spans(job['original'], 'KEEP')) == 1
-    with pytest.raises(MappingError) as caught:
-        _render(job)
-    assert caught.value.refusals['source_retention'][0]['reason'] == 'unsupported-text-object'
-    assert not job['output'].exists()
+    mapping = json.loads(job['mapping'].read_text())
+    mapping['skip'] = ['X']  # The 140 pt clipping helper is not part of this case.
+    job['mapping'].write_text(json.dumps(mapping))
+    _assert_redrawn(job, 'unsupported-text-object')
+
+
+def test_one_unvouched_identity_run_does_not_cost_the_page_its_vouched_runs(tmp_path):
+    # Regression (dogfood F1, 2026-10-09): one unchanged run the reader could
+    # not vouch refused the whole document after payment. It is now redrawn
+    # and reported; the vouched run on the same page is still replayed exactly.
+    job = _job(tmp_path, body=(
+        b'BT /helv 14 Tf 1 0 0 1 40 180 Tm (KEEP) Tj ET\n'
+        b'BT /helv 14 Tf 40 TL 1 0 0 1 40 120 Tm (ABC) Tj T* (DEF) Tj ET\n'))
+    mapping = json.loads(job['mapping'].read_text())
+    mapping['translations'].update({'ABC': 'ABC', 'DEF': 'DEF'})
+    job['mapping'].write_text(json.dumps(mapping))
+    source_keep = _native_text(job['original'], 'KEEP')
+    result = _assert_redrawn(job, 'multiple-show', core='ABC')
+    assert {row['core'] for row in result.warnings if row['kind'] == 'source_not_retained'} == {
+        'ABC', 'DEF'}
+    assert _native_text(job['output'], 'KEEP') == source_keep
 
 
 def test_text_clip_restored_by_q_does_not_reject_later_visible_identity(tmp_path):
@@ -197,10 +227,7 @@ def test_retained_show_requires_its_positioning_before_show(tmp_path):
         b'1 .2 0 1 40 180 cm BT /helv 14 Tf (KEEP) Tj '
         b'1 -.2 0 1 0 0 Tm ET\n'))
     assert len(_spans(job['original'], 'KEEP')) == 1
-    with pytest.raises(MappingError) as caught:
-        _render(job)
-    assert caught.value.refusals['source_retention'][0]['reason'] == 'unsupported-text-object'
-    assert not job['output'].exists()
+    _assert_redrawn(job, 'unsupported-text-object')
 
 
 def test_retained_plan_refuses_two_claims_for_the_same_source_glyphs(tmp_path):
@@ -209,10 +236,7 @@ def test_retained_plan_refuses_two_claims_for_the_same_source_glyphs(tmp_path):
     keep = next(segment for segment in extracted['segments'] if segment['core'] == 'KEEP')
     extracted['segments'].append(dict(keep, id=9999))
     job['segments'].write_text(json.dumps(extracted))
-    with pytest.raises(MappingError) as caught:
-        _render(job)
-    assert caught.value.refusals['source_retention'][0]['reason'] == 'overlapping-source-claims'
-    assert not job['output'].exists()
+    _assert_redrawn(job, 'overlapping-source-claims')
 
 
 def test_retained_source_refuses_later_white_text_occlusion(tmp_path):
@@ -223,10 +247,7 @@ def test_retained_source_refuses_later_white_text_occlusion(tmp_path):
     mapping = json.loads(job['mapping'].read_text())
     mapping['skip'] = ['MMM']  # The helper's white paint must not be resurrected.
     job['mapping'].write_text(json.dumps(mapping))
-    with pytest.raises(MappingError) as caught:
-        _render(job)
-    assert caught.value.refusals['source_retention'][0]['reason'] == 'covered-source'
-    assert not job['output'].exists()
+    _assert_redrawn(job, 'covered-source')
 
 
 @pytest.mark.parametrize('placement, rule, axis', [
@@ -273,9 +294,7 @@ def test_retained_source_refuses_non_mcid_marked_semantics(tmp_path, scope):
         b'BT ' + scope + b' BDC /helv 14 Tf '
         b'1 0 0 1 40 180 Tm (KEEP) Tj '
         b'0 -40 Td (X) Tj EMC ET\n'))
-    with pytest.raises(MappingError):
-        _render(job)
-    assert not job['output'].exists()
+    _assert_redrawn(job)
 
 
 @pytest.mark.parametrize('scope', [b'/OC << /MCID 3 >>',
@@ -286,9 +305,7 @@ def test_retained_source_refuses_unsafe_enclosing_marked_scope(tmp_path, scope):
         scope + b' BDC BT /Caption << /MCID 2 >> BDC /helv 14 Tf '
         b'1 0 0 1 40 180 Tm (KEEP) Tj '
         b'0 -40 Td (X) Tj EMC ET EMC\n'))
-    with pytest.raises(MappingError):
-        _render(job)
-    assert not job['output'].exists()
+    _assert_redrawn(job)
 
 
 @pytest.mark.parametrize('number', [b'2.0', b'true', b'-1'])
@@ -297,9 +314,7 @@ def test_retained_source_refuses_invalid_mcid_types(tmp_path, number):
         b'BT /Caption << /MCID ' + number + b' >> BDC /helv 14 Tf '
         b'1 0 0 1 40 180 Tm (KEEP) Tj '
         b'0 -40 Td (X) Tj EMC ET\n'))
-    with pytest.raises(MappingError):
-        _render(job)
-    assert not job['output'].exists()
+    _assert_redrawn(job)
 
 
 def test_translated_form_object_does_not_require_optional_source_ink(tmp_path):
@@ -437,10 +452,11 @@ def test_retained_implicit_show_refuses_native_noninvertible_ctm(tmp_path):
     mapping = json.loads(job['mapping'].read_text())
     mapping['translations'] = {'KEEPX': 'KEEPX'}
     job['mapping'].write_text(json.dumps(mapping))
+    mapping['fonts']['regular'] = str(_target_font(
+        tmp_path / 'target-x.ttf', chars=' 0123456789ABCDEFGHKMPX'))
+    job['mapping'].write_text(json.dumps(mapping))
     assert pymupdf.Matrix().invert(pymupdf.Matrix(1e-9, 0, 0, 1e-9, 0, 0)) == 1
-    with pytest.raises(MappingError):
-        _render(job)
-    assert not job['output'].exists()
+    _assert_redrawn(job, core='KEEPX')
 
 
 def test_retained_sheared_source_cannot_resurrect_covered_glyph_ink(tmp_path):
@@ -452,16 +468,8 @@ def test_retained_sheared_source_cannot_resurrect_covered_glyph_ink(tmp_path):
     with pymupdf.open(job['original']) as document:
         before = document[0].get_pixmap(clip=crop, alpha=False, colorspace=pymupdf.csRGB)
         assert min(before.samples) == 255
-    try:
-        _render(job)
-    except MappingError:
-        assert not job['output'].exists()
-    else:
-        with pymupdf.open(job['output']) as document:
-            after = document[0].get_pixmap(clip=crop, alpha=False, colorspace=pymupdf.csRGB)
-            exposed = sum(value < 255 for value in after.samples)
-        assert exposed > 0, 'the falsifier must actually expose covered ink'
-        pytest.fail(f'unsafe retention exposed {exposed} covered pixel channels')
+    # Retention must not replay the covered source ink; the run is redrawn.
+    _assert_redrawn(job)
 
 
 def test_retained_text_refuses_later_sheared_white_glyph_occlusion(tmp_path):
@@ -471,19 +479,8 @@ def test_retained_text_refuses_later_sheared_white_glyph_occlusion(tmp_path):
     mapping = json.loads(job['mapping'].read_text())
     mapping['skip'] = ['X']
     job['mapping'].write_text(json.dumps(mapping))
-    crop = pymupdf.Rect(40, 45, 80, 66)
-    with pymupdf.open(job['original']) as document:
-        before = document[0].get_pixmap(clip=crop, alpha=False, colorspace=pymupdf.csRGB).samples
-    try:
-        _render(job)
-    except MappingError:
-        assert not job['output'].exists()
-    else:
-        with pymupdf.open(job['output']) as document:
-            after = document[0].get_pixmap(clip=crop, alpha=False, colorspace=pymupdf.csRGB).samples
-        exposed = sum(a < b for a, b in zip(after, before))
-        assert exposed > 0, 'the falsifier must expose formerly hidden ink'
-        pytest.fail(f'unsafe retention exposed {exposed} covered pixel channels')
+    # Retention must not replay the occluded source ink; the run is redrawn.
+    _assert_redrawn(job)
 
 
 def test_retained_orthogonal_nonuniform_source_uses_both_actual_scales(tmp_path):
@@ -510,9 +507,7 @@ def test_retained_label_vouches_multiline_leader_with_synthetic_space(tmp_path, 
     mapping['skip'] = ['X', '.... $']
     job['mapping'].write_text(json.dumps(mapping))
     if covered:
-        with pytest.raises(MappingError):
-            _render(job)
-        assert not job['output'].exists()
+        _assert_redrawn(job)
     else:
         _render(job)
         assert _spans(job['output'], 'KEEP') == _spans(job['original'], 'KEEP')
@@ -536,21 +531,11 @@ def test_retained_text_refuses_painted_space_from_source_tounicode(tmp_path):
     run_strip(str(changed), str(job['stripped']))
     extracted = run_extract(str(changed), str(tmp_path / 'space-extraction'))
     job['segments'] = Path(extracted.segments_path)
-    crop = pymupdf.Rect(40, 45, 80, 66)
     with pymupdf.open(changed) as document:
         assert any(t['chars'] and all(c[0] == 32 and c[1] > 0 for c in t['chars'])
                    for t in document[0].get_texttrace())
-        before = document[0].get_pixmap(clip=crop, alpha=False, colorspace=pymupdf.csRGB).samples
-    try:
-        _render(job)
-    except MappingError:
-        assert not job['output'].exists()
-    else:
-        with pymupdf.open(job['output']) as document:
-            after = document[0].get_pixmap(clip=crop, alpha=False, colorspace=pymupdf.csRGB).samples
-        exposed = sum(a < b for a, b in zip(after, before))
-        assert exposed > 0, 'the falsifier must expose actual ink mapped to a space'
-        pytest.fail(f'unsafe retention exposed {exposed} covered pixel channels')
+    # Retention must not replay ink mapped to a space; the run is redrawn.
+    _assert_redrawn(job)
 
 
 def test_unchanged_dotted_line_preserves_original_space_metrics(tmp_path):

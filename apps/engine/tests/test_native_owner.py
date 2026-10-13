@@ -87,7 +87,8 @@ def test_service_utilities_and_library_preparation_share_one_native_owner(tmp_pa
         observed.touch()
         segments = Path(directory) / "segments.json"
         segments.write_text("[]")
-        return SimpleNamespace(cores=[], segments=[], warnings=[], segments_path=str(segments))
+        return SimpleNamespace(cores=[], segments=[], warnings=[], document={},
+                               segments_path=str(segments))
 
     def scaffold(source):
         observed.touch()

@@ -64,7 +64,7 @@ FINAL_LINE_ADVANCE_RELEASE = {
 # checkbox appearance streams, and an optional ink envelope never refuses a job.
 # Only strip_text.py and source_retention.py differ from 89.0.3. The pin was derived
 # from the committed owner tree before the candidate record or any artifact was written.
-ADOPTED_RELEASE = {
+REVIEW_FIXES_RELEASE = {
     "scope": "behavior-release", "version": "89.0.4",
     "release_id": "pdf-translate-89.0.4-review-fixes",
     "adopted_owner_revision": "b9059acf9981a0fddd863e5e80cdc0831d53e916",
@@ -72,8 +72,23 @@ ADOPTED_RELEASE = {
     "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
     "modules": 27,
 }
+# 2026-10-11 dogfood fixes (prompt-fit-and-bold L1): unvouched identity runs are
+# redrawn, pass-through runs fall back to the role face, unmapped text keeps its
+# source glyphs, a leading unmapped bullet passes through alone, and bold reads the
+# font weight with bold runs reported. extract_segments, mapping, retypeset,
+# source_retention and typography differ from 89.0.4. The pin was derived from the
+# committed owner tree before the candidate record or any artifact was written.
+ADOPTED_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.5",
+    "release_id": "pdf-translate-89.0.5-dogfood-fixes",
+    "adopted_owner_revision": "8c77b9380d82ddcbf77956af507359587696347f",
+    "source_digest": "1f39024756a8604202fb4b623ca5303993ea56727b53439fc1787b3f9cf1b2ac",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
 DEFAULT_VERSION = ADOPTED_RELEASE["version"]
-MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27}
+MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27,
+                 "89.0.5": 27}
 PACKAGE_PREFIX = "libs/pdf-translate/pdf_translate/"
 PACKAGE_NAME = "pdf-translate"
 RECORD_KEYS = {
