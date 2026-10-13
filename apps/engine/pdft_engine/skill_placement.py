@@ -582,16 +582,39 @@ def _tag_masked(plain: str, marks: list[bool | None], masked: MaskResult) -> str
 
 def _single_line_marks(core: str, rows: list[dict]) -> list[bool | None] | None:
     """The weights of a line item that mixes them, when every line printing it is the
-    plain core (no list marker, dot leader or tail), horizontal, and bold in the same
-    places; None otherwise, and the line keeps its majority weight."""
+    core alone or the core after its list marker (no dot leader or tail), horizontal,
+    and bold in the same places; None otherwise, and the line keeps its majority weight.
+
+    A marker line's bold runs count from the marker, so they are moved onto the core:
+    "(c) Extra withholding. ... pay period" sends its bold lead and "pay period" to the
+    model, and the marker's own weight is the library's (W-4 Step 4(c), 2026-10-13)."""
     if not rows or any(
-        row.get("passthrough") or str(row.get("text") or "").strip() != core
-        or row.get("marker") or row.get("dots") or row.get("tail") or not _horizontal(row)
+        row.get("passthrough") or row.get("dots") or row.get("tail") or not _horizontal(row)
         or row.get("bold_runs") != rows[0].get("bold_runs")
+        or _core_offset(row, core) is None
         for row in rows
     ):
         return None
-    return _paragraph_marks(rows[:1], core)
+    row = rows[0]
+    shift = _core_offset(row, core)
+    runs = row.get("bold_runs")
+    if shift and runs:
+        moved = [[max(start - shift, 0), min(end - shift, len(core))]
+                 for start, end in runs if end - shift > 0 and start - shift < len(core)]
+        row = {"core": core, "bold": False, "bold_runs": moved}
+    return _paragraph_marks([row], core)
+
+
+def _core_offset(row: dict, core: str) -> int | None:
+    """Where the core starts in the line's stripped text: 0 for a plain line, the
+    marker and its gap for a list item; None when the text is anything else."""
+    text = str(row.get("text") or "").strip()
+    if text == core:
+        return 0
+    marker = row.get("marker")
+    if marker and core and text.startswith(marker) and text.endswith(core):
+        return len(text) - len(core)
+    return None
 
 
 def _split_bold_answer(answer: str) -> tuple[str, str | None]:
@@ -738,6 +761,86 @@ def _split_chain(chain: list[dict]) -> list[list[dict]]:
         group for group in groups
         if len(group) >= 2 and max(_width(row) for row in group) >= _PARAGRAPH_MIN_WIDTH
     ]
+
+
+def _scale_groups(rows: list[dict], skip: set[str]) -> list[list[dict]]:
+    """One shrink factor per paragraph (ledger `w4-fidelity-five-rulings`): the lines of
+    each wrapped paragraph or list item placed line by line, in reading order, plus
+    the list marker the extractor printed as its own run beside the first line (an
+    empty core). A list item lines up on its body, after its marker; a marker always starts a
+    new item; a gap wider than the column's tightest leading ends a paragraph; a group needs a
+    line of running text (25 characters or more). Rows with a dot leader or tail, a repeated
+    core, or a core in `skip` (reflowed paragraphs, heading pairs) stay out. Only groups of two
+    or more lines are returned."""
+    core_count = Counter(row.get("core") for row in rows if isinstance(row.get("core"), str))
+    groups: list[list[dict]] = []
+    by_page: dict[int, list[dict]] = {}
+    for row in rows:
+        by_page.setdefault(row.get("page"), []).append(row)
+    for page_rows in by_page.values():
+        markers = [row for row in page_rows if row.get("marker") and row.get("core") == ""
+                   and _horizontal(row)]
+        lines, shadow_of, attached = [], {}, {}
+        for row in page_rows:
+            core = row.get("core")
+            if (row.get("passthrough") or not isinstance(core, str) or len(core) < 2
+                    or core_count[core] != 1 or core in skip or row.get("dots") or row.get("tail")
+                    or not _horizontal(row) or not isinstance(row.get("size"), (int, float))
+                    or float(row["size"]) <= 0 or _core_offset(row, core) is None):
+                continue
+            x, y = row["origin"]
+            if row.get("marker"):
+                if not isinstance(row.get("body_dx"), (int, float)):
+                    continue
+                x += float(row["body_dx"])
+            size = float(row["size"])
+            for marker in markers:
+                mx, my = marker["origin"]
+                if abs(my - y) < 0.5 and 0 < x - mx <= 3 * size and not row.get("marker"):
+                    attached[id(row)] = marker
+            shadow = dict(row, origin=[x, y])
+            shadow_of[id(shadow)] = row
+            lines.append(shadow)
+        for chain in _line_chains(lines, lines):
+            current: list[dict] = []
+            gaps = [b["origin"][1] - a["origin"][1] for a, b in pairwise(chain)]
+            leading = min(gaps) if gaps else 0.0
+            for index, shadow in enumerate(chain):
+                row = shadow_of[id(shadow)]
+                starts_item = bool(row.get("marker")) or id(row) in attached
+                gap = gaps[index - 1] if index else 0.0
+                if current and (starts_item or gap > 1.12 * leading):
+                    groups.append(current)
+                    current = []
+                if not current and id(row) in attached:
+                    current.append(attached[id(row)])
+                current.append(row)
+            groups.append(current)
+    # A stack of short labels (a heading broken over lines, amount captions in a
+    # column) keeps its own fits: the unit is running text.
+    return [group for group in groups
+            if sum(1 for row in group if row.get("core")) >= 2
+            and max(len(row.get("core") or "") for row in group) >= 25]
+
+
+def _uneven_caps(groups: list[list[dict]], drawn: dict[str, float],
+                 placed: set[str], tolerance: float = 0.01) -> dict[str, float]:
+    """Per segment id, the smallest ratio its group was drawn at, for each group whose
+    placed lines were drawn at different scales. Lines kept in their source text are
+    not members: they are drawn as printed."""
+    caps: dict[str, float] = {}
+    for group in groups:
+        members = [row for row in group if row.get("core") in placed]
+        if len(members) < 2:
+            continue
+        ratios = [min(drawn.get(row["core"], 1.0), 1.0) for row in members]
+        low = min(ratios)
+        if max(ratios) - low <= tolerance:
+            continue
+        for row in group:
+            if not row.get("core") or row.get("core") in placed:
+                caps[str(row.get("id"))] = round(low, 4)
+    return caps
 
 
 def _page_rules(page) -> list[tuple[float, float, float, float]] | None:
@@ -1174,9 +1277,10 @@ def _write_layout(
     merges: list[dict],
     source_glyphs: list[str],
     right: list[str],
+    scale_caps: dict[str, float] | None = None,
 ) -> None:
     """Add the layout keys to the mapping `_write_mapping` wrote, only when used."""
-    if not (merges or source_glyphs or right):
+    if not (merges or source_glyphs or right or scale_caps):
         return
     payload = json.loads(path.read_text(encoding="utf-8"))
     if merges:
@@ -1185,6 +1289,8 @@ def _write_layout(
         payload["source_glyphs"] = source_glyphs
     if right:
         payload["right"] = right
+    if scale_caps:
+        payload["scale_caps"] = scale_caps
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -1608,6 +1714,12 @@ def place_prepared_document(
                     segment_rows, page_pdf, {core for group in paragraphs for core in group.cores}
                 )
     pair_of = {row["core"]: index for index, pair in enumerate(heading_pairs) for row in pair}
+    scale_groups = _scale_groups(
+        segment_rows,
+        {core for group in paragraphs for core in group.cores}
+        | {row["core"] for pair in heading_pairs for row in pair},
+    ) if segment_rows else []
+    scale_caps: dict[str, float] = {}
     rebalanced: dict[int, tuple[str, str]] = {}
     pairs_tried: set[int] = set()
 
@@ -1732,7 +1844,8 @@ def place_prepared_document(
         # text, and a core refused AS its source text is drawn from its source glyphs.
         # Only when a round changes nothing (or a source run's glyphs cannot be
         # vouched) is the whole document delivered untouched (`a-job-always-delivers`).
-        rounds = max_passes(len(cores)) + (2 if paragraphs else 0) + 2 * len(heading_pairs)
+        rounds = (max_passes(len(cores)) + (2 if paragraphs else 0) + 2 * len(heading_pairs)
+                  + (1 if scale_groups else 0))
         for attempt in range(rounds):
             _write_mapping(mapping, translations=translations, lang=lang, font=font,
                            allow_scale=allow_scale)
@@ -1741,6 +1854,7 @@ def place_prepared_document(
                 merges=[active_merges[index] for index in sorted(active_merges)],
                 source_glyphs=sorted(source_glyphs),
                 right=right_cores,
+                scale_caps=scale_caps,
             )
             passes = attempt + 1
             scale_path = _unique_scale_report_path(workdir)
@@ -1852,6 +1966,18 @@ def place_prepared_document(
                         changed |= retain(key, "scaled_below_floor")
                 if changed:
                     continue
+                # One shrink factor per paragraph: once, every placed line of a group
+                # drawn at uneven scales is drawn again at its group's smallest. The
+                # caps only lower a start size the line already fitted below, so the
+                # next round refuses nothing new.
+                if scale_groups and not scale_caps and attempt + 1 < rounds:
+                    placed_now = {
+                        core for core in translations
+                        if core not in reverted and core not in kept_source
+                    }
+                    scale_caps = _uneven_caps(scale_groups, drawn, placed_now)
+                    if scale_caps:
+                        continue
                 # What remains is drawn at or above the floor. These are not failures:
                 # the text is complete and on the page. They are what the reader is owed
                 # a separate word for (`degraded-outcomes-are-named-separately`).

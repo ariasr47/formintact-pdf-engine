@@ -170,3 +170,52 @@ def test_a_mostly_bold_line_keeps_its_regular_words_regular(tmp_path):
                  for line in b["lines"] for s in line["spans"] if s["text"].strip()]
     regular = " ".join(s["text"] for s in spans if "Bold" not in s["font"])
     assert "puede prevenir" in regular and "vacuna" not in regular, spans
+
+
+def _row(id_, x, y, text, *, core=None, marker="", body_dx=None, bold_runs=None, bold=False):
+    row = {"id": id_, "page": 0, "origin": [x, y], "bbox": [x, y - 7, x + 300, y + 2],
+           "dir": [1, 0], "size": 9.0, "color": 0, "text": text, "marker": marker,
+           "dots": "", "tail": "", "bold": bold,
+           "core": text if core is None else core}
+    if body_dx is not None:
+        row["body_dx"] = body_dx
+    if bold_runs:
+        row["bold_runs"] = bold_runs
+    return row
+
+
+def test_a_marker_lines_bold_runs_move_onto_its_core():
+    """W-4 Step 4(c): "(c) Extra withholding. ... each pay period" sends its bold lead and
+    "pay period" to the model; a line whose only bold is its marker sends none."""
+    from pdft_engine.masking import mask_block
+    from pdft_engine.skill_placement import _single_line_marks, _tag_masked
+
+    core = "Extra withholding. Enter tax withheld each pay period"
+    text = "(c) " + core
+    row = _row(150, 122.4, 614.4, text, core=core, marker="(c)", body_dx=14.4,
+               bold_runs=[[0, 22], [47, 57]])
+    marks = _single_line_marks(core, [row])
+    assert marks is not None
+    tagged = _tag_masked(core, marks, mask_block(core, []))
+    assert tagged == "<b>Extra withholding.</b> Enter tax withheld each <b>pay period</b>"
+    only_marker = _row(44, 122.4, 351.6, "(a) Use the estimator", core="Use the estimator",
+                       marker="(a)", body_dx=14.4, bold_runs=[[0, 3]])
+    assert _single_line_marks("Use the estimator", [only_marker]) is None
+
+
+def test_a_list_item_and_its_separate_marker_form_one_scale_group():
+    """W-4 Step 4(a): the bold "(a)" printed as its own run, then three body lines at the
+    body's left edge; the next item's marker starts a new group."""
+    from pdft_engine.skill_placement import _scale_groups
+
+    rows = [
+        _row(131, 122.4, 539.3, "(a) ", core="", marker="(a)", bold=True),
+        _row(132, 136.8, 539.3, "Other income (not from jobs). If you want tax withheld"),
+        _row(133, 136.8, 550.1, "expect this year that will not have withholding, enter"),
+        _row(134, 136.8, 560.9, "This may include interest, dividends, and income"),
+        _row(143, 122.4, 575.8, "(b) ", core="", marker="(b)", bold=True),
+        _row(144, 136.8, 575.8, "Deductions. Use the Deductions Worksheet on page 4"),
+        _row(145, 136.8, 586.6, "deductions you may claim, which will reduce your"),
+    ]
+    groups = [[row["id"] for row in group] for group in _scale_groups(rows, set())]
+    assert groups == [[131, 132, 133, 134], [143, 144, 145]]

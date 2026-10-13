@@ -940,6 +940,16 @@ def _row_obstacles(seg, segs, drawn_boxes=None, *, left=False):
             yield other, box
 
 
+def _marker_bold(seg):
+    """Whether a list marker is bold in its source: the line's majority weight, unless
+    the line mixes weights and its recorded bold runs say otherwise for the marker."""
+    marker = seg.get('marker') or ''
+    runs = seg.get('bold_runs')
+    if not marker or not runs or not (seg.get('text') or '').strip().startswith(marker):
+        return bool(seg.get('bold'))
+    return any(start <= 0 and end >= len(marker) for start, end in runs)
+
+
 def _right_limit(page_rect, seg, segs, widgets, drawn_boxes=None):
     """The horizontal budget; ordinary neighbours retain their arithmetic."""
     x0 = seg['origin'][0]
@@ -1442,6 +1452,11 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
     # A run whose glyphs cannot be vouched refuses by name (`source_glyphs`).
     source_glyphs = set(conf.get('source_glyphs') or [])
     overrides = conf.get('overrides', [])
+    # One shrink factor per paragraph: the engine names each member line (and its
+    # attached list marker) by segment id with the smallest ratio its paragraph
+    # needed. A member never starts above it; its own fit may still go lower.
+    scale_caps = {str(key): float(value)
+                  for key, value in (conf.get('scale_caps') or {}).items()}
     notices = conf.get('notices') or []
     overflow = []
     scaled = []
@@ -1976,6 +1991,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 source_glyph_jobs.setdefault(pno, []).append(seg)
                 continue
             fs = seg['size']
+            cap = scale_caps.get(str(seg.get('id')))
             ox, oy = seg['origin']
             dx, dy = seg_dir(seg)
             rot = is_rotated(dx, dy)
@@ -2023,6 +2039,10 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             if gap is None:
                 gap = ' '
             mk = marker + gap
+            # The marker's own weight: a line that mixes weights records its bold
+            # runs, so a bold "(a)" before a regular sentence stays bold, and a
+            # regular one before a bold lead stays regular (W-4 Step 2, 2026-10-13).
+            mbold = _marker_bold(seg)
             # Row 23: where the body's first glyph was in the source, measured
             # from its characters. The marker is drawn in Helvetica whatever
             # the source font, so Helvetica's advance is right only for a
@@ -2063,8 +2083,9 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                     place_rotated(ox, oy, [(raw, f, fs)],
                                   int(seg.get('color', 0)), dx, dy)
                     continue
-                tw.append((mirror_left(ox, f.text_length(raw, fs), frame.width),
-                           oy), raw, font=f, fontsize=fs)
+                psize = fs * cap if cap else fs
+                tw.append((mirror_left(ox, f.text_length(raw, psize), frame.width),
+                           oy), raw, font=f, fontsize=psize)
                 continue
             if has_inline_markup(jp) and not rot:
                 # Mixed weights inside one line: the Story engine resolves
@@ -2076,9 +2097,14 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 if re.search(r'<(i|em)\b', jp, re.I):
                     check_glyphs(pno, font_i, plain, core, 'italic')
                 bx = ox
+                imarker = None
                 if marker:
-                    mfont = helv_role(seg['bold'], seg.get('italic'))
-                    tw.append((bx, oy), mk, font=mfont, fontsize=fs)
+                    # Drawn after the body, at the body's own scale: a marker kept
+                    # at full size beside a shrunk body looks like a second size.
+                    # The body keeps its source start, so it still lines up with
+                    # the item's continuation lines.
+                    mfont = helv_role(mbold, seg.get('italic'))
+                    imarker = (ox, mk, mfont)
                     bx += marker_adv(mfont, fs)
                 # The drawn rules and controls beside the source caption bound
                 # this line as they bound a plain one: a writing cell whose
@@ -2094,12 +2120,12 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 inline_jobs.append((bx, oy, inline_markup_html(jp.replace('‖', '')),
                                     bool(seg['bold']) and not seg.get('bold_runs'),
                                     bool(seg.get('italic')),
-                                    fs, int(seg.get('color', 0)), avail, core,
-                                    plain))
+                                    fs * cap if cap else fs, int(seg.get('color', 0)),
+                                    avail, core, plain, imarker, cap or 1.0))
                 continue
             parts = []
             if marker:
-                mk_font = helv_role(seg['bold'], seg.get('italic'))
+                mk_font = helv_role(mbold, seg.get('italic'))
                 check_glyphs(pno, mk_font, mk, core,
                              'Helvetica (list marker)')
                 parts.append((mk, mk_font))
@@ -2156,7 +2182,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 body_font = role(seg['bold'], seg.get('italic'), core)
                 bx = ox
                 if marker:
-                    mfont = helv_role(seg['bold'], seg.get('italic'))
+                    mfont = helv_role(mbold, seg.get('italic'))
                     tw.append((bx, oy), mk, font=mfont, fontsize=fs)
                     bx += marker_adv(mfont, fs)
                 room = max(label_max - (bx - ox), 1.0)
@@ -2251,6 +2277,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                     doc.close()
                     raise PlacementError('no room above source baseline', page=pno, key=core, scale=0,
                         refusals={'overflow': [{'page': pno, 'scale': 0, 'core': core}]})
+            if cap and not shaped:
+                fs2 = min(fs2, fs * cap)
             if fs and fs2 < fs and not shaped:
                 consider_ratio(pno, core, fs2 / fs)
             x = ox
@@ -2282,7 +2310,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 # feeds the overflow gate.
                 bx = x
                 if marker:
-                    mfont = helv_role(seg['bold'], seg.get('italic'))
+                    mfont = helv_role(mbold, seg.get('italic'))
                     tw.append((bx, oy), mk, font=mfont, fontsize=fs)
                     bx += marker_adv(mfont, fs)
                 shaped_jobs.append((bx, oy, jp.replace('‖', ''), bool(seg['bold']), fs,
@@ -2310,11 +2338,16 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             rtw.write_text(page, color=rgb_of(cint))
             wrap_last_bt_actualtext(page, logical)
         for (ix, iy, body, ibold, iital, ifs, icint, iavail, ikey,
-             iplain) in inline_jobs:
+             iplain, imarker, icap) in inline_jobs:
             note_markup(body, ikey)
             scale = place_story_line(page, ix, iy, body, ibold, iital, ifs,
                                      icint, iavail, css, arch)
-            consider_ratio(pno, ikey, scale)
+            consider_ratio(pno, ikey, scale * icap)
+            if imarker:
+                mx, mtext, mfont = imarker
+                mtw = pymupdf.TextWriter(page.rect)
+                mtw.append((mx, iy), mtext, font=mfont, fontsize=ifs * scale)
+                mtw.write_text(page, color=rgb_of(icint))
         for (sx, sy, text, bold, fsz, cint, avail, key, ital) in shaped_jobs:
             scale = place_shaped(page, sx, sy, text, bold, fsz, cint, avail,
                                  css, arch, italic=ital)

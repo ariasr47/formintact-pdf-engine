@@ -105,7 +105,7 @@ CAP_LINE_RELEASE = {
 # widget covers only the cell's bottom. Only retypeset differs from 89.0.6. The pin
 # was derived from the committed owner tree before the candidate record or any
 # artifact was written.
-ADOPTED_RELEASE = {
+ANSWER_AREA_RELEASE = {
     "scope": "behavior-release", "version": "89.0.7",
     "release_id": "pdf-translate-89.0.7-answer-area",
     "adopted_owner_revision": "6b8d4919497dd9f577ba84cc0546ef48a01db92a",
@@ -113,9 +113,23 @@ ADOPTED_RELEASE = {
     "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
     "modules": 27,
 }
+# 2026-10-13 marker weight and paragraph scale (W-4 fidelity gaps 2 and 3): a list
+# marker takes the weight of its own source characters and, on a mixed-weight line,
+# its body's scale; `scale_caps` lets the engine start each line of a paragraph at
+# the paragraph's smallest scale. Only retypeset differs from 89.0.7. The pin was
+# derived from the committed owner tree before the candidate record or any artifact
+# was written.
+ADOPTED_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.8",
+    "release_id": "pdf-translate-89.0.8-marker-and-scale",
+    "adopted_owner_revision": "9d1af9183f340114283d9ac9aad975ef060d5b12",
+    "source_digest": "87f263da96a6d40a6fe2cd509072660f8cf6424c853fbfecc8134c0810c27557",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
 DEFAULT_VERSION = ADOPTED_RELEASE["version"]
 MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27,
-                 "89.0.5": 27, "89.0.6": 27, "89.0.7": 27}
+                 "89.0.5": 27, "89.0.6": 27, "89.0.7": 27, "89.0.8": 27}
 PACKAGE_PREFIX = "libs/pdf-translate/pdf_translate/"
 PACKAGE_NAME = "pdf-translate"
 RECORD_KEYS = {
