@@ -1,0 +1,17 @@
+{
+  "branch": "pikepdf",
+  "bytes": 1220,
+  "created_utc": "2026-10-15T07:06:05Z",
+  "file": "apps/engine/tests/fixtures/preflight/empty_sig_field.pdf",
+  "git_head": "f7b8eadd00ce85fa6557b0aab5134f3c9d384dfc",
+  "note": "/Sig field with no /V",
+  "producer": "apps/engine/tests/fixtures/make_preflight_fixtures.py",
+  "sha256": "4615ecdf8e4c540eb57902628117eddafa49fc6267d06cadf0c48f694a4fb18c",
+  "signer": null,
+  "tools": {
+    "cryptography": "50.0.2",
+    "pikepdf": "10.12.0",
+    "pyhanko": "0.37.0",
+    "pymupdf": "1.28.0"
+  }
+}

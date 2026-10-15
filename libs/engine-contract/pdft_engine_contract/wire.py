@@ -109,11 +109,27 @@ class CountPage(_Strict):
     text_block_count: int = Field(ge=0)
 
 
+class CountPreflight(_Strict):
+    """preflight-declines INTERFACE §1: read-only facts; missing or null means "not detected"."""
+    signed: bool
+    certified: bool
+    dynamic_xfa: bool
+    letter_count: int = Field(ge=0)
+    rtl_letter_count: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def _rtl_within_letters(self):
+        if self.rtl_letter_count > self.letter_count:
+            raise ValueError("rtl_letter_count cannot exceed letter_count")
+        return self
+
+
 class CountResponse(_Strict):
     source_chars: int = Field(ge=0)
     text_block_count: int = Field(ge=0)
     kept_page_count: int = Field(ge=0)
     pages: list[CountPage]
+    preflight: CountPreflight | None = None
 
 
 class WireItem(_Strict):

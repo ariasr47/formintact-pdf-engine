@@ -1,0 +1,17 @@
+{
+  "branch": "pikepdf",
+  "bytes": 1720,
+  "created_utc": "2026-10-15T07:06:05Z",
+  "file": "apps/engine/tests/fixtures/preflight/xfa_no_widgets.pdf",
+  "git_head": "f7b8eadd00ce85fa6557b0aab5134f3c9d384dfc",
+  "note": "/XFA, empty /Fields, no widgets",
+  "producer": "apps/engine/tests/fixtures/make_preflight_fixtures.py",
+  "sha256": "1ab2b4e36a8f647872783918bc0c4b0a8148c7571664e4a898cd97905c71f5be",
+  "signer": null,
+  "tools": {
+    "cryptography": "50.0.2",
+    "pikepdf": "10.12.0",
+    "pyhanko": "0.37.0",
+    "pymupdf": "1.28.0"
+  }
+}

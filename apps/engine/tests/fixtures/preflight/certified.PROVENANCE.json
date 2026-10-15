@@ -1,0 +1,17 @@
+{
+  "branch": "pyhanko",
+  "bytes": 6736,
+  "created_utc": "2026-10-15T07:50:28Z",
+  "file": "apps/engine/tests/fixtures/preflight/certified.pdf",
+  "git_head": "655eca7e526d6649104968aa6097d89882405321",
+  "note": "pyHanko certification (/Perms /DocMDP)",
+  "producer": "apps/engine/tests/fixtures/make_preflight_fixtures.py",
+  "sha256": "cb46c601890fd4869405e60b8c486b27aafc2df1e8bdc03b2ec300ed5573646f",
+  "signer": "pyhanko",
+  "tools": {
+    "cryptography": "50.0.2",
+    "pikepdf": "10.12.0",
+    "pyhanko": "0.37.0",
+    "pymupdf": "1.28.0"
+  }
+}

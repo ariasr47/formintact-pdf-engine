@@ -323,6 +323,43 @@
       "title": "CountPage",
       "type": "object"
     },
+    "CountPreflight": {
+      "additionalProperties": false,
+      "description": "preflight-declines INTERFACE \u00a71: read-only facts; missing or null means \"not detected\".",
+      "properties": {
+        "certified": {
+          "title": "Certified",
+          "type": "boolean"
+        },
+        "dynamic_xfa": {
+          "title": "Dynamic Xfa",
+          "type": "boolean"
+        },
+        "letter_count": {
+          "minimum": 0,
+          "title": "Letter Count",
+          "type": "integer"
+        },
+        "rtl_letter_count": {
+          "minimum": 0,
+          "title": "Rtl Letter Count",
+          "type": "integer"
+        },
+        "signed": {
+          "title": "Signed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "signed",
+        "certified",
+        "dynamic_xfa",
+        "letter_count",
+        "rtl_letter_count"
+      ],
+      "title": "CountPreflight",
+      "type": "object"
+    },
     "CountRequest": {
       "additionalProperties": false,
       "properties": {
@@ -362,6 +399,17 @@
           },
           "title": "Pages",
           "type": "array"
+        },
+        "preflight": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CountPreflight"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "source_chars": {
           "minimum": 0,

@@ -21,6 +21,7 @@ from pdft_engine_contract.wire import (
     ArtifactResponse,
     AssembleRequest,
     CountPage,
+    CountPreflight,
     CountRequest,
     CountResponse,
     DocumentArtifactLine,
@@ -42,7 +43,14 @@ from pdft_engine_contract.wire import (
     WireItem,
 )
 
-from pdft_engine import callback_client, estimate_units, pdfops, pipeline, prepared_state
+from pdft_engine import (
+    callback_client,
+    estimate_units,
+    pdfops,
+    pipeline,
+    preflight,
+    prepared_state,
+)
 from pdft_engine import settings as engine_settings
 
 
@@ -124,7 +132,11 @@ def thumbnail(req: ThumbnailRequest) -> ArtifactResponse:
 def count(req: CountRequest) -> CountResponse:
     original = _input(_job_dir(req.job_id) / naming.ORIGINAL)
     _pages_in_range(original, req.pages)
-    totals, pages = estimate_units.count_pages(original, list(req.pages))
+    totals, pages, (letters, rtl) = estimate_units.count_pages(original, list(req.pages))
+    try:
+        flags = preflight.inspect_structure(original)
+    except Exception:  # preflight-declines SPEC §2.3: never raises because of preflight
+        flags = preflight.NOT_DETECTED
     return CountResponse(
         source_chars=totals[0],
         text_block_count=totals[1],
@@ -133,6 +145,7 @@ def count(req: CountRequest) -> CountResponse:
             CountPage(page=n, layout_units=u, extract_failed=f, text_block_count=t)
             for n, u, f, t in pages
         ],
+        preflight=CountPreflight(**flags.__dict__, letter_count=letters, rtl_letter_count=rtl),
     )
 
 

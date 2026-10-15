@@ -1,6 +1,9 @@
 """Wire model behavioural tests (engine-boundary S1-wire-models PLAN "Tests first"). Each test
 constructs a valid control first, then the one invalid shape the bullet names, so a validator that
 accidentally rejects everything cannot pass these silently."""
+import json
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -9,7 +12,9 @@ from pdft_engine_contract.events import BlockProgressEvent, StageEvent
 from pdft_engine_contract.wire import (
     CallbackReply,
     CallbackRef,
+    CountPreflight,
     CountRequest,
+    CountResponse,
     PrepareResponse,
     PreparedRef,
     ProbeRequest,
@@ -188,3 +193,35 @@ def test_prepare_response_round_trips_an_item_with_a_budget():
     parsed = PrepareResponse.model_validate(body)
     assert [i.budget for i in parsed.requests[0].items] == [40, None]
     assert PrepareResponse.model_validate_json(parsed.model_dump_json()) == parsed
+
+
+COUNT = {"source_chars": 10, "text_block_count": 2, "kept_page_count": 1,
+         "pages": [{"page": 1, "layout_units": 2, "extract_failed": False, "text_block_count": 2}]}
+FOUND = {"signed": True, "certified": False, "dynamic_xfa": False, "letter_count": 8,
+         "rtl_letter_count": 2}
+
+
+def test_count_response_carries_an_optional_preflight():
+    assert CountResponse.model_validate(COUNT).preflight is None  # old engine: missing
+    parsed = CountResponse.model_validate({**COUNT, "preflight": FOUND})
+    assert parsed.preflight == CountPreflight(**FOUND)
+    assert CountResponse.model_validate_json(parsed.model_dump_json()) == parsed
+    assert CountResponse.model_validate({**COUNT, "preflight": None}).preflight is None
+
+
+def test_count_response_rejects_unknown_keys_and_rtl_above_letters():
+    CountResponse.model_validate({**COUNT, "preflight": FOUND})  # control
+    with pytest.raises(ValidationError):
+        CountResponse.model_validate({**COUNT, "future": 1})
+    with pytest.raises(ValidationError):
+        CountResponse.model_validate({**COUNT, "preflight": {**FOUND, "future": 1}})
+    with pytest.raises(ValidationError):
+        CountResponse.model_validate(
+            {**COUNT, "preflight": {**FOUND, "letter_count": 8, "rtl_letter_count": 9}})
+
+
+def test_snapshot_lists_count_preflight_as_optional():
+    snapshot = Path(__file__).resolve().parents[1] / "schema" / "engine-wire.schema.json"
+    defs = json.loads(snapshot.read_text(encoding="utf-8"))["$defs"]
+    assert "CountPreflight" in defs
+    assert "preflight" not in defs["CountResponse"]["required"]

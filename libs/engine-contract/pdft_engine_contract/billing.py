@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from pdft_engine_contract.wire import CountPreflight
+
 
 @dataclass(frozen=True)
 class BillableUnits:
@@ -19,3 +21,5 @@ class BillableUnits:
     # page. Feeds est-proj-v2's engine-route request count (pipeline.py batches per page,
     # never spanning pages -- see estimate_projection.project_tokens_engine).
     per_page_block_counts: tuple[int, ...] = ()
+    # preflight-declines: read-only facts from /v1/count; None == not detected (an old engine).
+    preflight: CountPreflight | None = None

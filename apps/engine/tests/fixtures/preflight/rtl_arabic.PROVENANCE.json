@@ -1,0 +1,17 @@
+{
+  "branch": "builtin-face",
+  "bytes": 47784,
+  "created_utc": "2026-10-15T07:06:05Z",
+  "file": "apps/engine/tests/fixtures/preflight/rtl_arabic.pdf",
+  "git_head": "f7b8eadd00ce85fa6557b0aab5134f3c9d384dfc",
+  "note": "rtl share 63/79 = 0.797",
+  "producer": "apps/engine/tests/fixtures/make_preflight_fixtures.py",
+  "sha256": "b675fadfd9c3197b29648d66dd384d5c0e34b9863718457bf21706afd3c8a9a3",
+  "signer": null,
+  "tools": {
+    "cryptography": "50.0.2",
+    "pikepdf": "10.12.0",
+    "pyhanko": "0.37.0",
+    "pymupdf": "1.28.0"
+  }
+}
