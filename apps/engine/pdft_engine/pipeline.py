@@ -31,7 +31,7 @@ from pdft_engine_contract.notices import (
     SOURCE_TEXT_DETAIL_ONE,
 )
 
-from pdft_engine import pdfops
+from pdft_engine import pdfops, timing
 
 NATIVE_ROUTE = "japanese-library"
 
@@ -534,6 +534,7 @@ def _run_native_document(
     )
     try:
         if prepared_library is None:
+            prepare_started = time.perf_counter()
             active_preparation = prepare_document_state(
                 pdf_path=pdf_path,
                 selected_pages=tuple(kept_pages),
@@ -543,6 +544,7 @@ def _run_native_document(
                 root=temp_root,
             )
             prepared_document = active_preparation.library.prepared_document
+            timing.mark("prepare", prepare_started)
             if preparation_observer is not None:
                 preparation_observer(active_preparation)
         else:
@@ -568,6 +570,8 @@ def _run_native_document(
             font=font_roles,
             cancel=sink.is_cancelled,
         )
+        timing.mark("place", started)
+        timing.add("translate", max(0.0, sink.callback_seconds) * 1000)
         native_ms = max(
             0,
             round(
@@ -606,6 +610,7 @@ def _run_native_document(
                         ),
                     )
 
+        pages_started = time.perf_counter()
         for subset_index, original_page in enumerate(kept_pages, start=1):
             preview = temp_root / f"preview-{original_page}.pdf"
             try:
@@ -622,6 +627,7 @@ def _run_native_document(
                 )
             except Exception:
                 preview.unlink(missing_ok=True)
+        timing.mark("pages", pages_started, count=len(kept_pages))
 
         shares = {}
         for page in pages:

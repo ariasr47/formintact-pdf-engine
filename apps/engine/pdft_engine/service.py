@@ -50,6 +50,7 @@ from pdft_engine import (
     pipeline,
     preflight,
     prepared_state,
+    timing,
 )
 from pdft_engine import settings as engine_settings
 
@@ -497,16 +498,18 @@ def run_render(
                 ctx.prepared,
                 persist=False,
             )
-        outcome = pipeline.run_pipeline(
-            pdf_path=ctx.job_dir / naming.ORIGINAL,
-            kept_pages=ctx.pages,
-            target_lang=ctx.target_lang,
-            dnt_terms=ctx.dnt_terms,
-            route=ctx.route,
-            sink=sink,
-            prepared=ctx.prepared,
-            preparation_observer=observe_preparation,
-        )
+        with timing.render(ctx.job_id) as timed:
+            outcome = pipeline.run_pipeline(
+                pdf_path=ctx.job_dir / naming.ORIGINAL,
+                kept_pages=ctx.pages,
+                target_lang=ctx.target_lang,
+                dnt_terms=ctx.dnt_terms,
+                route=ctx.route,
+                sink=sink,
+                prepared=ctx.prepared,
+                preparation_observer=observe_preparation,
+            )
+            timed.status = outcome.status
     finally:
         if sink._scratch is not None:
             engine_settings.drop_scratch(sink._scratch)
