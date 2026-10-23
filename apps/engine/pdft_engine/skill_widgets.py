@@ -74,11 +74,16 @@ def build_mapping(cores: list[WidgetCore], translations: dict[str, str]) -> dict
     the source string stays exactly where it was. This module never invents
     a fallback string, and it never emits a "value" key -- see
     `TRANSLATABLE_KEYS`.
+
+    An answer identical to its source is left out too: it is not a
+    translation, and writing it anyway makes the library drop the field's
+    appearance stream (G-28's PDF417 barcode was redrawn as plain text,
+    docs/plans/2026-10-20-placement-fixes-plan.md F2).
     """
     mapping: dict = {}
     for core in cores:
         target = translations.get(core.text)
-        if not target:
+        if not target or target.strip() == core.text.strip():
             continue
         entry = mapping.setdefault(core.field, {})
         if core.kind == "option":

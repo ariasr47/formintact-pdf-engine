@@ -345,7 +345,7 @@ def _occurrence_coverage(
             )
             reason = (
                 NO_ROOM_FOR_TRANSLATION
-                if native_kind in {"overflow_below_floor", "scaled_below_floor"}
+                if native_kind in {"overflow_below_floor", "scaled_below_floor", "covered_field"}
                 else "engine_error"
             )
             if native_kind == "glyph_misses":

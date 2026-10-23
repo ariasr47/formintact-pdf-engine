@@ -295,21 +295,33 @@ def needs_shaping(text):
     return False
 
 
-def _family(bold, italic):
-    return ('trbi' if bold else 'tri') if italic else ('trb' if bold else 'tr')
+# A narrower width of the same family, chosen per line by the `widths` layout
+# key. Each width has its own four font roles (`regular_semi`, ...), its own
+# CSS families (trs.., trc..) and a div class that scopes <b>/<i> to them.
+WIDTH_STEPS = ('semi', 'cond')
+_WIDTH_FAMILY = {None: 'tr', 'semi': 'trs', 'cond': 'trc'}
+_WIDTH_CLASS = {'semi': 'ws', 'cond': 'wc'}
+
+
+def _family(bold, italic, width=None):
+    base = _WIDTH_FAMILY[width]
+    return base + ('bi' if bold else 'i') if italic else base + ('b' if bold else '')
 
 
 def place_story_line(page, x, baseline, inner_html, bold, italic, fs,
-                     color_int, avail, css, arch, logical=None):
+                     color_int, avail, css, arch, logical=None, width=None):
     """Draw one line through the Story engine at the ORIGINAL baseline.
 
     Used for two jobs a TextWriter cannot do: scripts that need shaping
     (joining, conjuncts) and single-line targets that carry inline <b>/<i>.
     inner_html is already-built markup, so callers escape their own text.
+    `width` ('semi' or 'cond') draws the line, and any <b>/<i> inside it, in
+    that narrower width of the family; None is the full-width face.
     """
     top = baseline - SHAPED_BASELINE * fs
     rect = pymupdf.Rect(x, top, x + max(avail, 1.0) + 1.0, top + SHAPED_LINE * fs)
-    body = (f'<div style="font-family:{_family(bold, italic)}; '
+    klass = f' class="{_WIDTH_CLASS[width]}"' if width else ''
+    body = (f'<div{klass} style="font-family:{_family(bold, italic, width)}; '
             f'font-size:{fs:.2f}px; line-height:1; '
             f'color:#{color_int:06x}; margin:0; padding:0">{inner_html}</div>')
     _, scale = page.insert_htmlbox(rect, body, css=css, archive=arch, scale_low=0)
@@ -319,11 +331,11 @@ def place_story_line(page, x, baseline, inner_html, bold, italic, fs,
 
 
 def place_shaped(page, x, baseline, text, bold, fs, color_int, avail, css,
-                 arch, italic=False):
+                 arch, italic=False, width=None):
     """Draw one shaped run with the Story engine; returns the scale applied."""
     return place_story_line(page, x, baseline, story_text(text), bold,
                             italic, fs, color_int, avail, css, arch,
-                            logical=text)
+                            logical=text, width=width)
 
 
 def _actualtext_bdc(text):
@@ -839,6 +851,43 @@ def _legacy_fonts(conf, trf):
             path = local
         fonts[role_name] = path
     return fonts
+
+
+def _narrow_widths(raw, fonts):
+    """{core: width} from a legacy mapping's `widths` key, refused if unusable.
+
+    Only "semi" and "cond" are widths. A width the mapping asks for needs its
+    `regular_<width>` font role (the other three fall back inside the width).
+    """
+    if not raw:
+        return {}
+    if not isinstance(raw, dict):
+        raise MappingError(
+            'widths is not an object of {core: "semi" | "cond"}',
+            console_line=f'!! widths must map each core to "semi" or "cond", got {type(raw).__name__}',
+            exit_code=1, refusals={'widths': [{'why': 'not an object'}]})
+    widths = {}
+    for core, value in raw.items():
+        if value not in WIDTH_STEPS:
+            raise MappingError(
+                'a widths entry is not "semi" or "cond"',
+                console_line=(f'!! widths[{str(core)[:60]!r}] is {value!r}; '
+                              f'allowed: "semi", "cond"'),
+                exit_code=1, core=str(core),
+                refusals={'widths': [{'core': str(core), 'value': str(value),
+                                      'why': 'not "semi" or "cond"'}]})
+        widths[str(core)] = value
+    for core, value in widths.items():
+        needed = f'regular_{value}'
+        if not fonts.get(needed):
+            raise MappingError(
+                f'widths asks for "{value}" but the font role {needed} is missing',
+                console_line=(f'!! widths[{core[:60]!r}] is "{value}" but the '
+                              f'mapping has no font role {needed}'),
+                exit_code=1, core=core,
+                refusals={'widths': [{'core': core, 'value': value,
+                                      'why': f'missing font role {needed}'}]})
+    return widths
 
 
 def _refuse_output_aliases(out, report, inputs):
@@ -1457,6 +1506,11 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
     # needed. A member never starts above it; its own fit may still go lower.
     scale_caps = {str(key): float(value)
                   for key, value in (conf.get('scale_caps') or {}).items()}
+    # Lines the author draws in a narrower width of the same family:
+    # {core: "semi" | "cond"}. Each width needs its own font roles; a width
+    # whose regular role is missing refuses by name, never drawing the
+    # full-width face in its place. Merged paragraphs ignore this key.
+    widths = _narrow_widths(conf.get('widths'), fonts)
     notices = conf.get('notices') or []
     overflow = []
     scaled = []
@@ -1685,26 +1739,54 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                    if _same_path(path, f_regular)}
     role_asks = {}
 
-    def note_role(name, key):
+    # The same four roles in each narrower width the mapping supplies, with
+    # the same nearest-role fallback inside the width. `regular_<width>` is
+    # what makes a width available (_narrow_widths refuses a width without it).
+    narrow_paths = {}
+    narrow_fonts = {}
+    for wname in WIDTH_STEPS:
+        reg_w = fonts.get(f'regular_{wname}')
+        if not reg_w:
+            continue
+        bold_w = fonts.get(f'bold_{wname}') or reg_w
+        italic_w = fonts.get(f'italic_{wname}') or reg_w
+        bi_w = fonts.get(f'bold_italic_{wname}') or fonts.get(f'bold_{wname}') or italic_w
+        narrow_paths[wname] = (reg_w, bold_w, italic_w, bi_w)
+        narrow_fonts[wname] = tuple(pymupdf.Font(fontfile=p) for p in narrow_paths[wname])
+        for rname, path in (('bold', bold_w), ('italic', italic_w),
+                            ('bold-italic', bi_w)):
+            if _same_path(path, reg_w):
+                alias_roles.add(f'{rname}-{wname}')
+
+    def note_role(name, key, width=None):
+        name = f'{name}-{width}' if width else name
         if name in alias_roles:
             role_asks.setdefault(name, []).append(str(key or '?')[:40])
 
-    def note_markup(html, key):
+    def note_markup(html, key, width=None):
         """The Story engine picks its face from <b>/<i>, not from role()."""
         if re.search(r'<(b|strong)\b', html or '', re.I):
-            note_role('bold', key)
+            note_role('bold', key, width)
         if re.search(r'<(i|em)\b', html or '', re.I):
-            note_role('italic', key)
+            note_role('italic', key, width)
 
-    def role(bold, italic, key=None):
-        note_role(_role_name(bold, italic), key)
+    def faces_of(width):
+        """(regular, bold, italic, bold_italic) fonts for a width (None = full)."""
+        return narrow_fonts[width] if width else (font_r, font_b, font_i, font_bi)
+
+    def role(bold, italic, key=None, width=None):
+        note_role(_role_name(bold, italic), key, width)
+        f_r, f_b, f_i, f_bi = faces_of(width)
         if bold and italic:
-            return font_bi
+            return f_bi
         if bold:
-            return font_b
+            return f_b
         if italic:
-            return font_i
-        return font_r
+            return f_i
+        return f_r
+
+    def role_label(bold, italic, width=None):
+        return _role_name(bold, italic) + (f' ({width})' if width else '')
 
     def helv_role(bold, italic):
         if bold and italic:
@@ -1796,6 +1878,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
     ink_cache = {}
     font_paths = {id(font_r): f_regular, id(font_b): f_bold,
                   id(font_i): f_italic, id(font_bi): f_bold_italic}
+    for wname, wfonts in narrow_fonts.items():
+        font_paths.update({id(wf): wp for wf, wp in zip(wfonts, narrow_paths[wname])})
     # Authored HTML resolves its resources here. Defaulting to the
     # mapping's directory rather than the process's cwd is what makes a
     # service that runs from anywhere else get the face it named.
@@ -1821,6 +1905,17 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
            "i, em {font-family: tri; font-style: normal;}"
            "b i, b em, i b, em b, strong i, strong em "
            "{font-family: trbi; font-weight: normal; font-style: normal;}")
+    # A narrower width gets its own families, and a div class that scopes the
+    # inline <b>/<i> inside such a line to them (the rules above are weaker).
+    for wname, wpaths in narrow_paths.items():
+        fam, cls = _WIDTH_FAMILY[wname], _WIDTH_CLASS[wname]
+        for suffix, wpath in zip(('', 'b', 'i', 'bi'), wpaths):
+            css += f"@font-face {{font-family: {fam}{suffix}; src: url({css_url(wpath)});}}"
+        css += (f".{cls} b, .{cls} strong {{font-family: {fam}b; font-weight: normal;}}"
+                f".{cls} i, .{cls} em {{font-family: {fam}i; font-style: normal;}}"
+                f".{cls} b i, .{cls} b em, .{cls} i b, .{cls} em b, "
+                f".{cls} strong i, .{cls} strong em "
+                f"{{font-family: {fam}bi; font-weight: normal; font-style: normal;}}")
 
     drawn_rotated_boxes = {}
     blocked_rotated_neighbours = []
@@ -1995,15 +2090,17 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             ox, oy = seg['origin']
             dx, dy = seg_dir(seg)
             rot = is_rotated(dx, dy)
+            # This line's narrower width, if the mapping chose one for its core.
+            wd = widths.get(seg['core'])
             if ov:
                 for part in ov['parts']:
                     t = part['text']
                     f = role(part.get('bold'), part.get('italic'),
-                             ov.get('contains') or t)
+                             ov.get('contains') or t, wd)
                     x = part.get('x', ox)
                     check_glyphs(pno, f, t, ov.get('contains') or t,
-                                 _role_name(part.get('bold'),
-                                            part.get('italic')))
+                                 role_label(part.get('bold'),
+                                            part.get('italic'), wd))
                     w = f.text_length(t, fs)
                     maxw = part.get('max_width', 10_000)
                     fs2 = fitted_size(fs, w, maxw)
@@ -2017,7 +2114,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                         shaped_jobs.append((mirror_left(x, w, frame.width), oy, t,
                                             bool(part.get('bold')), fs, int(seg.get('color', 0)),
                                             avail, ov.get('contains') or t,
-                                            bool(part.get('italic'))))
+                                            bool(part.get('italic')), wd))
                     elif rot:
                         place_rotated(x, oy, [(t, f, fs2)],
                                       int(seg.get('color', 0)), dx, dy,
@@ -2091,11 +2188,12 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 # Mixed weights inside one line: the Story engine resolves
                 # <b>/<i> against the four font roles, the way merges do.
                 plain = strip_inline_markup(jp).replace('‖', '')
-                check_glyphs(pno, font_r, plain, core, 'regular')
+                f_r, f_b, f_i, _ = faces_of(wd)
+                check_glyphs(pno, f_r, plain, core, role_label(False, False, wd))
                 if re.search(r'<(b|strong)\b', jp, re.I):
-                    check_glyphs(pno, font_b, plain, core, 'bold')
+                    check_glyphs(pno, f_b, plain, core, role_label(True, False, wd))
                 if re.search(r'<(i|em)\b', jp, re.I):
-                    check_glyphs(pno, font_i, plain, core, 'italic')
+                    check_glyphs(pno, f_i, plain, core, role_label(False, True, wd))
                 bx = ox
                 imarker = None
                 if marker:
@@ -2121,7 +2219,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                                     bool(seg['bold']) and not seg.get('bold_runs'),
                                     bool(seg.get('italic')),
                                     fs * cap if cap else fs, int(seg.get('color', 0)),
-                                    avail, core, plain, imarker, cap or 1.0))
+                                    avail, core, plain, imarker, cap or 1.0, wd))
                 continue
             parts = []
             if marker:
@@ -2131,14 +2229,17 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 parts.append((mk, mk_font))
             if '‖' in jp:
                 bp, rp = jp.split('‖', 1)
-                parts.append((bp, role(True, seg.get('italic'), core)))
-                parts.append((rp, role(False, seg.get('italic'), core)))
+                parts.append((bp, role(True, seg.get('italic'), core, wd)))
+                parts.append((rp, role(False, seg.get('italic'), core, wd)))
             else:
-                parts.append((jp, role(seg['bold'], seg.get('italic'), core)))
+                parts.append((jp, role(seg['bold'], seg.get('italic'), core, wd)))
+            part_labels = {id(font_r): 'regular', id(font_b): 'bold',
+                           id(font_i): 'italic', id(font_bi): 'bold-italic'}
+            for wname, wfonts in narrow_fonts.items():
+                for wf, rname in zip(wfonts, ('regular', 'bold', 'italic', 'bold-italic')):
+                    part_labels.setdefault(id(wf), f'{rname} ({wname})')
             for t, f in parts:
-                check_glyphs(pno, f, t, core, _font_label(f, {
-                    id(font_r): 'regular', id(font_b): 'bold',
-                    id(font_i): 'italic', id(font_bi): 'bold-italic'}))
+                check_glyphs(pno, f, t, core, _font_label(f, part_labels))
             if rot and (dots or tail):
                 # Dot leaders are refilled only along a horizontal line. On a
                 # rotated one they are dropped, but the tail after them (the
@@ -2179,7 +2280,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 cur_end, label_max = leader_geometry()
                 body = jp.replace('‖', '')
                 cint = int(seg.get('color', 0))
-                body_font = role(seg['bold'], seg.get('italic'), core)
+                body_font = role(seg['bold'], seg.get('italic'), core, wd)
                 bx = ox
                 if marker:
                     mfont = helv_role(mbold, seg.get('italic'))
@@ -2194,14 +2295,14 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                     width = min(room, body_font.text_length(body, fs))
                     shaped_jobs.append((bx, oy, body, bool(seg['bold']), fs,
                                         cint, width, core,
-                                        bool(seg.get('italic'))))
+                                        bool(seg.get('italic')), wd))
                 else:
                     w = body_font.text_length(body, fs)
                     fs2 = fitted_size(fs, w, room)
                     if fs and fs2 < fs:
                         consider_ratio(pno, core, fs2 / fs)
                     check_glyphs(pno, body_font, body, core,
-                                 _role_name(seg['bold'], seg.get('italic')))
+                                 role_label(seg['bold'], seg.get('italic'), wd))
                     rtl_jobs.append((bx, oy, body, body_font, fs2, cint, body))
                     width = body_font.text_length(body, fs2)
                 fill_leaders(bx + width, cur_end)
@@ -2315,12 +2416,12 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                     bx += marker_adv(mfont, fs)
                 shaped_jobs.append((bx, oy, jp.replace('‖', ''), bool(seg['bold']), fs,
                                     int(seg.get('color', 0)), maxw - (bx - x), core,
-                                    bool(seg.get('italic'))))
+                                    bool(seg.get('italic')), wd))
                 continue
             if rtl_body:
                 logical = jp.replace('‖', '')
                 rtl_jobs.append((x, oy, logical,
-                                 role(seg['bold'], seg.get('italic'), core), fs2,
+                                 role(seg['bold'], seg.get('italic'), core, wd), fs2,
                                  int(seg.get('color', 0)), logical))
             else:
                 for i, (t, f) in enumerate(parts):
@@ -2338,19 +2439,19 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             rtw.write_text(page, color=rgb_of(cint))
             wrap_last_bt_actualtext(page, logical)
         for (ix, iy, body, ibold, iital, ifs, icint, iavail, ikey,
-             iplain, imarker, icap) in inline_jobs:
-            note_markup(body, ikey)
+             iplain, imarker, icap, iwidth) in inline_jobs:
+            note_markup(body, ikey, iwidth)
             scale = place_story_line(page, ix, iy, body, ibold, iital, ifs,
-                                     icint, iavail, css, arch)
+                                     icint, iavail, css, arch, width=iwidth)
             consider_ratio(pno, ikey, scale * icap)
             if imarker:
                 mx, mtext, mfont = imarker
                 mtw = pymupdf.TextWriter(page.rect)
                 mtw.append((mx, iy), mtext, font=mfont, fontsize=ifs * scale)
                 mtw.write_text(page, color=rgb_of(icint))
-        for (sx, sy, text, bold, fsz, cint, avail, key, ital) in shaped_jobs:
+        for (sx, sy, text, bold, fsz, cint, avail, key, ital, swidth) in shaped_jobs:
             scale = place_shaped(page, sx, sy, text, bold, fsz, cint, avail,
-                                 css, arch, italic=ital)
+                                 css, arch, italic=ital, width=swidth)
             consider_ratio(pno, key, scale)
         _tick()
 
@@ -2590,7 +2691,9 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
               '/MarkInfo /Marked false — the tags described text that no '
               'longer exists. Tell the user the file is no longer tagged.')
 
-    for name in ('bold', 'italic', 'bold-italic'):
+    for name in ('bold', 'italic', 'bold-italic') + tuple(
+            f'{rname}-{wname}' for wname in narrow_paths
+            for rname in ('bold', 'italic', 'bold-italic')):
         asks = role_asks.get(name)
         if not asks:
             continue
@@ -2644,7 +2747,9 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
     # Every role face that can have drawn a run (R-04). Only regular and
     # bold used to be rewritten, so an italic cut of Arial or Times, whose
     # space and NBSP share a glyph, reported NBSP for every space.
-    fontfiles = list(dict.fromkeys([f_regular, f_bold, f_italic, f_bold_italic]))
+    fontfiles = list(dict.fromkeys(
+        [f_regular, f_bold, f_italic, f_bold_italic]
+        + [p for wpaths in narrow_paths.values() for p in wpaths]))
     pending = None
     retry_ids = ()
     try:

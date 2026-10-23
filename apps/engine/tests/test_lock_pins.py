@@ -3,7 +3,7 @@ import tomllib
 from pathlib import Path
 
 LOCK = Path(__file__).resolve().parents[1] / "uv.lock"
-PINS = {"pymupdf": "1.28.0", "pikepdf": "10.12.0", "fonttools": "4.65.0", "pdf-translate": "89.0.8"}
+PINS = {"pymupdf": "1.28.0", "pikepdf": "10.12.0", "fonttools": "4.65.0", "pdf-translate": "89.0.9"}
 REV = "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7"
 
 

@@ -60,7 +60,7 @@ from pdf_translate import (
 from pdf_translate.retypeset import story_text
 from pdf_translate.strip_text import widget_text_scaffold
 
-from pdft_engine import fit_budget, skill_identifiers, skill_widgets
+from pdft_engine import field_overlap, fit_budget, skill_identifiers, skill_widgets
 from pdft_engine.masking import (
     MASK_TOKEN_RE,
     MaskResult,
@@ -92,6 +92,15 @@ _LATIN_ROLES = {
     "bold": "FormIntactSans-Bold.ttf",
     "italic": "FormIntactSans-Italic.ttf",
     "bold_italic": "FormIntactSans-BoldItalic.ttf",
+    # The same family at 87.5% and 75% width (fitting ladder step 3,
+    # docs/plans/2026-10-23-fitting-ladder-release-plan.md): a line that will not fit at the
+    # floor is drawn narrower before it is kept in its source language.
+    **{
+        f"{role}_{width}": f"FormIntactSans-{name}-{style}.ttf"
+        for width, name in (("semi", "SemiCondensed"), ("cond", "Condensed"))
+        for role, style in (("regular", "Regular"), ("bold", "Bold"),
+                            ("italic", "Italic"), ("bold_italic", "BoldItalic"))
+    },
 }
 _ROLE_FILES = {
     **{
@@ -1278,9 +1287,10 @@ def _write_layout(
     source_glyphs: list[str],
     right: list[str],
     scale_caps: dict[str, float] | None = None,
+    widths: dict[str, str] | None = None,
 ) -> None:
     """Add the layout keys to the mapping `_write_mapping` wrote, only when used."""
-    if not (merges or source_glyphs or right or scale_caps):
+    if not (merges or source_glyphs or right or scale_caps or widths):
         return
     payload = json.loads(path.read_text(encoding="utf-8"))
     if merges:
@@ -1291,6 +1301,8 @@ def _write_layout(
         payload["right"] = right
     if scale_caps:
         payload["scale_caps"] = scale_caps
+    if widths:
+        payload["widths"] = widths
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -1699,15 +1711,17 @@ def place_prepared_document(
     # usual retention runs (SPEC §2.2).
     heading_pairs: list[tuple[dict, dict]] = []
     segment_rows: list[dict] = []
+    try:
+        payload = json.loads(segments.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        payload = None
+    listed = payload.get("segments") if isinstance(payload, dict) else payload
+    # Every placed line's page, origin and core, for the form-field check below.
+    field_rows = [
+        row for row in listed or () if isinstance(row, dict) and fit_budget.has_geometry(row)
+    ]
     if paragraph_reflow_target(lang) and isinstance(font, dict) and "bold" in font:
-        try:
-            payload = json.loads(segments.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            payload = None
-        listed = payload.get("segments") if isinstance(payload, dict) else payload
-        segment_rows = [
-            row for row in listed or () if isinstance(row, dict) and fit_budget.has_geometry(row)
-        ]
+        segment_rows = field_rows
         if segment_rows:
             with _LIBRARY_LOCK:
                 heading_pairs = _heading_pairs(
@@ -1785,6 +1799,21 @@ def place_prepared_document(
         # The library names a merge by its first line, which is that line's core.
         return {paragraphs[index].lines[0]: index for index in active_merges}
 
+    # Fitting ladder step 3: a line refused below the floor is drawn at 87.5% width, then 75%,
+    # before it is handed back as its source text. Only when the face set has narrow roles.
+    widths: dict[str, str] = {}
+    can_narrow = isinstance(font, dict) and "regular_semi" in font and "regular_cond" in font
+
+    def narrow(core: str) -> bool:
+        """Draw `core` one width narrower next round; False once it is at the narrowest."""
+        if not can_narrow or core not in translations or core in reverted:
+            return False
+        step = {None: "semi", "semi": "cond"}.get(widths.get(core))
+        if step is None:
+            return False
+        widths[core] = step
+        return True
+
     def retain(core: str, kind: str, *, glyphs: bool = False) -> bool:
         """Hand a refused core back as its source text. Named again as its source
         text (or with `glyphs`, when its source text cannot help), it is drawn from
@@ -1855,6 +1884,7 @@ def place_prepared_document(
                 source_glyphs=sorted(source_glyphs),
                 right=right_cores,
                 scale_caps=scale_caps,
+                widths=widths,
             )
             passes = attempt + 1
             scale_path = _unique_scale_report_path(workdir)
@@ -1935,6 +1965,9 @@ def place_prepared_document(
                         changed = True
                         continue
                     changed |= step == "restored"
+                    if kind == "overflow_below_floor" and narrow(core):
+                        changed = True
+                        continue
                     changed |= retain(core, kind)
                 if not (changed or rotated_changed):
                     break
@@ -1963,6 +1996,9 @@ def place_prepared_document(
                             changed = True
                             continue
                         changed |= step == "restored"
+                        if narrow(key):
+                            changed = True
+                            continue
                         changed |= retain(key, "scaled_below_floor")
                 if changed:
                     continue
@@ -1978,6 +2014,30 @@ def place_prepared_document(
                     scale_caps = _uneven_caps(scale_groups, drawn, placed_now)
                     if scale_caps:
                         continue
+                # Letters under a form field (placement plan F1, ruled 2026-10-22): the
+                # library never sees a field inside a line, so its drawing is checked
+                # here. A line that covers a field goes back to its source text like any
+                # line that will not fit, then to its source glyphs, and the order is a
+                # refund, never a broken delivery. A reflowed paragraph first falls back
+                # to its lines.
+                covering, unnamed = field_overlap.covering_cores(
+                    page_pdf, Path(native_result.output), field_rows
+                )
+                for core in sorted(covering):
+                    index = paragraph_of.get(core)
+                    if index is not None and index in active_merges:
+                        del active_merges[index]
+                        changed = True
+                    elif core in translations:
+                        changed |= retain(core, "covered_field")
+                if changed:
+                    continue
+                if covering or unnamed:
+                    raise PlacementFailure(
+                        reason="drawn text covers a form field",
+                        refusals={},
+                        details={"cores": sorted(covering), "unnamed_letters": unnamed},
+                    )
                 # What remains is drawn at or above the floor. These are not failures:
                 # the text is complete and on the page. They are what the reader is owed
                 # a separate word for (`degraded-outcomes-are-named-separately`).

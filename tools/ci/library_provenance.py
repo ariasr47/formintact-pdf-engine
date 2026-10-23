@@ -119,7 +119,7 @@ ANSWER_AREA_RELEASE = {
 # the paragraph's smallest scale. Only retypeset differs from 89.0.7. The pin was
 # derived from the committed owner tree before the candidate record or any artifact
 # was written.
-ADOPTED_RELEASE = {
+MARKER_AND_SCALE_RELEASE = {
     "scope": "behavior-release", "version": "89.0.8",
     "release_id": "pdf-translate-89.0.8-marker-and-scale",
     "adopted_owner_revision": "9d1af9183f340114283d9ac9aad975ef060d5b12",
@@ -127,9 +127,22 @@ ADOPTED_RELEASE = {
     "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
     "modules": 27,
 }
+# 2026-10-23 narrower widths (fitting ladder step 3): a `widths` mapping key draws a
+# line in FormIntact Sans SemiCondensed or Condensed before the engine keeps it in the
+# source language; lines without a width draw exactly as before. Only retypeset
+# differs from 89.0.8. The pin was derived from the committed owner tree before the
+# candidate record or any artifact was written.
+ADOPTED_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.9",
+    "release_id": "pdf-translate-89.0.9-narrow-widths",
+    "adopted_owner_revision": "657c65b590ccd28495ee7984f30562f30fbb5ce0",
+    "source_digest": "77a1e151601796de8d639ee73277eded3710889d791dd49f0f76feb15e66becd",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
 DEFAULT_VERSION = ADOPTED_RELEASE["version"]
 MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27,
-                 "89.0.5": 27, "89.0.6": 27, "89.0.7": 27, "89.0.8": 27}
+                 "89.0.5": 27, "89.0.6": 27, "89.0.7": 27, "89.0.8": 27, "89.0.9": 27}
 PACKAGE_PREFIX = "libs/pdf-translate/pdf_translate/"
 PACKAGE_NAME = "pdf-translate"
 RECORD_KEYS = {

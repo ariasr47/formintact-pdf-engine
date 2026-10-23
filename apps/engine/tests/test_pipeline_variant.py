@@ -4,13 +4,17 @@ from pdft_engine_contract import target_language
 
 from pdft_engine import skill_placement
 
+# The four styles at full width, then at 87.5% (semi) and 75% (cond): fitting ladder step 3.
+LATIN_ROLES = {f"{role}{suffix}" for role in ("regular", "bold", "italic", "bold_italic")
+               for suffix in ("", "_semi", "_cond")}
+
 
 @pytest.mark.parametrize(
     ("target", "tag", "roles"),
     [
-        ("Spanish", "es", {"regular", "bold", "italic", "bold_italic"}),
-        ("Vietnamese", "vi", {"regular", "bold", "italic", "bold_italic"}),
-        ("Russian", "ru", {"regular", "bold", "italic", "bold_italic"}),
+        ("Spanish", "es", LATIN_ROLES),
+        ("Vietnamese", "vi", LATIN_ROLES),
+        ("Russian", "ru", LATIN_ROLES),
         ("Chinese (Simplified)", "zh-Hans", {"regular"}),
         ("Japanese", "ja", {"regular"}),
     ],

@@ -1,0 +1,41 @@
+{
+  "artifact": "FormIntactSans-Condensed-Italic.ttf",
+  "branch_taken": "instanced-and-merged-with-symbols2",
+  "built_by": "tools/fonts/build_product_symbols2.py",
+  "instance_sha256": "623334058f997a5ce980d6e684ad15e4dfc81f7e0b43d0c0f6637d6208740d21",
+  "instancing_arguments": {
+    "axis_limits": {
+      "wdth": 75.0,
+      "wght": 400
+    },
+    "flavor": "ttf",
+    "script": "tools/fonts/build_product_symbols2.py",
+    "update_font_names": true
+  },
+  "instancing_tool": "fontTools.varLib.instancer",
+  "instancing_tool_version": "4.65.0",
+  "licence": "OFL-1.1",
+  "licence_file": "OFL-FormIntactSans.txt",
+  "recorded_at": "2026-10-23T10:16:12+00:00",
+  "static_font_bytes": 807540,
+  "static_font_sha256": "6fe7e162c3dc93cbaa9c4d762ce82c611aae588b85d75a78b7b2841ac0173ca1",
+  "symbols2_archive_sha256": "346c930bbe8eb946701a05c54e9c11a2094dee1d93c387bf1771c0a3e335688f",
+  "symbols2_commit": "25b00f0d3f40873a005287514ba2a48558655314",
+  "symbols2_repo": "notofonts/symbols",
+  "symbols2_source_sha256": "3ce38effdb615dd929c8b0f52768dfa2cd21f206e3824bc7df61e4074b41ae52",
+  "symbols2_subset_ranges": [
+    "U+2022-U+2022",
+    "U+2500-U+259F",
+    "U+25A0-U+25FF",
+    "U+2600-U+26FF",
+    "U+2700-U+27BF",
+    "U+2B00-U+2BFF"
+  ],
+  "symbols2_tag": "NotoSansSymbols2-v2.008",
+  "upstream_commit": "2984c575fdce412ee02b2baaba67672b9a9434d8",
+  "upstream_commit_note": "last google/fonts commit touching both variable files (2024-11-20T17:26:03Z), per GitHub commits API on 2026-10-23; files downloaded from main (HEAD e7db6ca603fd4862010383ff17ffd6cc4ffac1c0)",
+  "upstream_path": "ofl/notosans/NotoSans-Italic[wdth,wght].ttf",
+  "upstream_repo": "google/fonts",
+  "variable_font_bytes": 2322640,
+  "variable_font_sha256": "58e6e0ebd1931b29a365aa2d3e2ee9a9e831a3af7cf3ad1462d4e72154f0b291"
+}
