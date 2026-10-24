@@ -41,7 +41,8 @@ KNOWN_IDENTIFIERS: frozenset[str] = frozenset({
 })
 
 
-def identifier_set(warnings: Iterable[Mapping[str, object]]) -> set[str]:
+def identifier_set(warnings: Iterable[Mapping[str, object]], *,
+                   control_labels: Iterable[str] = ()) -> set[str]:
     """The full set of core strings that must be held back from the provider
     entirely: the extractor's own `write-find-say` warnings for THIS document,
     unioned with the committed literal set above.
@@ -49,10 +50,15 @@ def identifier_set(warnings: Iterable[Mapping[str, object]]) -> set[str]:
     `warnings` is `extract_segments(...)["warnings"]` -- a list of dicts, only some
     of which carry `kind == "write-find-say"` (others are `inner-gap`,
     `merge-candidate`, neither of which names an identifier).
+
+    A quoted name that is the label of a printed checkbox on this same document
+    (`control_labels`) is not one: the reader finds it on the translated page, so it
+    is translated there and in the sentence that quotes it. AO 240 quotes "Yes"
+    ("If you answered “Yes” ...") and its twelve checkbox labels stayed English.
     """
     dynamic = {
         w["text"]
         for w in warnings
         if w.get("kind") == "write-find-say" and isinstance(w.get("text"), str)
     }
-    return dynamic | set(KNOWN_IDENTIFIERS)
+    return (dynamic - set(control_labels)) | set(KNOWN_IDENTIFIERS)

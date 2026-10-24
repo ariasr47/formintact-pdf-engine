@@ -2159,7 +2159,9 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             jp = T.get(core)
             if jp is None:  # passthrough: an untranslated core refused above
                 raw = seg['text'].rstrip()
-                if UNMAPPED in raw:
+                # A dingbat drawing (a printed checkbox) is kept the same way:
+                # Helvetica would draw its U+2019 as an apostrophe.
+                if UNMAPPED in raw or seg.get('drawing'):
                     # Drawn from U+FFFD this is a row of replacement boxes, or
                     # a glyph miss in a face without one (dogfood 2026-10-10,
                     # Form 1040 of 1913 and DS-64). Its source glyphs are
@@ -2255,19 +2257,33 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             def leader_geometry():
                 end = seg['bbox'][2] - (
                     helv.text_length(tail, fs) + 2 if tail else 0)
-                return end, end - ox - 8
+                label_max = end - ox - 8
+                # A field over the leaders starts the blank: the label stops
+                # before it, as the source label did, instead of growing onto
+                # it (Ready.gov card, HUD-92900-A, 2026-10-20). Only a field
+                # that starts after the label's own source ink counts.
+                core_x1 = seg.get('core_x1')
+                if core_x1 is not None:
+                    y0, y1 = seg['bbox'][1], seg['bbox'][3]
+                    for rect in widg.get(pno, []):
+                        if (core_x1 - 1 <= rect.x0 < end
+                                and not (rect.y1 < y0 + 1 or rect.y0 > y1 - 1)):
+                            label_max = min(label_max, rect.x0 - 1.5 - ox)
+                return end, label_max
 
             def fill_leaders(label_end, cur_end):
-                """Refill dots from the label's end to the original right edge.
+                """Refill the leaders from the label's end to the original right
+                edge, with the source's own leader character (dot or underscore).
 
                 Anchored right and never longer than the source run, so
                 leaders cannot invade a mid-line checkbox gap.
                 """
-                dw = helv.text_length('.', fs)
+                lead = '_' if dots.startswith('_') else '.'
+                dw = helv.text_length(lead, fs)
                 dstart = max(label_end + 1, cur_end - len(dots) * dw)
                 n = max(0, int((cur_end - dstart) / dw))
                 if n:
-                    tw.append((dstart, oy), '.' * n, font=helv, fontsize=fs)
+                    tw.append((dstart, oy), lead * n, font=helv, fontsize=fs)
                 if tail:
                     check_glyphs(pno, helv, tail, core, 'Helvetica (tail)')
                     tw.append((cur_end + 2, oy), tail, font=helv, fontsize=fs)

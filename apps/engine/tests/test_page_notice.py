@@ -144,7 +144,7 @@ def test_text_bearing_identifier_passthrough_only_page_is_not_marked_scanned(
     monkeypatch.setattr(
         skill_placement.skill_identifiers,
         "identifier_set",
-        lambda _warnings: {"FORM-1234"},
+        lambda _warnings, **_kwargs: {"FORM-1234"},
     )
     monkeypatch.setattr(skill_placement, "place_prepared_document", place)
     translator = _ZeroCallTranslator()

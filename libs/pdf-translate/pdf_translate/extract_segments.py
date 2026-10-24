@@ -107,7 +107,9 @@ from .strip_text import (
 MARKER = re.compile(
     r'^\s*(\(?[a-z]\.|\([a-z0-9]{1,3}\)|\d{1,2}\.)\s+'
     r'|^\s*(\(?[a-z]\.|\([a-z0-9]{1,3}\)|\d{1,2}\.)$')
-DOTS = re.compile(r'^(.*?)([.…]{3,})(\s*[$€£¥]?\s*)$')
+# Trailing leaders: dots, or an underscore blank ("Borrower Name: ____"),
+# which went to the model and came back drawn over its field (HUD-92900-A).
+DOTS = re.compile(r'^(.*?)([.…]{3,}|_{3,})(\s*[$€£¥]?\s*)$')
 # Pass-through ONLY when the core contains no letters at all. An earlier
 # version also passed any string of <=4 chars, which silently shipped short
 # words ("may", "or", "Yes") in the source language — a defect no gate
@@ -131,6 +133,20 @@ def _unmapped_only(text):
     """True for a run that holds unmapped glyphs and nothing else but space."""
     body = text.strip()
     return bool(body) and set(body) <= {UNMAPPED}
+
+
+# A dingbat font draws pictures, not letters: a printed checkbox in
+# WP-IconicSymbolsA extracts as U+2019 and was translated with its label,
+# so "’ Yes" came back as an apostrophe and "Sí" drawn from under the box
+# (Spanish corpus 2026-10-20, AO 240 and the civil complaint). Such a run is
+# its own segment, a drawing kept from its source glyphs. The math font
+# "Symbol" is not one: it sets Greek and operators inside sentences.
+DINGBAT_FONT = re.compile(r'(?:^|\+)(?:WP-?IconicSymbols|ZapfDingbats|Dingbats|Wingdings|Webdings)',
+                          re.IGNORECASE)
+
+
+def _dingbat(span):
+    return bool(DINGBAT_FONT.search(span.get('font') or '')) and bool(span['text'].strip())
 
 
 INNER_GAP = re.compile(r'\S(\s{6,})\S')
@@ -177,6 +193,67 @@ def raw_char_lines(page):
             if chars:
                 lines.append(chars)
     return lines
+
+
+def start_at_first_letter(group, lines, fields):
+    """Move a horizontal group that begins with spaces under a form field to
+    its first drawn glyph: origin, left edge, text and weight offsets. A radio
+    label printed as " Male" started under its own button, and the translation
+    was drawn from there (Spanish corpus 2026-10-20, CMS-1490S: nine labels).
+    Only spaces under a field move a line: typewriter forms indent every line
+    with spaces from the margin, and their paragraph grouping relies on those
+    shared origins (HUD-90105-A). False when nothing moved, no field lies under
+    the spaces, or the characters cannot be matched.
+    """
+    text = group['text']
+    lead = len(text) - len(text.lstrip())
+    if not lead or not text.strip() or group.get('dir', [1.0, 0.0])[:2] != [1.0, 0.0]:
+        return False
+    ox, oy = group['origin']
+    for chars in lines:
+        for j, ch in enumerate(chars):
+            cx, cy = ch['origin']
+            if abs(cx - ox) > 1.0 or abs(cy - oy) > 1.0:
+                continue
+            seq = ''.join(c['c'] for c in chars[j:j + lead + 1])
+            if seq != text[:lead + 1]:
+                return False
+            first = chars[j + lead]
+            y0, y1 = group['bbox'][1], group['bbox'][3]
+            if not any(f[0] < first['bbox'][0] and f[2] > ox and f[1] < y1 and f[3] > y0
+                       for f in fields):
+                return False
+            group['origin'] = [first['origin'][0], first['origin'][1]]
+            group['bbox'][0] = max(group['bbox'][0], first['bbox'][0])
+            group['text'] = text[lead:]
+            group['weights'] = [(max(lo - lead, 0), hi - lead, bold)
+                                for lo, hi, bold in group['weights'] if hi > lead]
+            return True
+    return False
+
+
+def label_end(group, upto, lines):
+    """Right edge of the ink of the group's first ``upto`` characters (its
+    label before the leaders), from the characters the source drew. retypeset
+    keeps a longer label off a field that starts after it. None when the
+    characters cannot be matched.
+    """
+    text = group['text']
+    ox, oy = group['origin']
+    for chars in lines:
+        for j, ch in enumerate(chars):
+            cx, cy = ch['origin']
+            if abs(cx - ox) > 1.0 or abs(cy - oy) > 1.0:
+                continue
+            k = j
+            while k < len(chars) and chars[k]['c'].isspace():
+                k += 1
+            body = text.strip()
+            if ''.join(c['c'] for c in chars[k:k + upto]) != body[:upto]:
+                return None
+            inked = [c['bbox'][2] for c in chars[k:k + upto] if not c['c'].isspace()]
+            return round(max(inked), 2) if inked else None
+    return None
 
 
 def body_offset(group, marker, gap, core, lines):
@@ -624,6 +701,7 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
     segments, warnings = [], []
     obstacles = {}
     raw_lines = {}   # page -> character lines, read only where a marker needs one
+    field_rects = {}  # page -> widget rects, read only for a line that starts with spaces
     # Every coordinate below is in the unrotated page space get_text uses.
     # A consumer that draws over a render maps a rotated page's coordinates
     # through page.rotation_matrix; these entries say which pages need it.
@@ -664,7 +742,12 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                                      and _unmapped_only(groups[-1]['text'])
                                      and not _unmapped_only(s['text'])
                                      and bool(s['text'].strip()))
-                    if groups and not lead_unmapped and (
+                    # A dingbat run and the words beside it never share a
+                    # group (DINGBAT_FONT); a space between them joins either.
+                    drawing_edge = (not rotated and bool(groups)
+                                    and bool(s['text'].strip())
+                                    and _dingbat(s) != groups[-1]['drawing'])
+                    if groups and not lead_unmapped and not drawing_edge and (
                             rotated
                             or s['bbox'][0] - groups[-1]['bbox'][2] < gap):
                         g = groups[-1]
@@ -698,11 +781,21 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                             'italic': ('Italic' in s['font']
                                        or 'Oblique' in s['font']),
                             'dir': [round(ldir[0], 4), round(ldir[1], 4)],
+                            'drawing': not rotated and _dingbat(s),
                             **({'spans': [s]} if typography else {}),
                         })
                 for g in groups:
                     if not g['text'].strip():
                         continue
+                    # The typography records keep source span offsets, so
+                    # only the legacy mapping moves a line to its first letter.
+                    if not typography and g['text'][:1].isspace():
+                        if pno not in field_rects:
+                            field_rects[pno] = [tuple(w.rect) for w in page.widgets()]
+                        if field_rects[pno]:
+                            if pno not in raw_lines:
+                                raw_lines[pno] = raw_char_lines(page)
+                            start_at_first_letter(g, raw_lines[pno], field_rects[pno])
                     text = g['text'].strip()
                     m = MARKER.match(text)
                     # `gap` is this function's split threshold; the marker's
@@ -719,10 +812,16 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                         marker_gap = text[len(marker):m.end()]
                         core = text[m.end():].strip()
                     dm = DOTS.match(core)
-                    dots, tail = None, ''
+                    dots, tail, core_x1 = None, '', None
                     if dm:
                         core, dots, tail = (
                             dm.group(1).strip(), dm.group(2), dm.group(3).strip())
+                        if core and not rotated:
+                            if pno not in raw_lines:
+                                raw_lines[pno] = raw_char_lines(page)
+                            core_x1 = label_end(
+                                g, len(text) - len(dm.group(2)) - len(dm.group(3)),
+                                raw_lines[pno])
                     body_dx = None
                     if marker and core:
                         if pno not in raw_lines:
@@ -754,7 +853,11 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                         'gap': marker_gap, 'core': core,
                         **({'body_dx': body_dx} if body_dx is not None else {}),
                         'dots': dots or '', 'tail': tail,
-                        'passthrough': passes_through(core),
+                        # Where the label's ink ended before its leaders.
+                        **({'core_x1': core_x1} if core_x1 is not None else {}),
+                        'passthrough': passes_through(core) or g['drawing'],
+                        # retypeset replays a drawing's source glyphs.
+                        **({'drawing': True} if g['drawing'] else {}),
                     }
                     if typography:
                         occurrence_id = f's{sid}'

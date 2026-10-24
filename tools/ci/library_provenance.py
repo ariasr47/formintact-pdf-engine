@@ -132,7 +132,7 @@ MARKER_AND_SCALE_RELEASE = {
 # source language; lines without a width draw exactly as before. Only retypeset
 # differs from 89.0.8. The pin was derived from the committed owner tree before the
 # candidate record or any artifact was written.
-ADOPTED_RELEASE = {
+NARROW_WIDTHS_RELEASE = {
     "scope": "behavior-release", "version": "89.0.9",
     "release_id": "pdf-translate-89.0.9-narrow-widths",
     "adopted_owner_revision": "657c65b590ccd28495ee7984f30562f30fbb5ce0",
@@ -140,9 +140,24 @@ ADOPTED_RELEASE = {
     "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
     "modules": 27,
 }
+# 2026-10-23 field labels (fitting ladder release 2): a printed checkbox in a dingbat
+# font is its own drawing, replayed from its source glyphs; a line that starts with
+# spaces under a field starts at its first letter; underscore blanks are leaders, and a
+# field over a label's leaders caps the label's room. extract_segments and retypeset
+# differ from 89.0.9. The pin was derived from the committed owner tree before the
+# candidate record or any artifact was written.
+ADOPTED_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.10",
+    "release_id": "pdf-translate-89.0.10-field-labels",
+    "adopted_owner_revision": "e6191eb833828ceb4ad019794d36b5ac9071f108",
+    "source_digest": "9efd13d15741ed6aa2c3fbd4a92c629786e35f6dcadfa52f4485d05fcbc6c5a7",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
 DEFAULT_VERSION = ADOPTED_RELEASE["version"]
 MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27,
-                 "89.0.5": 27, "89.0.6": 27, "89.0.7": 27, "89.0.8": 27, "89.0.9": 27}
+                 "89.0.5": 27, "89.0.6": 27, "89.0.7": 27, "89.0.8": 27, "89.0.9": 27,
+                 "89.0.10": 27}
 PACKAGE_PREFIX = "libs/pdf-translate/pdf_translate/"
 PACKAGE_NAME = "pdf-translate"
 RECORD_KEYS = {

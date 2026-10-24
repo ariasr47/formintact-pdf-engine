@@ -314,6 +314,19 @@ def _finite_number(value: object) -> float:
     return number
 
 
+def _drawing_labels(segments) -> set[str]:
+    """The cores that label a printed checkbox: the line right after a library
+    `drawing` segment (a dingbat run) on the same page and baseline."""
+    labels: set[str] = set()
+    for box, label in zip(segments, segments[1:], strict=False):
+        if (isinstance(box, dict) and isinstance(label, dict) and box.get("drawing")
+                and label.get("core") and not label.get("passthrough")
+                and box.get("page") == label.get("page")
+                and abs(box["origin"][1] - label["origin"][1]) < 1.0):
+            labels.add(label["core"])
+    return labels
+
+
 def _native_occurrences(
     segments: tuple[dict, ...],
     *,
@@ -1111,8 +1124,9 @@ def prepare_document_translation(
             continue
         core_pages.setdefault(seg["core"], set()).add(seg["page"])
 
-    identifiers = frozenset(skill_identifiers.identifier_set(extracted.warnings))
     segments = tuple(extracted.segments)
+    identifiers = frozenset(skill_identifiers.identifier_set(
+        extracted.warnings, control_labels=_drawing_labels(segments)))
     if selected_original_pages is None:
         pages = [row.get("page") for row in segments if isinstance(row, dict)]
         last_page = max((page for page in pages if isinstance(page, int)), default=-1)
