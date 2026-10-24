@@ -989,6 +989,19 @@ def _row_obstacles(seg, segs, drawn_boxes=None, *, left=False):
             yield other, box
 
 
+def _watermark(seg, segs):
+    """A rotated run whose source box already crosses a horizontal text run:
+    a stamp or watermark printed over the page, not a margin label."""
+    x0, y0, x1, y1 = seg['bbox']
+    for other in segs:
+        if other is seg or other.get('dir', [1, 0])[:2] != [1, 0]:
+            continue
+        ox0, oy0, ox1, oy1 = other['bbox']
+        if min(x1, ox1) - max(x0, ox0) > 1 and min(y1, oy1) - max(y0, oy0) > 1:
+            return True
+    return False
+
+
 def _marker_bold(seg):
     """Whether a list marker is bold in its source: the line's majority weight, unless
     the line mixes weights and its recorded bold runs say otherwise for the marker."""
@@ -2337,6 +2350,12 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 continue
             if rot:
                 maxw = direction_limit(frame, seg, dx, dy)
+                # A stamp or watermark printed over other text keeps to its own
+                # source length: a longer translation drew a larger box than the
+                # source and blocked the lines just outside it, which then stayed
+                # in the source language on every page (CMS-1490S, 92 lines).
+                if seg.get('run_len') and _watermark(seg, segs):
+                    maxw = min(maxw, seg['run_len'])
             elif core in center:
                 # Keep legacy page/widget/source budgets, then reserve the
                 # measured rotated neighbours on either side of the center.

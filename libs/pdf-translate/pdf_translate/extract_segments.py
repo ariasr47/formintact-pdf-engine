@@ -232,6 +232,27 @@ def start_at_first_letter(group, lines, fields):
     return False
 
 
+def run_length(group, lines):
+    """Length of a rotated group's source text along its direction, from the
+    characters the source drew: origin to the last glyph's origin plus one
+    mean advance. retypeset keeps a stamp printed over other text within it
+    (CMS-1490S, 2026-10-23). None when the characters cannot be matched.
+    """
+    ox, oy = group['origin']
+    dx, dy = group['dir'][:2]
+    for chars in lines:
+        if not chars:
+            continue
+        cx, cy = chars[0]['origin']
+        if abs(cx - ox) > 1.0 or abs(cy - oy) > 1.0:
+            continue
+        along = [(c['origin'][0] - ox) * dx + (c['origin'][1] - oy) * dy for c in chars]
+        if len(along) < 2 or along[-1] <= 0:
+            return None
+        return round(along[-1] + along[-1] / (len(along) - 1), 2)
+    return None
+
+
 def label_end(group, upto, lines):
     """Right edge of the ink of the group's first ``upto`` characters (its
     label before the leaders), from the characters the source drew. retypeset
@@ -828,6 +849,11 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                             raw_lines[pno] = raw_char_lines(page)
                         body_dx = body_offset(g, marker, marker_gap, core,
                                               raw_lines[pno])
+                    run_len = None
+                    if rotated:
+                        if pno not in raw_lines:
+                            raw_lines[pno] = raw_char_lines(page)
+                        run_len = run_length(g, raw_lines[pno])
                     seg = {
                         'id': sid, 'page': pno,
                         'bbox': [round(v, 2) for v in g['bbox']],
@@ -849,6 +875,8 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                         # this origin. Without it a 90-degree side label is
                         # re-typeset flat across the page.
                         'dir': g.get('dir', [1.0, 0.0]),
+                        # A rotated run's source length along its direction.
+                        **({'run_len': run_len} if run_len is not None else {}),
                         'text': g['text'], 'marker': marker,
                         'gap': marker_gap, 'core': core,
                         **({'body_dx': body_dx} if body_dx is not None else {}),

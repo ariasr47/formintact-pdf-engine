@@ -174,7 +174,7 @@ wheels = [
 
 [[package]]
 name = "pdf-translate"
-version = "89.0.10"
+version = "89.0.11"
 source = { directory = "../../libs/pdf-translate" }
 dependencies = [
     { name = "fonttools" },
