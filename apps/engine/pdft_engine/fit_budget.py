@@ -114,8 +114,20 @@ def _room_meter(doc, rows_by_page: dict[int, list[dict]], merge_boxes: dict[int,
                 lim = max(lim, box[2])
             return row["bbox"][2] - (lim + 1.5)
         ox = row["origin"][0]
-        return min(_rt._right_limit(frames[pno], row, segs, widgets[pno]) - ox,
-                   _rt._legacy_field_limit(row, obstacles[pno]) - ox)
+        limit = min(_rt._right_limit(frames[pno], row, segs, widgets[pno]) - ox,
+                    _rt._legacy_field_limit(row, obstacles[pno]) - ox)
+        # A label before its blank ("Borrower Name: ____") ends where the field over
+        # the blank starts, as retypeset draws it (89.0.10). Measured to the line's end
+        # instead, the model got no [max N] and wrote "Nombre del prestatario:" where
+        # only "Prestatario:" fits (HUD-92900-A, 2026-10-25).
+        core_x1 = row.get("core_x1")
+        if row.get("dots") and isinstance(core_x1, (int, float)):
+            y0, y1 = row["bbox"][1], row["bbox"][3]
+            for rect in widgets[pno]:
+                if (core_x1 - 1 <= rect.x0 < row["bbox"][2]
+                        and not (rect.y1 < y0 + 1 or rect.y0 > y1 - 1)):
+                    limit = min(limit, rect.x0 - 1.5 - ox)
+        return limit
 
     return room
 

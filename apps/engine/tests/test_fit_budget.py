@@ -76,3 +76,27 @@ def test_the_heading_split_leaves_the_answers_when_no_boundary_reaches_the_floor
     assert skill_placement._heading_split(
         "Programa Nacional de Compensación", "por Lesiones causadas por Vacunas",
         ratio=_width_ratio((34, 34)), floor=0.75) is None
+
+
+def test_a_label_before_its_blank_is_budgeted_to_the_field_over_the_blank(tmp_path) -> None:
+    """HUD-92900-A (2026-10-25): measured to the line's end, "Borrower Name:" got no [max N],
+    and the model wrote "Nombre del prestatario:" where only "Prestatario:" fits."""
+    import pymupdf
+    from pdf_translate.extract_segments import run_extract
+
+    source = tmp_path / "form.pdf"
+    with pymupdf.open() as document:
+        page = document.new_page(width=500, height=200)
+        page.insert_text((40, 60), "Borrower Name: " + "_" * 40, fontname="helv", fontsize=10)
+        start = 40 + pymupdf.get_text_length("Borrower Name: ", fontname="helv", fontsize=10)
+        field = pymupdf.Widget()
+        field.field_type = pymupdf.PDF_WIDGET_TYPE_TEXT
+        field.field_name = "name"
+        field.rect = pymupdf.Rect(start, 48, start + 200, 62)
+        page.add_widget(field)
+        document.save(source)
+    segments = run_extract(str(source), str(tmp_path)).segments
+    row = next(s for s in segments if s["core"] == "Borrower Name:")
+    [room] = fit_budget.line_rooms(source_pdf=source, segments=segments, merge_rows=[],
+                                   right_cores=set(), rows=[row])
+    assert room <= start - row["origin"][0]
