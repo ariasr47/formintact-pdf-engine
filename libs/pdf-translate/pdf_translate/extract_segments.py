@@ -232,6 +232,117 @@ def start_at_first_letter(group, lines, fields):
     return False
 
 
+INNER_LEADER = re.compile(r'([.…]{4,}|_{3,})(?=\s*\S)')
+
+
+def _group_chars(group, lines):
+    """The source characters of a horizontal group, aligned with its text, or None."""
+    text = group['text']
+    ox, oy = group['origin']
+    for chars in lines:
+        for j, ch in enumerate(chars):
+            cx, cy = ch['origin']
+            if abs(cx - ox) > 1.0 or abs(cy - oy) > 1.0:
+                continue
+            run = chars[j:j + len(text)]
+            if ''.join(c['c'] for c in run) != text:
+                return None
+            return run
+    return None
+
+
+def split_at_field_leaders(group, lines, fields):
+    """Cut a horizontal group after each inner leader run that a form field covers,
+    so the words after it are their own segment with their own room. "Name: ....
+    Mobile #: ...." on the Ready.gov card, and the typed utility rows of
+    HUD-90105-A, were one run each: drawn whole, the longer translation covered
+    the next field, and the safety net kept the whole line in the source
+    language. Returns the pieces, or [group] when nothing is cut.
+    """
+    if group.get('drawing') or group.get('dir', [1.0, 0.0])[:2] != [1.0, 0.0]:
+        return [group]
+    text = group['text']
+    cuts = []
+    chars = None
+    y0, y1 = group['bbox'][1], group['bbox'][3]
+    for m in INNER_LEADER.finditer(text):
+        if chars is None:
+            chars = _group_chars(group, lines)
+            if chars is None:
+                return [group]
+        lx0, lx1 = chars[m.start()]['bbox'][0], chars[m.end() - 1]['bbox'][2]
+        if not any(f[0] < lx1 and f[2] > lx0 and f[1] < y1 and f[3] > y0 for f in fields):
+            continue
+        nxt = m.end()
+        while nxt < len(text) and text[nxt].isspace():
+            nxt += 1
+        # Only between labels: the words before the blank end a label (a colon, or
+        # nothing but the blank) and the words after it start one (not a lowercase
+        # word, and not punctuation such as a date's "/"; "#:" is a label). A blank
+        # inside a sentence ("are ____, referred to as the") stays whole: cut there,
+        # it would go to the model as fragments.
+        # With no label before the blank, only a table column (a wide gap after the
+        # blank) is cut: "____ District of ____" is one phrase whose blank the model
+        # moves ("Distrito ____ de ____").
+        before = text[cuts[-1][1] if cuts else 0:m.start()].strip()
+        head = text[nxt]
+        if (head.islower() or not (head.isalnum() or head == '#')
+                or (before and not before.endswith(':'))
+                or (not before and nxt - m.end() < 3)):
+            continue
+        cuts.append((m.end(), nxt))
+    if not cuts:
+        return [group]
+    pieces, start = [], 0
+    for end, nxt in cuts + [(len(text), None)]:
+        piece = dict(group)
+        piece['text'] = text[start:end]
+        first, last = chars[start], chars[end - 1]
+        piece['origin'] = [first['origin'][0], first['origin'][1]]
+        piece['bbox'] = [first['bbox'][0] if start else group['bbox'][0], group['bbox'][1],
+                         last['bbox'][2] if nxt is not None else group['bbox'][2], group['bbox'][3]]
+        piece['weights'] = [(max(lo - start, 0), min(hi, end) - start, bold)
+                            for lo, hi, bold in group['weights'] if hi > start and lo < end]
+        pieces.append(piece)
+        start = nxt if nxt is not None else len(text)
+    return pieces
+
+
+# Where a form field sits inside a sentence. The engine sends it to the model as a
+# masked token and gets it back in the place the target language wants; retypeset
+# draws the words before it up to the field and the rest after it.
+FIELD_MARK = '￼'
+
+
+def field_inside(group, lines, fields):
+    """(field x0, field x1, the text with the gap replaced by FIELD_MARK) when a form
+    field sits over only spaces or underscores inside a horizontal line with words on
+    both sides (IES certificate, 2026-10-24: "by completing ____ online sessions"),
+    else None. The band is the baseline's, not the bbox: some fonts report a line
+    box several times their size.
+    """
+    text = group['text']
+    if group.get('drawing') or group.get('dir', [1.0, 0.0])[:2] != [1.0, 0.0] or not text.strip():
+        return None
+    chars = _group_chars(group, lines)
+    if chars is None:
+        return None
+    size, base = group['size'], group['origin'][1]
+    y0, y1 = base - size, base + 0.25 * size
+    for f in fields:
+        if min(f[3], y1) - max(f[1], y0) < 0.4 * (y1 - y0):
+            continue
+        mid = [(c['bbox'][0] + c['bbox'][2]) / 2 for c in chars]
+        under = [i for i, m in enumerate(mid) if f[0] <= m <= f[2]]
+        if not under or any(chars[i]['c'].strip() and chars[i]['c'] != '_' for i in under):
+            continue
+        before, after = text[:under[0]].rstrip('_ '), text[under[-1] + 1:].lstrip('_ ')
+        if before.strip() and after.strip() and any(ch.isalpha() for ch in before + after):
+            return (round(f[0], 2), round(f[2], 2),
+                    before.strip() + ' ' + FIELD_MARK + ' ' + after.strip())
+    return None
+
+
 def run_length(group, lines):
     """Length of a rotated group's source text along its direction, from the
     characters the source drew: origin to the last glyph's origin plus one
@@ -805,6 +916,15 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                             'drawing': not rotated and _dingbat(s),
                             **({'spans': [s]} if typography else {}),
                         })
+                if not typography and not rotated and any(
+                        INNER_LEADER.search(g['text']) for g in groups):
+                    if pno not in field_rects:
+                        field_rects[pno] = [tuple(w.rect) for w in page.widgets()]
+                    if field_rects[pno]:
+                        if pno not in raw_lines:
+                            raw_lines[pno] = raw_char_lines(page)
+                        groups = [piece for g in groups for piece in
+                                  split_at_field_leaders(g, raw_lines[pno], field_rects[pno])]
                 for g in groups:
                     if not g['text'].strip():
                         continue
@@ -854,6 +974,15 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                         if pno not in raw_lines:
                             raw_lines[pno] = raw_char_lines(page)
                         run_len = run_length(g, raw_lines[pno])
+                    in_field = None
+                    if not (typography or rotated or marker or dots or tail) and (
+                            INNER_GAP.search(core) or '___' in core):
+                        if pno not in field_rects:
+                            field_rects[pno] = [tuple(w.rect) for w in page.widgets()]
+                        if field_rects[pno]:
+                            if pno not in raw_lines:
+                                raw_lines[pno] = raw_char_lines(page)
+                            in_field = field_inside(g, raw_lines[pno], field_rects[pno])
                     seg = {
                         'id': sid, 'page': pno,
                         'bbox': [round(v, 2) for v in g['bbox']],
@@ -886,6 +1015,9 @@ def extract_segments(src, outdir='.', gap=12.0, pages=None, *, typography=False)
                         'passthrough': passes_through(core) or g['drawing'],
                         # retypeset replays a drawing's source glyphs.
                         **({'drawing': True} if g['drawing'] else {}),
+                        # A form field inside the sentence: where it sits, and the
+                        # text the engine sends with the field as FIELD_MARK.
+                        **({'field_gap': [in_field[0], in_field[1]], 'field_core': in_field[2]} if in_field else {}),
                     }
                     if typography:
                         occurrence_id = f's{sid}'

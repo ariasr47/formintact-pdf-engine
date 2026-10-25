@@ -159,7 +159,7 @@ FIELD_LABELS_RELEASE = {
 # translation never draws a larger box than the source. extract_segments and
 # retypeset differ from 89.0.10. The pin was derived from the committed owner tree
 # before the candidate record or any artifact was written.
-ADOPTED_RELEASE = {
+WATERMARK_LENGTH_RELEASE = {
     "scope": "behavior-release", "version": "89.0.11",
     "release_id": "pdf-translate-89.0.11-watermark-length",
     "adopted_owner_revision": "57cfb97a38f177ca40456fd8bc01ddb4adaf9d83",
@@ -167,10 +167,23 @@ ADOPTED_RELEASE = {
     "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
     "modules": 27,
 }
+# 2026-10-25 fields in lines (fitting ladder release 2, item 3): extract cuts a run
+# between two labels where a field covers the blank, and records a field inside a
+# sentence (`field_gap`, `field_core`); retypeset draws such a sentence around the
+# field. extract_segments and retypeset differ from 89.0.11. The pin was derived from
+# the committed owner tree before the candidate record or any artifact was written.
+ADOPTED_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.12",
+    "release_id": "pdf-translate-89.0.12-fields-in-lines",
+    "adopted_owner_revision": "10598baf7462d343d35bee0994bddecb35368c63",
+    "source_digest": "aefa521de1bd3a8cc427108f13b1d473a7903d30d98b86be9ff415caddae19e6",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
 DEFAULT_VERSION = ADOPTED_RELEASE["version"]
 MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27,
                  "89.0.5": 27, "89.0.6": 27, "89.0.7": 27, "89.0.8": 27, "89.0.9": 27,
-                 "89.0.10": 27, "89.0.11": 27}
+                 "89.0.10": 27, "89.0.11": 27, "89.0.12": 27}
 PACKAGE_PREFIX = "libs/pdf-translate/pdf_translate/"
 PACKAGE_NAME = "pdf-translate"
 RECORD_KEYS = {

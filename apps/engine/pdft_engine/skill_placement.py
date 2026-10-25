@@ -57,6 +57,7 @@ from pdf_translate import (
     run_retypeset,
     run_strip,
 )
+from pdf_translate.extract_segments import FIELD_MARK
 from pdf_translate.retypeset import story_text
 from pdf_translate.strip_text import widget_text_scaffold
 
@@ -312,6 +313,16 @@ def _finite_number(value: object) -> float:
     if not math.isfinite(number):
         raise PlacementFailure(reason="invalid native geometry", refusals={}, details={})
     return number
+
+
+def _field_core(rows: list[dict]) -> str | None:
+    """The core with its inner form field as FIELD_MARK (library `field_core`), when
+    every occurrence of the core holds the field in the same place; else None."""
+    found = {row.get("field_core") for row in rows}
+    if len(found) != 1:
+        return None
+    value = found.pop()
+    return value if isinstance(value, str) and value.count(FIELD_MARK) == 1 else None
 
 
 def _drawing_labels(segments) -> set[str]:
@@ -1218,9 +1229,13 @@ def prepare_document_translation(
             continue
         if core in in_paragraph:
             continue
-        masked[core] = mask_block(core, dnt_terms, counter)
+        # A form field inside the sentence travels as a masked token, so the model puts
+        # it where the target language wants it; the library draws around the field.
+        field_core = _field_core(rows_of.get(core, []))
+        masked[core] = (mask_block(field_core, [*dnt_terms, FIELD_MARK], counter) if field_core
+                        else mask_block(core, dnt_terms, counter))
         line_tagged = None
-        if core not in blocked and core not in right_cores:
+        if core not in blocked and core not in right_cores and not field_core:
             marks = _single_line_marks(core, rows_of.get(core, []))
             line_tagged = _tag_masked(core, marks, masked[core]) if marks else None
         if line_tagged:

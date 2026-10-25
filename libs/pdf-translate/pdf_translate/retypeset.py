@@ -93,6 +93,7 @@ from .results import (FontError, GlyphError, MappingError, PdfTranslateError,
                       PlacementError, RetypesetResult)
 from .mapping import FORMAT, charset_for, load_mapping, refuse
 from .strip_text import GEOMETRY_SPACE
+from .extract_segments import FIELD_MARK
 from .source_retention import (attach as attach_source_retention,
                                prepare as prepare_source_retention,
                                replay_unmapped, verify_final as verify_retained_output,
@@ -2235,6 +2236,33 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                                     bool(seg.get('italic')),
                                     fs * cap if cap else fs, int(seg.get('color', 0)),
                                     avail, core, plain, imarker, cap or 1.0, wd))
+                continue
+            if seg.get('field_gap') and jp.count(FIELD_MARK) == 1 and not (
+                    rot or mirror or marker or '‖' in jp
+                    or needs_shaping(jp) or is_rtl_text(jp)):
+                # A form field inside the sentence (IES certificate, 2026-10-24):
+                # the words before the field's mark end before the field, the rest
+                # start after it, both at one size, each in its own room.
+                gx0, gx1 = seg['field_gap']
+                head, rest = (piece.strip() for piece in jp.split(FIELD_MARK))
+                f = role(seg['bold'], seg.get('italic'), core, wd)
+                check_glyphs(pno, f, head + rest, core, role_label(seg['bold'], seg.get('italic'), wd))
+                start = gx1 + 1.5
+                rooms = ((head, gx0 - 1.5 - ox), (rest, right_limit(pno, seg, segs) - start))
+                fs2 = fs
+                for words, room in rooms:
+                    w = f.text_length(words, fs)
+                    if w > 0:
+                        fs2 = min(fs2, fs * max(room, 0.0) / w)
+                if cap:
+                    fs2 = min(fs2, fs * cap)
+                if fs and fs2 < fs:
+                    consider_ratio(pno, core, fs2 / fs)
+                if fs2 > 0:
+                    if head:
+                        tw.append((ox, oy), head, font=f, fontsize=fs2)
+                    if rest:
+                        tw.append((start, oy), rest, font=f, fontsize=fs2)
                 continue
             parts = []
             if marker:

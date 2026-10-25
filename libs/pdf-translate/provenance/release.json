@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "release_id": "pdf-translate-89.0.11-watermark-length",
+  "release_id": "pdf-translate-89.0.12-fields-in-lines",
   "scope": "behavior-release",
-  "version": "89.0.11",
+  "version": "89.0.12",
   "origin_revision": "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7",
-  "adopted_owner_revision": "57cfb97a38f177ca40456fd8bc01ddb4adaf9d83",
-  "source_digest": "0be7c83938243f8caff8d5c7f20a63a6dc3795ead102bdcd2a5bd51302eb35b9",
+  "adopted_owner_revision": "10598baf7462d343d35bee0994bddecb35368c63",
+  "source_digest": "aefa521de1bd3a8cc427108f13b1d473a7903d30d98b86be9ff415caddae19e6",
   "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
   "files": [
     {
@@ -55,8 +55,8 @@
     },
     {
       "path": "pdf_translate/extract_segments.py",
-      "size": 52040,
-      "sha256": "d84c4de0bc433cb9abd162f4b2ee7a260084712080c8f837f3cf294d311bd6f5"
+      "size": 58605,
+      "sha256": "b8c779763024891883e307be4147f74db4af4e691251b68a9ec336854cc53b3d"
     },
     {
       "path": "pdf_translate/field_fonts.py",
@@ -100,8 +100,8 @@
     },
     {
       "path": "pdf_translate/retypeset.py",
-      "size": 142004,
-      "sha256": "4922e4e955e80411e634e1f1a44a4b4bc4eb19dd3842ab09e1e34bc5fc104099"
+      "size": 143532,
+      "sha256": "d1d6f132a597afdfc1087f7fd2546d4476e0f6b9de35857a3f2f2bda223cadce"
     },
     {
       "path": "pdf_translate/review.py",

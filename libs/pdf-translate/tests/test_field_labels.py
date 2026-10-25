@@ -39,6 +39,77 @@ def _source(path: Path) -> pymupdf.Rect:
     return pymupdf.Rect(start, 108, 300, 122)
 
 
+def _two_label_source(path: Path) -> None:
+    """One printed run with two labels, a field over each blank; and a sentence with a
+    field inside it."""
+    with pymupdf.open() as document:
+        page = document.new_page(width=500, height=200)
+        page.insert_text((40, 60), 'Name: ' + '.' * 30 + ' Mobile #: ' + '.' * 20, fontname='helv',
+                         fontsize=9)
+        page.insert_text((40, 120), 'The parties are ' + '_' * 12 + ', referred to as the Tenant',
+                         fontname='helv', fontsize=9)
+        for line, label, end in ((60, 'Name: ', '.' * 30), (120, 'The parties are ', '_' * 12)):
+            start = 40 + pymupdf.get_text_length(label, fontname='helv', fontsize=9)
+            field = pymupdf.Widget()
+            field.field_type = pymupdf.PDF_WIDGET_TYPE_TEXT
+            field.field_name = f'f{line}'
+            field.rect = pymupdf.Rect(start + 2, line - 9,
+                                      start + pymupdf.get_text_length(end, fontname='helv', fontsize=9),
+                                      line + 2)
+            page.add_widget(field)
+        start = 40 + pymupdf.get_text_length('Name: ' + '.' * 30 + ' Mobile #: ', fontname='helv', fontsize=9)
+        field = pymupdf.Widget()
+        field.field_type = pymupdf.PDF_WIDGET_TYPE_TEXT
+        field.field_name = 'mobile'
+        field.rect = pymupdf.Rect(start + 2, 51, start + 80, 62)
+        page.add_widget(field)
+        document.save(path)
+
+
+def test_a_run_holding_two_labels_is_cut_at_the_field_but_a_sentence_is_not(tmp_path):
+    original = tmp_path / 'original.pdf'
+    _two_label_source(original)
+    cores = [s['core'] for s in _segments(tmp_path, original)]
+    assert 'Name:' in cores and 'Mobile #:' in cores
+    assert any(core.startswith('The parties are') and 'Tenant' in core for core in cores)
+
+
+def test_a_field_inside_a_sentence_is_drawn_around(tmp_path):
+    """IES certificate (2026-10-24): "by completing [field] online sessions" was one run; drawn
+    whole, the Spanish ran under the number field, and the safety net kept it English."""
+    original = tmp_path / 'original.pdf'
+    sentence = 'Learned it by completing          online sessions.'
+    with pymupdf.open() as document:
+        page = document.new_page(width=500, height=200)
+        page.insert_text((40, 60), sentence, fontname='helv', fontsize=10)
+        start = 40 + pymupdf.get_text_length('Learned it by completing  ', fontname='helv', fontsize=10)
+        field = pymupdf.Widget()
+        field.field_type = pymupdf.PDF_WIDGET_TYPE_TEXT
+        field.field_name = 'count'
+        field.rect = pymupdf.Rect(start + 2, 49, start + 18, 63)
+        page.add_widget(field)
+        document.save(original)
+    row = next(s for s in _segments(tmp_path, original) if s['core'].startswith('Learned'))
+    assert row['field_core'] == 'Learned it by completing ￼ online sessions.'
+    stripped, output = tmp_path / 'stripped.pdf', tmp_path / 'output.pdf'
+    run_strip(str(original), str(stripped))
+    mapping = tmp_path / 'mapping.json'
+    mapping.write_text(json.dumps({
+        'lang': 'es', 'fonts': {role: str(path) for role, path in FULL.items()},
+        'translations': {row['core']: 'Lo aprendió completando ￼ sesiones en línea.'},
+    }), encoding='utf-8')
+    run_retypeset(str(stripped), str(tmp_path / 'segments.json'), str(mapping), str(output),
+                  original=str(original))
+    gap = pymupdf.Rect(row['field_gap'][0], 49, row['field_gap'][1], 63)
+    with pymupdf.open(output) as document:
+        before = document[0].search_for('completando')
+        after = document[0].search_for('sesiones')
+        drawn = document[0].get_text('text')
+    assert '￼' not in drawn
+    assert before and before[0].x1 <= gap.x0
+    assert after and after[0].x0 >= gap.x1
+
+
 def _segments(work: Path, original: Path) -> list[dict]:
     data = json.loads(Path(run_extract(str(original), str(work)).segments_path).read_text(encoding='utf-8'))
     return data['segments'] if isinstance(data, dict) else data

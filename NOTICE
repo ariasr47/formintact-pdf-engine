@@ -25,7 +25,7 @@ PDF LIBRARIES
 
 LIBRARIES IN THIS REPOSITORY
 
-  pdf-translate 89.0.11                MIT   libs/pdf-translate/LICENSE
+  pdf-translate 89.0.12                MIT   libs/pdf-translate/LICENSE
   pdft-engine-contract 0.1.0  MIT   libs/engine-contract/LICENSE
 
 
