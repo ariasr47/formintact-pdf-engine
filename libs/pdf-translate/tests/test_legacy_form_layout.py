@@ -150,6 +150,40 @@ def test_translated_label_clears_adjacent_writing_underline(tmp_path):
     )
 
 
+def test_translated_label_ends_before_a_thin_filled_border(tmp_path):
+    """A box border drawn as a 1 pt filled bar is a wall, not a background.
+
+    corpus-r2 2026-10-26: DS-64, AO 239 and five more drew their panel
+    borders this way, and 137 translated runs ran over them.
+    """
+    target = _target_font(tmp_path / "bar-target.ttf", chars=" " + string.ascii_letters)
+    original = tmp_path / "bar-original.pdf"
+    with pymupdf.open() as document:
+        page = document.new_page(width=260, height=180)
+        page.draw_rect(pymupdf.Rect(130, 40, 131, 75), color=None, fill=(0, 0, 0))
+        page.insert_text((40, 62), "Name", fontname="helv", fontsize=14)
+        document.save(original)
+    stripped = tmp_path / "bar-stripped.pdf"
+    run_strip(str(original), str(stripped))
+    extracted = run_extract(str(original), str(tmp_path))
+    mapping = tmp_path / "bar-translations.json"
+    mapping.write_text(json.dumps({
+        "fonts": {role: str(target) for role in ("regular", "bold", "italic", "bold_italic")},
+        "lang": "es",
+        "translations": {"Name": "Name translated here"},
+    }), encoding="utf-8")
+    output = tmp_path / "bar-output.pdf"
+    try:
+        run_retypeset(str(stripped), extracted.segments_path, str(mapping), str(output),
+                      original=str(original))
+    except PlacementError as exc:
+        assert _is_scale_floor_refusal(exc)
+        return
+    drawn = _spans(output, "Name translated here")
+    assert drawn
+    assert all(_rect(row).x1 <= 130 for row in drawn)
+
+
 def test_translated_caption_preserves_source_vertical_ink_clearance(tmp_path):
     source_font = _target_font(tmp_path / 'source-font.ttf')
     with TTFont(source_font) as face:

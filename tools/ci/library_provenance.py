@@ -172,7 +172,7 @@ WATERMARK_LENGTH_RELEASE = {
 # sentence (`field_gap`, `field_core`); retypeset draws such a sentence around the
 # field. extract_segments and retypeset differ from 89.0.11. The pin was derived from
 # the committed owner tree before the candidate record or any artifact was written.
-ADOPTED_RELEASE = {
+FIELDS_IN_LINES_RELEASE = {
     "scope": "behavior-release", "version": "89.0.12",
     "release_id": "pdf-translate-89.0.12-fields-in-lines",
     "adopted_owner_revision": "10598baf7462d343d35bee0994bddecb35368c63",
@@ -180,10 +180,23 @@ ADOPTED_RELEASE = {
     "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
     "modules": 27,
 }
+# 2026-10-28 box edges and unchanged lines (Spanish corpus 2): a filled bar at most
+# 1.5 pt thick is a border translated text must end before, and an unchanged run
+# source retention cannot vouch is replayed from its source glyphs. Only retypeset
+# differs from 89.0.12. The pin was derived from the committed owner tree before the
+# candidate record or any artifact was written.
+ADOPTED_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.13",
+    "release_id": "pdf-translate-89.0.13-box-edges",
+    "adopted_owner_revision": "51fa83f7e370a450ffc03933106bb3b7e9e7e490",
+    "source_digest": "d60f34aa2e97675338391ea937dd531119e2b2fb03894c736c5c250a32b26477",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
 DEFAULT_VERSION = ADOPTED_RELEASE["version"]
 MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27,
                  "89.0.5": 27, "89.0.6": 27, "89.0.7": 27, "89.0.8": 27, "89.0.9": 27,
-                 "89.0.10": 27, "89.0.11": 27, "89.0.12": 27}
+                 "89.0.10": 27, "89.0.11": 27, "89.0.12": 27, "89.0.13": 27}
 PACKAGE_PREFIX = "libs/pdf-translate/pdf_translate/"
 PACKAGE_NAME = "pdf-translate"
 RECORD_KEYS = {

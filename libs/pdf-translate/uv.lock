@@ -153,7 +153,7 @@ wheels = [
 
 [[package]]
 name = "pdf-translate"
-version = "89.0.12"
+version = "89.0.13"
 source = { editable = "." }
 dependencies = [
     { name = "fonttools" },

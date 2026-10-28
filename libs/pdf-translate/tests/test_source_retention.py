@@ -704,6 +704,45 @@ def test_legacy_retention_refuses_multiple_source_shows(tmp_path):
     _assert_first_keep_redrawn(job, "multiple-show", stripped=str(job["stripped"]), original=str(malformed))
 
 
+def test_unretained_identity_keeps_its_printed_glyphs(tmp_path):
+    """An unchanged run retention refuses is painted from its source glyphs.
+
+    corpus-r2 2026-10-26, N244: `H W F` sits one letter per printed box.
+    Redrawn in the target face, the letters slid off their boxes. The run is
+    now replayed as the source printed it, with invisible text for search.
+    """
+    job = _legacy_job(tmp_path)
+    malformed = tmp_path / "multiple-show-source.pdf"
+    with pikepdf.open(job["original"]) as document:
+        page = document.pages[0]
+        contents = page.Contents
+        streams = contents if isinstance(contents, pikepdf.Array) else [contents]
+        stream = b"\n".join(item.read_bytes() for item in streams)
+        token = b"TJ" if b"TJ" in stream else b"Tj"
+        page.Contents = document.make_stream(stream.replace(token, token + b" (KEEP) " + token, 1))
+        document.save(malformed)
+    result = run_retypeset(str(job["stripped"]), str(job["segments"]), str(job["mapping"]),
+                           str(job["output"]), original=str(malformed))
+    rows = [row for row in result.warnings if row["kind"] == "source_not_retained"]
+    assert [(row["page"], row["core"], row["drawn"]) for row in rows] == [(0, "KEEP", "source-glyphs")]
+    keep = _spans(job["original"], "KEEP")[0]
+    clip = pymupdf.Rect(keep["bbox"]) + (-2, -2, 2, 2)
+
+    def crop(path):
+        with pymupdf.open(path) as document:
+            return bytes(document[0].get_pixmap(matrix=pymupdf.Matrix(4, 4), clip=clip, alpha=False).samples)
+
+    # Filled outlines and font rasterization anti-alias a little differently;
+    # a glyph in another face or another place differs in whole strokes.
+    drawn, printed = crop(job["output"]), crop(job["original"])
+    assert len(drawn) == len(printed)
+    assert sum(abs(a - b) > 96 for a, b in zip(drawn, printed)) < .01 * len(printed)
+    with pymupdf.open(job["output"]) as document:
+        kinds = {trace["type"] for trace in document[0].get_texttrace()
+                 if "".join(chr(char[0]) for char in trace["chars"]).strip() == "KEEP"}
+    assert kinds == {3}
+
+
 def test_legacy_retention_cancellation_has_no_output(tmp_path):
     job = _legacy_job(tmp_path)
     result = run_retypeset(

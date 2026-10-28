@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "release_id": "pdf-translate-89.0.12-fields-in-lines",
+  "release_id": "pdf-translate-89.0.13-box-edges",
   "scope": "behavior-release",
-  "version": "89.0.12",
+  "version": "89.0.13",
   "origin_revision": "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7",
-  "adopted_owner_revision": "10598baf7462d343d35bee0994bddecb35368c63",
-  "source_digest": "aefa521de1bd3a8cc427108f13b1d473a7903d30d98b86be9ff415caddae19e6",
+  "adopted_owner_revision": "51fa83f7e370a450ffc03933106bb3b7e9e7e490",
+  "source_digest": "d60f34aa2e97675338391ea937dd531119e2b2fb03894c736c5c250a32b26477",
   "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
   "files": [
     {
@@ -100,8 +100,8 @@
     },
     {
       "path": "pdf_translate/retypeset.py",
-      "size": 143532,
-      "sha256": "d1d6f132a597afdfc1087f7fd2546d4476e0f6b9de35857a3f2f2bda223cadce"
+      "size": 146416,
+      "sha256": "809653e9ad4bfaffc8653aade4c225cc2d8bfa5f49a48e255d9953e22fa347bd"
     },
     {
       "path": "pdf_translate/review.py",

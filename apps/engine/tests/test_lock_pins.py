@@ -4,7 +4,7 @@ from pathlib import Path
 
 LOCK = Path(__file__).resolve().parents[1] / "uv.lock"
 PINS = {"pymupdf": "1.28.0", "pikepdf": "10.12.0", "fonttools": "4.65.0",
-        "pdf-translate": "89.0.12"}
+        "pdf-translate": "89.0.13"}
 REV = "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7"
 
 

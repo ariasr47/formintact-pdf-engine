@@ -119,6 +119,8 @@ CONSOLE_LIST = 30
 # one redraws one more run; past this the refusal stands (a rebuild costs a
 # full placement pass).
 _RETAINED_OUTPUT_RETRIES = 8
+# The thickest filled rectangle still read as a drawn rule (a box border).
+_THIN_BAR = 1.5
 
 
 def more_not_shown(items, shown=CONSOLE_LIST):
@@ -1106,9 +1108,21 @@ def _glyph_inks(path, font, chars):
 
 
 def _stroke_obstacles(page):
-    """Conservative bounds of stroked edges; filled backgrounds are not barriers."""
+    """Conservative bounds of stroked edges; filled backgrounds are not barriers.
+
+    A filled rectangle at most 1.5 pt thick and longer than 3 pt is a rule,
+    not a background: many forms draw their box borders that way, and text
+    ran over them (corpus-r2 2026-10-26, 137 runs across 7 documents).
+    """
     edges = []
     for drawing in page.get_drawings():
+        if 's' not in drawing.get('type', '') and drawing.get('fill') is not None:
+            for item in drawing['items']:
+                if item[0] == 're':
+                    rect = pymupdf.Rect(item[1])
+                    if min(rect.width, rect.height) <= _THIN_BAR and max(rect.width, rect.height) > 3:
+                        edges.append(rect)
+            continue
         if 's' not in drawing.get('type', '') or drawing.get('color') is None:
             continue
         half = max(float(drawing.get('width') or 0) / 2, 0.05)
@@ -2036,6 +2050,35 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
     def _cancelled():
         return cancel is not None and cancel()
 
+    # Identity occurrences retention could not vouch keep their printed look:
+    # their source glyphs are replayed as filled outlines at the source
+    # origins (replay_unmapped), and the run is still set below as invisible
+    # text so it reads and searches. Redrawn visibly in a target face, a code
+    # in a row of printed boxes slid off them (corpus-r2 2026-10-26, N244
+    # `H W F`). Every such run is still reported; `drawn` says which way.
+    replayed_ids = set()
+    if unretained and original:
+        wanted = {(row['page'], row['segment_id']) for row in unretained}
+        replay_jobs = {}
+        for segment in segments:
+            text = str(segment.get('text') or '')
+            if ((segment['page'], segment.get('id')) in wanted and
+                    UNMAPPED not in text and not segment.get('drawing') and
+                    not is_rotated(*seg_dir(segment)) and
+                    not (has_inline_markup(text) or needs_shaping(text) or is_rtl_text(text))):
+                replay_jobs.setdefault(int(segment['page']), []).append(segment)
+        if replay_jobs:
+            with pymupdf.open(original) as source_doc:
+                for pno, jobs in sorted(replay_jobs.items()):
+                    kept, _ = replay_unmapped(source_doc, doc[pno], pno, jobs)
+                    replayed_ids |= kept
+        replayed = {(segment['page'], segment.get('id'))
+                    for jobs in replay_jobs.values() for segment in jobs
+                    if id(segment) in replayed_ids}
+        for row in unretained:
+            row['drawn'] = ('source-glyphs' if (row['page'], row['segment_id']) in replayed
+                            else 'target-face')
+
     for pno, page in enumerate(doc):
         if _cancelled():
             npages = len(doc)
@@ -2048,6 +2091,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
         # how white-on-dark headings silently become black-on-dark: the ink
         # gate barely moves because the band was already dark.
         writers = {}
+        # Runs whose source glyphs were replayed: set as invisible text only.
+        hidden_writers = {}
         rtl_jobs = []
         shaped_jobs = []
         # One writer per rotated run: a morph rotates a whole TextWriter
@@ -2078,6 +2123,11 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 writers[cint] = pymupdf.TextWriter(page.rect)
             return writers[cint]
 
+        def hidden_W(cint):
+            if cint not in hidden_writers:
+                hidden_writers[cint] = pymupdf.TextWriter(page.rect)
+            return hidden_writers[cint]
+
         def rgb_of(cint):
             return (((cint >> 16) & 255) / 255.0,
                     ((cint >> 8) & 255) / 255.0,
@@ -2088,7 +2138,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
         # follows its existing path unchanged. The actual drawing still
         # happens below, after all runs have been planned.
         for seg in sorted(segs, key=lambda s: not is_rotated(*seg_dir(s))):
-            tw = W(int(seg.get('color', 0)))
+            tw = (hidden_W if id(seg) in replayed_ids else W)(int(seg.get('color', 0)))
             text = seg['text'].strip()
             if text in skip:
                 continue
@@ -2492,6 +2542,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                     x += part_adv(i, t, f, fs2)
         for cint, w in writers.items():
             w.write_text(page, color=rgb_of(cint))
+        for cint, w in hidden_writers.items():
+            w.write_text(page, color=rgb_of(cint), render_mode=3)
         for (rtw, cint, morph, logical) in rot_jobs:
             rtw.write_text(page, color=rgb_of(cint), morph=morph)
             if logical:
@@ -2882,7 +2934,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
         log.info(f'NOTE: {len(unretained)} unchanged run(s) redrawn because their source '
                  f'text could not be vouched for retention:')
         for row in unretained[:CONSOLE_LIST]:
-            log.info(f"  p{row['page']}: {str(row['core'])[:60]} ({row['reason']})")
+            log.info(f"  p{row['page']}: {str(row['core'])[:60]} ({row['reason']}, "
+                     f"{row.get('drawn', 'target-face')})")
         for line in more_not_shown(unretained):
             log.info(line)
     if unmapped_kept:

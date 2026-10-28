@@ -28,6 +28,24 @@ def test_number_id_survives_byte_identical_the_20130304_defect() -> None:
     assert any(e.category == "number" for e in r.table.values())
 
 
+def test_number_stops_before_a_hyphenated_lowercase_word_but_keeps_ids_whole() -> None:
+    cases = {
+        "32-page print edition": ["32"],
+        "a 3-day course": ["3"],
+        "the 10-year plan": ["10"],
+        "Form 1040-SR": ["1040-SR"],
+        "File a 10-K": ["10-K"],
+        "Ref GL-2026-117": ["2026-117"],
+        "Call 1-877-487-2778": ["1-877-487-2778"],
+        "Code A1-bx92": ["1-bx92"],
+    }
+    for text, numbers in cases.items():
+        r = mask_block(text, dnt_terms=[])
+        got = [e.original_text for e in r.table.values() if e.category == "number"]
+        assert got == numbers, text
+        assert unmask(r.masked_text, r.table) == text
+
+
 def test_date_url_email_each_masked_and_round_trip() -> None:
     text = "Sent 2026-08-04 to jane@example.com, see https://example.com/report"
     r = mask_block(text, dnt_terms=[])

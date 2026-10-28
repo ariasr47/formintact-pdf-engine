@@ -204,7 +204,14 @@ _SPACELESS_LETTERS = (
     "\u0e00-\u0eff\u1000-\u109f\u1100-\u11ff\u1780-\u17ff\u2e80-\u9fff"
     "\ua960-\ua97f\uac00-\ud7af\uf900-\ufaff\uff21-\uff3a\uff41-\uff5a\uff66-\uffdc"
 )
-_NUMBER_RE = re.compile(rf"#?[0-9](?:[0-9]|(?![{_SPACELESS_LETTERS}])[\w.-])*")
+# A number also stops before a hyphen joined to a lowercase word of two or more letters:
+# `32-page`, `3-day`, `10-year` mask only the digits, so the model sees the word and can
+# translate it (homepage invoice 2026-10-26 came back "Edición impresa 32-page"). Uppercase
+# and mixed suffixes stay inside the number: `1040-SR`, `10-K`, `A1-bx92`, `1-877-487-2778`.
+_WORD_SUFFIX = r"-[a-zß-öø-ÿ]{2,}(?!\w)"
+_NUMBER_RE = re.compile(
+    rf"#?[0-9](?:[0-9]|(?!{_WORD_SUFFIX})(?![{_SPACELESS_LETTERS}])[\w.-])*"
+)
 _URL_RE = re.compile(r"\bhttps?://\S+\b")
 _EMAIL_RE = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
 
