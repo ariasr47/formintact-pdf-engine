@@ -1190,6 +1190,41 @@ def _legacy_field_limit(segment, obstacles):
     return limit
 
 
+def _legacy_left_field_limit(segment, obstacles):
+    """The nearest control or drawn rule left of this source caption, plus clearance."""
+    source = pymupdf.Rect(segment['bbox'])
+    edges, _ = obstacles
+    limit = -math.inf
+    for rectangle in edges:
+        if (rectangle.x1 <= source.x0+1e-4 and
+                rectangle.y0 < source.y1 and rectangle.y1 > source.y0):
+            limit = max(limit, rectangle.x1+1.5)
+    return limit
+
+
+def _alignment(segment, segments):
+    """(centred, leftmost x of its block) from the lines directly above and below.
+
+    A neighbour is a horizontal line on the same page that overlaps this one
+    across and sits within 0.6 line heights of it. The block is centred when
+    a neighbour shares this line's midpoint within 2 pt but not its left edge.
+    """
+    box = segment['bbox']
+    mid, height = (box[0] + box[2]) / 2, box[3] - box[1]
+    centred, left = False, box[0]
+    for other in segments:
+        if other is segment or other.get('page') != segment.get('page') or is_rotated(*seg_dir(other)):
+            continue
+        near = other['bbox']
+        if (max(near[1] - box[3], box[1] - near[3]) > .6 * height or
+                min(near[2], box[2]) - max(near[0], box[0]) <= 0):
+            continue
+        if abs((near[0] + near[2]) / 2 - mid) <= 2 and abs(near[0] - box[0]) > 2:
+            centred = True
+        left = min(left, near[0])
+    return centred, left
+
+
 def _legacy_retained_limit(segment, top, bottom, blocks):
     """Reserve vouched source ink inside a neighboring spaced-out text run.
 
@@ -1539,6 +1574,25 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
     # whose regular role is missing refuses by name, never drawing the
     # full-width face in its place. Merged paragraphs ignore this key.
     widths = _narrow_widths(conf.get('widths'), fonts)
+    # Cores the source sets in a serif face: drawn in the mapping's serif roles
+    # (`regular_serif`, ...), with the same nearest-role fallback. A serif
+    # title came back sans (homepage invoice, 2026-10-26). A core that also
+    # has a narrower width keeps that sans width: no narrow serif faces exist.
+    serif = {str(core) for core in conf.get('serif') or []}
+    if serif and not fonts.get('regular_serif'):
+        raise MappingError(
+            'serif needs a regular_serif font role',
+            console_line='!! serif lists cores but the mapping names no regular_serif font',
+            exit_code=1, refusals={'serif': [{'why': 'no regular_serif font role'}]})
+    # Cores the source sets in a black weight (Arial Black, 900): drawn in the
+    # mapping's `black` face, which Bold only approximates (DS-64's headings came
+    # back visibly lighter, 2026-10-29). A narrower width keeps its own face.
+    black = {str(core) for core in conf.get('black') or []}
+    if black and not fonts.get('black'):
+        raise MappingError(
+            'black needs a black font role',
+            console_line='!! black lists cores but the mapping names no black font',
+            exit_code=1, refusals={'black': [{'why': 'no black font role'}]})
     notices = conf.get('notices') or []
     overflow = []
     scaled = []
@@ -1798,13 +1852,30 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
         if re.search(r'<(i|em)\b', html or '', re.I):
             note_role('italic', key, width)
 
-    def faces_of(width):
+    serif_paths = None
+    serif_faces = None
+    if serif:
+        reg_s = fonts['regular_serif']
+        italic_s = fonts.get('italic_serif') or reg_s
+        serif_paths = (reg_s, fonts.get('bold_serif') or reg_s, italic_s,
+                       fonts.get('bold_italic_serif') or fonts.get('bold_serif') or italic_s)
+        serif_faces = tuple(pymupdf.Font(fontfile=p) for p in serif_paths)
+
+    black_face = pymupdf.Font(fontfile=fonts['black']) if black else None
+
+    def faces_of(width, key=None):
         """(regular, bold, italic, bold_italic) fonts for a width (None = full)."""
-        return narrow_fonts[width] if width else (font_r, font_b, font_i, font_bi)
+        if width:
+            return narrow_fonts[width]
+        if black_face and key is not None and str(key) in black:
+            return (black_face,) * 4
+        if serif_faces and key is not None and str(key) in serif:
+            return serif_faces
+        return (font_r, font_b, font_i, font_bi)
 
     def role(bold, italic, key=None, width=None):
         note_role(_role_name(bold, italic), key, width)
-        f_r, f_b, f_i, f_bi = faces_of(width)
+        f_r, f_b, f_i, f_bi = faces_of(width, key)
         if bold and italic:
             return f_bi
         if bold:
@@ -1908,6 +1979,10 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                   id(font_i): f_italic, id(font_bi): f_bold_italic}
     for wname, wfonts in narrow_fonts.items():
         font_paths.update({id(wf): wp for wf, wp in zip(wfonts, narrow_paths[wname])})
+    if serif_faces:
+        font_paths.update({id(sf): sp for sf, sp in zip(serif_faces, serif_paths)})
+    if black_face:
+        font_paths[id(black_face)] = fonts['black']
     # Authored HTML resolves its resources here. Defaulting to the
     # mapping's directory rather than the process's cwd is what makes a
     # service that runs from anywhere else get the face it named.
@@ -1970,7 +2045,7 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             record_blocked_neighbours(pno, seg, segs)
         return limit
 
-    def left_limit(pno, seg, segs, *, measured=True):
+    def left_limit(pno, seg, segs, *, measured=True, record=True):
         """How far back a RIGHT-anchored run may grow (row 28).
 
         A `right` core keeps the source's right edge and grows leftward, so
@@ -1990,9 +2065,32 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 if wr.x1 < seg['bbox'][0] + 2:
                     lim = max(lim, wr.x1)
         limit = lim + 1.5
-        if measured and limit >= seg['bbox'][2]:
+        if measured and record and limit >= seg['bbox'][2]:
             record_blocked_neighbours(pno, seg, segs, left=True)
         return limit
+
+    def shift_left(pno, seg, segs, ox, maxw, wsum):
+        """(origin, room) for a run too wide at full size, before any shrink.
+
+        A run in a centred block is centred on its source midpoint; any other
+        run moves left into empty space, never past its block's leftmost line,
+        so a left-aligned paragraph keeps its edge. Neither passes the nearest
+        text, control or drawn rule on its left (DS-64's headline shrank to
+        99% with 70 pt free on its left, 2026-10-28).
+        """
+        right_edge = ox + maxw
+        # Only asking: a run that cannot move keeps its origin, so a neighbour that
+        # blocks the left side is not this run's refusal.
+        lower = max(left_limit(pno, seg, segs, record=False),
+                    _legacy_left_field_limit(seg, form_obstacles[pno]))
+        centred, block_left = _alignment(seg, segs)
+        if centred:
+            mid = (seg['bbox'][0] + seg['bbox'][2]) / 2
+            x = max(lower, min(mid - wsum / 2, right_edge - wsum))
+        else:
+            x = max(lower, block_left, right_edge - wsum)
+        x = min(ox, x)
+        return x, right_edge - x
 
     def centered_room(pno, seg, segs, room):
         """Constrain both halves about the existing center, for rotated ink."""
@@ -2455,6 +2553,8 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                     raise PlacementError('no room beside source field', page=pno, key=core, scale=0,
                         refusals={'overflow': [{'page': pno, 'scale': 0, 'core': core}]})
                 maxw = min(maxw, field_room)
+                if wsum > maxw and not (marker or dots or tail):
+                    ox, maxw = shift_left(pno, seg, segs, ox, maxw, wsum)
             fs2 = fitted_size(fs, wsum, maxw)
             if not (rot or mirror or core in center or core in right or shaped or rtl_body) and wsum > 0:
                 # fitted_size's legacy one-point minimum must not enlarge the

@@ -184,6 +184,55 @@ def test_translated_label_ends_before_a_thin_filled_border(tmp_path):
     assert all(_rect(row).x1 <= 130 for row in drawn)
 
 
+LONG = "ACDEGHKMPA ACDEGHKMPA"
+
+
+def _block(tmp_path, *, centred):
+    """Three stacked 10 pt lines; the middle one translates too long for its right-hand room."""
+    target = _target_font(tmp_path / "block-target.ttf", chars=" " + string.ascii_letters)
+    original = tmp_path / "block-original.pdf"
+    lines = ("AB", "KEEP", "ABCDEFGH")
+    with pymupdf.open() as document:
+        page = document.new_page(width=300, height=180)
+        for row, text in enumerate(lines):
+            width = pymupdf.get_text_length(text, fontname="helv", fontsize=10)
+            page.insert_text((150 - width / 2 if centred else 40, 50 + 12 * row), text,
+                             fontname="helv", fontsize=10)
+        document.save(original)
+    stripped = tmp_path / "block-stripped.pdf"
+    run_strip(str(original), str(stripped))
+    extracted = run_extract(str(original), str(tmp_path))
+    mapping = tmp_path / "block-translations.json"
+    mapping.write_text(json.dumps({
+        "fonts": {role: str(target) for role in ("regular", "bold", "italic", "bold_italic")},
+        "lang": "es",
+        "translations": {"AB": "AB", "KEEP": LONG, "ABCDEFGH": "ABCDEFGH"},
+    }), encoding="utf-8")
+    output = tmp_path / "block-output.pdf"
+    run_retypeset(str(stripped), extracted.segments_path, str(mapping), str(output),
+                  original=str(original))
+    drawn = _spans(output, LONG)
+    assert len(drawn) == 1
+    return drawn[0], _spans(original, "KEEP")[0]
+
+
+def test_a_too_long_line_in_a_centred_block_is_recentred_at_full_size(tmp_path):
+    """DS-64 2026-10-28: the headline shrank to 99% with 70 pt free on its left."""
+    drawn, source = _block(tmp_path, centred=True)
+    with pymupdf.open(tmp_path / "block-output.pdf") as document:
+        size = next(span["size"] for block in document[0].get_text("dict")["blocks"]
+                    for line in block.get("lines", []) for span in line["spans"]
+                    if span["text"] == LONG)
+    assert size == pytest.approx(10, abs=.01)
+    source_mid = (source["bbox"][0] + source["bbox"][2]) / 2
+    assert (drawn["bbox"][0] + drawn["bbox"][2]) / 2 == pytest.approx(source_mid, abs=3)
+
+
+def test_a_too_long_line_in_a_left_aligned_block_keeps_its_left_edge(tmp_path):
+    drawn, source = _block(tmp_path, centred=False)
+    assert drawn["bbox"][0] == pytest.approx(source["bbox"][0], abs=.5)
+
+
 def test_translated_caption_preserves_source_vertical_ink_clearance(tmp_path):
     source_font = _target_font(tmp_path / 'source-font.ttf')
     with TTFont(source_font) as face:

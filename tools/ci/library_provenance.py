@@ -185,7 +185,7 @@ FIELDS_IN_LINES_RELEASE = {
 # source retention cannot vouch is replayed from its source glyphs. Only retypeset
 # differs from 89.0.12. The pin was derived from the committed owner tree before the
 # candidate record or any artifact was written.
-ADOPTED_RELEASE = {
+BOX_EDGES_RELEASE = {
     "scope": "behavior-release", "version": "89.0.13",
     "release_id": "pdf-translate-89.0.13-box-edges",
     "adopted_owner_revision": "51fa83f7e370a450ffc03933106bb3b7e9e7e490",
@@ -193,10 +193,36 @@ ADOPTED_RELEASE = {
     "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
     "modules": 27,
 }
+# 2026-10-28 Release B (Spanish corpus 2): a run too wide at full size is re-centred in
+# a centred block or moved left into empty space before it shrinks, and a mapping may
+# name serif roles and a `serif` list of cores drawn in them. Only retypeset differs
+# from 89.0.13. The pin was derived from the committed owner tree before the candidate
+# record or any artifact was written.
+RELEASE_B_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.14",
+    "release_id": "pdf-translate-89.0.14-release-b",
+    "adopted_owner_revision": "ca7e839c09fa229ccf545d7664f2e0ddf682dd5b",
+    "source_digest": "6b30c4eff8fbc3e8c4e1025a20bfac36b34ebb364f688ba97822851e82342e7b",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
+# 2026-10-29 black weight: a mapping may name a `black` face and a `black` list of
+# cores drawn in it, so a line the source sets in Arial Black keeps that weight rather
+# than Bold's. Only retypeset differs from 89.0.14. The pin was derived from the
+# committed owner tree before the candidate record or any artifact was written.
+ADOPTED_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.15",
+    "release_id": "pdf-translate-89.0.15-black-weight",
+    "adopted_owner_revision": "91ccb0aa52006e98cc8e9387077dd125c16dc306",
+    "source_digest": "dbf35c9f7f1e7a7538b2e1d74d57f00134ce79e6b9ddc73f0c26e9ad6bda097c",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
 DEFAULT_VERSION = ADOPTED_RELEASE["version"]
 MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27,
                  "89.0.5": 27, "89.0.6": 27, "89.0.7": 27, "89.0.8": 27, "89.0.9": 27,
-                 "89.0.10": 27, "89.0.11": 27, "89.0.12": 27, "89.0.13": 27}
+                 "89.0.10": 27, "89.0.11": 27, "89.0.12": 27, "89.0.13": 27,
+                 "89.0.14": 27, "89.0.15": 27}
 PACKAGE_PREFIX = "libs/pdf-translate/pdf_translate/"
 PACKAGE_NAME = "pdf-translate"
 RECORD_KEYS = {

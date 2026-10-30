@@ -102,6 +102,16 @@ _LATIN_ROLES = {
         for role, style in (("regular", "Regular"), ("bold", "Bold"),
                             ("italic", "Italic"), ("bold_italic", "BoldItalic"))
     },
+    # A line the source sets in a serif face is drawn in Noto Serif (Latin, Greek
+    # and Cyrillic), not turned sans (homepage invoice title, 2026-10-26).
+    **{
+        f"{role}_serif": f"NotoSerif-{style}.ttf"
+        for role, style in (("regular", "Regular"), ("bold", "Bold"),
+                            ("italic", "Italic"), ("bold_italic", "BoldItalic"))
+    },
+    # A line the source sets in a black weight (Arial Black) keeps that weight, not
+    # Bold's lighter one (DS-64's headings, 2026-10-29).
+    "black": "FormIntactSans-Black.ttf",
 }
 _ROLE_FILES = {
     **{
@@ -1120,6 +1130,12 @@ def prepare_document_translation(
     """
 
     workdir.mkdir(parents=True, exist_ok=True)
+    # Fonts with no way to name their letters (DS-64's embedded Arial) get a
+    # letter table first, when Arial's widths vouch their glyph order; extraction
+    # and placement then both read the decoded copy.
+    from pdft_engine import glyph_recovery
+
+    source_pdf, _ = glyph_recovery.decoded_copy(source_pdf, workdir)
     # _LIBRARY_LOCK: both calls below are the library's own extraction --
     # `widget_text_scaffold` sits beside `run_extract` (it only ever
     # reads `source_pdf`, never anything `extracted` computes) so the two
@@ -1317,9 +1333,11 @@ def _write_layout(
     right: list[str],
     scale_caps: dict[str, float] | None = None,
     widths: dict[str, str] | None = None,
+    serif: list[str] | None = None,
+    black: list[str] | None = None,
 ) -> None:
     """Add the layout keys to the mapping `_write_mapping` wrote, only when used."""
-    if not (merges or source_glyphs or right or scale_caps or widths):
+    if not (merges or source_glyphs or right or scale_caps or widths or serif or black):
         return
     payload = json.loads(path.read_text(encoding="utf-8"))
     if merges:
@@ -1332,7 +1350,104 @@ def _write_layout(
         payload["scale_caps"] = scale_caps
     if widths:
         payload["widths"] = widths
+    if serif:
+        payload["serif"] = serif
+    if black:
+        payload["black"] = black
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _serif_cores(source_pdf: Path, rows: list[dict]) -> set[str]:
+    """Cores every source span of which is set in a font the library classes serif.
+
+    The class comes from the embedded program (OS/2 family class and PANOSE) or a
+    standard face's name, never from MuPDF's serif flag, which marks NotoSans too.
+    """
+    import fitz
+    from pdf_translate.typography import observe_fonts
+
+    def middle(span: dict) -> fitz.Point:
+        rect = fitz.Rect(span["bbox"])
+        return (rect.tl + rect.br) / 2
+
+    verdict: dict[str, bool] = {}
+    with _LIBRARY_LOCK, fitz.open(str(source_pdf)) as doc:
+        classes: dict[str, set[str]] = {}
+        for observed in observe_fonts(doc)["fonts"].values():
+            for alias in observed["aliases"]:
+                classes.setdefault(alias.split("+", 1)[-1], set()).add(observed["class"])
+        spans: dict[int, list[dict]] = {}
+        for row in rows:
+            core, page = row.get("core"), row.get("page")
+            if not core or row.get("passthrough") or not 0 <= page < len(doc):
+                continue
+            if page not in spans:
+                spans[page] = [span for block in doc[page].get_text("dict")["blocks"]
+                               for line in block.get("lines", ()) for span in line["spans"]
+                               if span["text"].strip()]
+            box = fitz.Rect(row["bbox"])
+            inside = [span for span in spans[page] if box.contains(middle(span))]
+            serif = bool(inside) and all(classes.get(span["font"]) == {"serif"} for span in inside)
+            verdict[core] = verdict.get(core, True) and serif
+    return {core for core, serif in verdict.items() if serif}
+
+
+def _black_cores(source_pdf: Path, rows: list[dict]) -> set[str]:
+    """Cores every source span of which is set in a font of weight 800 or more.
+
+    The weight comes from the embedded program's OS/2 table, or, when the program
+    has none, from a Black or Heavy name. Bold (700) is not black.
+    """
+    import io
+
+    import fitz
+    from fontTools.ttLib import TTFont
+
+    def middle(span: dict) -> fitz.Point:
+        rect = fitz.Rect(span["bbox"])
+        return (rect.tl + rect.br) / 2
+
+    verdict: dict[str, bool] = {}
+    with _LIBRARY_LOCK, fitz.open(str(source_pdf)) as doc:
+        heavy: dict[str, bool] = {}
+        for page in doc:
+            for xref, _ext, _kind, name, *_rest in page.get_fonts(full=True):
+                plain = name.split("+", 1)[-1]
+                if plain in heavy:
+                    continue
+                # A span reports the program's PostScript name, which can differ
+                # from the PDF's /BaseFont ("FormIntact Sans Black").
+                aliases = {plain, plain.replace(" ", "")}
+                weight = None
+                try:
+                    program = doc.extract_font(xref)[3]
+                    if program:
+                        with TTFont(io.BytesIO(program), lazy=True) as face:
+                            if "OS/2" in face:
+                                weight = face["OS/2"].usWeightClass
+                            if "name" in face and face["name"].getDebugName(6):
+                                aliases.add(face["name"].getDebugName(6))
+                except Exception:  # noqa: BLE001 -- an unreadable program says nothing
+                    weight = None
+                verdict_heavy = (weight >= 800 if weight is not None
+                                 else any(word in plain for word in ("Black", "Heavy")))
+                for alias in aliases:
+                    heavy.setdefault(alias, verdict_heavy)
+        spans: dict[int, list[dict]] = {}
+        for row in rows:
+            core, page_number = row.get("core"), row.get("page")
+            if not core or row.get("passthrough") or not 0 <= page_number < len(doc):
+                continue
+            if page_number not in spans:
+                spans[page_number] = [
+                    span for block in doc[page_number].get_text("dict")["blocks"]
+                    for line in block.get("lines", ()) for span in line["spans"]
+                    if span["text"].strip()]
+            box = fitz.Rect(row["bbox"])
+            inside = [span for span in spans[page_number] if box.contains(middle(span))]
+            black = bool(inside) and all(heavy.get(span["font"]) for span in inside)
+            verdict[core] = verdict.get(core, True) and black
+    return {core for core, black in verdict.items() if black}
 
 
 def _merge_html(text: str, group: ParagraphGroup, tagged: str | None = None) -> str:
@@ -1749,6 +1864,15 @@ def place_prepared_document(
     field_rows = [
         row for row in listed or () if isinstance(row, dict) and fit_budget.has_geometry(row)
     ]
+    # Lines the source sets in a serif face keep a serif face, when the role set has
+    # one (homepage invoice title, 2026-10-26).
+    serif_cores = (
+        _serif_cores(page_pdf, field_rows)
+        if isinstance(font, dict) and "regular_serif" in font else set()
+    )
+    black_cores = (
+        _black_cores(page_pdf, field_rows) if isinstance(font, dict) and "black" in font else set()
+    )
     if paragraph_reflow_target(lang) and isinstance(font, dict) and "bold" in font:
         segment_rows = field_rows
         if segment_rows:
@@ -1914,6 +2038,8 @@ def place_prepared_document(
                 right=right_cores,
                 scale_caps=scale_caps,
                 widths=widths,
+                serif=sorted(core for core in serif_cores if core in translations),
+                black=sorted(core for core in black_cores if core in translations),
             )
             passes = attempt + 1
             scale_path = _unique_scale_report_path(workdir)

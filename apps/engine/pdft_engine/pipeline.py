@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import math
 import shutil
 import tempfile
@@ -399,6 +400,46 @@ def _occurrence_coverage(
             )
         )
 
+    # A line the source font cannot name extracts as U+FFFD and passes through: it
+    # is never translated, its glyphs are copied as printed, and the reader sees
+    # the source language. It was in no report, so the order looked complete
+    # (DS-64's Arial Black headings, 2026-10-28). It is skipped and its page
+    # flagged, like a line with no room.
+    for page_number, ordinal, row in _unreadable_lines(prepared):
+        if provider_cause is None and page_number not in copied_unchanged_pages:
+            placement_reverted_pages.add(page_number)
+        block_id = f"{page_number}-unreadable-{ordinal}"
+        x0, y0, x1, y1 = (float(value) for value in row["bbox"])
+        message = _REASON_MESSAGES["engine_error"]
+        unit = UnitCoverage(
+            unit_id=f"{block_id}#0",
+            attempt=0,
+            outcome="skipped",
+            reason="engine_error",
+            reason_message=message,
+            reason_lead=None,
+            reason_detail=None,
+            style_key="unreadable",
+            source_size=round(float(row.get("size") or 0.0), 2),
+            origin_x=round(float((row.get("origin") or (x0, y1))[0]), 2),
+            origin_y=round(float((row.get("origin") or (x0, y1))[1]), 2),
+            source_rects=[SourceRect(x0=x0, y0=y0, x1=x1, y1=y1)],
+            warnings=[],
+        )
+        pages[page_number].append(
+            CoverageEntry(
+                block_id=block_id,
+                outcome="skipped",
+                reason="engine_error",
+                reason_message=message,
+                reason_lead=None,
+                reason_detail=None,
+                warnings=[],
+                masked_terms=[],
+                units=[unit],
+            )
+        )
+
     out: list[PageCoverage] = []
     for page_number in prepared.selected_original_pages:
         blocks = pages[page_number]
@@ -442,6 +483,38 @@ def _occurrence_coverage(
             )
         )
     return out
+
+
+# Three replacement marks in a row: printed letters the source font cannot name.
+# One alone can be a stray symbol in a code.
+_UNREADABLE_RUN = "\ufffd" * 3
+
+
+def _unreadable_lines(prepared) -> list[tuple[int, int, dict]]:
+    """(original page, ordinal on that page, row) for each pass-through line that
+    is mostly letters with no Unicode, in extraction order."""
+    path = getattr(prepared, "segments_path", None)
+    if path is None:
+        return []
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    rows = payload.get("segments") if isinstance(payload, dict) else payload
+    found: list[tuple[int, int, dict]] = []
+    ordinals: dict[int, int] = {}
+    for row in rows or ():
+        if not (isinstance(row, dict) and row.get("passthrough") and
+                _UNREADABLE_RUN in str(row.get("text") or "")):
+            continue
+        page = row.get("page")
+        bbox = row.get("bbox")
+        if (not isinstance(page, int) or isinstance(page, bool) or
+                not 0 <= page < len(prepared.selected_original_pages) or
+                not isinstance(bbox, (list, tuple)) or len(bbox) != 4):
+            continue
+        original = prepared.selected_original_pages[page]
+        ordinal = ordinals.get(original, 0)
+        ordinals[original] = ordinal + 1
+        found.append((original, ordinal, row))
+    return found
 
 
 def _terminal_core_outcomes(

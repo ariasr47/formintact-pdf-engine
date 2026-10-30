@@ -6,7 +6,7 @@ from pdft_engine import skill_placement
 
 # The four styles at full width, then at 87.5% (semi) and 75% (cond): fitting ladder step 3.
 LATIN_ROLES = {f"{role}{suffix}" for role in ("regular", "bold", "italic", "bold_italic")
-               for suffix in ("", "_semi", "_cond")}
+               for suffix in ("", "_semi", "_cond", "_serif")} | {"black"}
 
 
 @pytest.mark.parametrize(
