@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "release_id": "pdf-translate-89.0.15-black-weight",
+  "release_id": "pdf-translate-89.0.16-refund-shapes",
   "scope": "behavior-release",
-  "version": "89.0.15",
+  "version": "89.0.16",
   "origin_revision": "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7",
-  "adopted_owner_revision": "91ccb0aa52006e98cc8e9387077dd125c16dc306",
-  "source_digest": "dbf35c9f7f1e7a7538b2e1d74d57f00134ce79e6b9ddc73f0c26e9ad6bda097c",
+  "adopted_owner_revision": "8eadf6ac85f2085c7ff1011076f3536454e0f14d",
+  "source_digest": "8b444d917a444a6f2aaf8c553cdd8e88b5dea6dec630153870970b539cf726c5",
   "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
   "files": [
     {
@@ -55,8 +55,8 @@
     },
     {
       "path": "pdf_translate/extract_segments.py",
-      "size": 58605,
-      "sha256": "b8c779763024891883e307be4147f74db4af4e691251b68a9ec336854cc53b3d"
+      "size": 59369,
+      "sha256": "0b33e393d3d9d82894aa33b0ae1f63c285e194b359997aa9758e0b9580f66c66"
     },
     {
       "path": "pdf_translate/field_fonts.py",
@@ -100,8 +100,8 @@
     },
     {
       "path": "pdf_translate/retypeset.py",
-      "size": 151287,
-      "sha256": "24db6de4a6ca83b421e91ab67a7afb7f8e73a8a41f3cce6189de13730718005b"
+      "size": 151640,
+      "sha256": "7629d44b721ffdb9911aceee45194c81d44930585091923dafc4a575ab5e95a0"
     },
     {
       "path": "pdf_translate/review.py",
@@ -120,13 +120,13 @@
     },
     {
       "path": "pdf_translate/strip_text.py",
-      "size": 41098,
-      "sha256": "44b1075aac481d3cf3730837b0403cde85fed4f25d6504f5f4d151c94f84456e"
+      "size": 44177,
+      "sha256": "7960259dabaa03d531f7b689cc72b0bb692ff938ac0629b4509f52248406e362"
     },
     {
       "path": "pdf_translate/typography.py",
-      "size": 19020,
-      "sha256": "4aabd3ce3186d3b4873a082f2925f6a78e56ae70769f5c596b196019c8932c5a"
+      "size": 19056,
+      "sha256": "850d0457e39132ea875b41f3894fcb6639b0709d5a5ddd359a8e777e65a31c31"
     },
     {
       "path": "pdf_translate/typography_content.py",

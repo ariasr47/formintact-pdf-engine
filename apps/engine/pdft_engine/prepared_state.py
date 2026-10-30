@@ -155,6 +155,7 @@ def _paragraph(group: ParagraphGroup) -> dict:
         "masked": _mask(group.masked),
         # Only a paragraph that mixes weights has it; a state without it reads None.
         **({"tagged": group.tagged} if group.tagged else {}),
+        **({"places": list(group.places)} if group.places else {}),
     }
 
 
@@ -167,6 +168,7 @@ def _paragraph_in(value: dict) -> ParagraphGroup:
         italic=bool(value["italic"]),
         masked=_mask_in(value["masked"]),
         tagged=value.get("tagged"),
+        places=tuple(value.get("places", ())),
     )
 
 

@@ -1640,8 +1640,11 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
             continue
         page_segs = by_page.get(m['page'], [])
         idxs, li = [], 0
+        # A label repeated on the page names each line by where it stands.
+        origins = m.get('origins')
         for i, s in enumerate(page_segs):
-            if li < len(m['lines']) and s['text'].strip() == m['lines'][li].strip():
+            if (li < len(m['lines']) and s['text'].strip() == m['lines'][li].strip()
+                    and (origins is None or math.dist(s['origin'], origins[li]) < 1)):
                 idxs.append(i)
                 li += 1
         if li != len(m['lines']):
@@ -2450,12 +2453,14 @@ def run_retypeset(stripped, segf, trf, out, *, progress=None, cancel=None,
                 # A field over the leaders starts the blank: the label stops
                 # before it, as the source label did, instead of growing onto
                 # it (Ready.gov card, HUD-92900-A, 2026-10-20). Only a field
-                # that starts after the label's own source ink counts.
+                # that starts after the label's own source ink counts, give or
+                # take the hand placement of the field: B101's header field
+                # lands from 1.2 pt inside the label to 2.2 pt past it.
                 core_x1 = seg.get('core_x1')
                 if core_x1 is not None:
                     y0, y1 = seg['bbox'][1], seg['bbox'][3]
                     for rect in widg.get(pno, []):
-                        if (core_x1 - 1 <= rect.x0 < end
+                        if (core_x1 - 3 <= rect.x0 < end
                                 and not (rect.y1 < y0 + 1 or rect.y0 > y1 - 1)):
                             label_max = min(label_max, rect.x0 - 1.5 - ox)
                 return end, label_max

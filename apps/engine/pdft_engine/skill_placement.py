@@ -277,6 +277,9 @@ class ParagraphGroup:
     # A paragraph that mixes weights: its masked text with each bold run in <b>...</b>,
     # which is what the model receives. None when the paragraph is one weight.
     tagged: str | None = None
+    # A label stacked in table cells (`_cell_stacks`): each occurrence's page, line
+    # origins and cell. Empty for a paragraph, which is drawn where its lines stood.
+    places: tuple[dict, ...] = ()
 
     @property
     def item_text(self) -> str:
@@ -463,6 +466,8 @@ _SPACELESS_CHAR = re.compile(
 _LINE_END = re.compile(r"[.!?:;…。！？：；]['\"”’)\]]*$")
 # Narrower stacks are labels and table cells; they keep line-by-line placement.
 _PARAGRAPH_MIN_WIDTH = 150.0
+# Forms set stacked cell labels tighter than text (the 1040: 6 pt on 7 pt).
+_STACK_LEADING = 0.8
 # pdf_translate.retypeset._right_limit: page width - 32 pt, less its 1.5 pt slop.
 _RIGHT_MARGIN_GUARD = 33.5
 
@@ -726,7 +731,9 @@ def _paragraph_line(row: dict, core_count: Counter, texts: Counter, blocked: set
     )
 
 
-def _line_chains(lines: list[dict], rows: list[dict]) -> list[list[dict]]:
+def _line_chains(
+    lines: list[dict], rows: list[dict], tightest: float = 0.95
+) -> list[list[dict]]:
     """Each line's next line in its own column: same left edge, same style, one
     leading below, nothing printed between them."""
     successor: dict[int, dict] = {}
@@ -739,7 +746,7 @@ def _line_chains(lines: list[dict], rows: list[dict]) -> list[list[dict]]:
             if abs(b["origin"][0] - a["origin"][0]) > 2.0:
                 continue
             gap = b["origin"][1] - a["origin"][1]
-            if 0.95 * size <= gap <= 1.75 * size and (best is None or gap < best[0]):
+            if tightest * size <= gap <= 1.75 * size and (best is None or gap < best[0]):
                 best = (gap, b)
         if best is None:
             continue
@@ -938,6 +945,141 @@ def _clear_box(group, rows, widgets, rules) -> bool:
             if x0 + 2 < middle < x1 - 2 and span > 0:
                 return False
     return True
+
+
+def _cell_box(chain, rows, widgets, rules) -> list[float] | None:
+    """The rest of the table cell a stacked label stands in, or None when the label
+    is not in a cell of its own: rules on both sides and below it, within reach, and
+    nothing else in the box."""
+    x0 = min(row["bbox"][0] for row in chain)
+    y0 = min(row["bbox"][1] for row in chain)
+    x1 = max(row["bbox"][2] for row in chain)
+    y1 = max(row["bbox"][3] for row in chain)
+    height = y1 - y0
+    right = left = bottom = None
+    for lx0, ly0, lx1, ly1 in rules:
+        if lx1 - lx0 <= 2.0 and min(ly1, y1) - max(ly0, y0) >= 0.6 * height:
+            middle = (lx0 + lx1) / 2
+            if middle >= x1 - 1 and (right is None or middle < right):
+                right = middle
+            elif middle <= x0 + 1:
+                left = middle
+    if right is None or left is None or right - x0 > _PARAGRAPH_MIN_WIDTH:
+        return None
+    for lx0, ly0, lx1, ly1 in rules:
+        middle = (ly0 + ly1) / 2
+        if (ly1 - ly0 <= 2.0 and middle >= y1 - 1 and min(lx1, right) - max(lx0, x0) > 0
+                and (bottom is None or middle < bottom)):
+            bottom = middle
+    if bottom is None or bottom - y1 > 2 * height:
+        return None
+    box = [x0, y0 - 0.5, right - 1.5, bottom - 1.0]
+    members = {id(row) for row in chain}
+    for other in rows:
+        bx0, by0, bx1, by1 = other["bbox"]
+        if (id(other) not in members and str(other.get("text") or "").strip()
+                and min(bx1, box[2]) - max(bx0, box[0]) > 0
+                and min(by1, box[3]) - max(by0, box[1]) > 0):
+            return None
+    for wx0, wy0, wx1, wy1 in widgets:
+        if min(wx1, box[2]) - max(wx0, box[0]) > 0 and min(wy1, box[3]) - max(wy0, box[1]) > 0:
+            return None
+    return box
+
+
+def _cell_stacks(
+    segments: tuple[dict, ...], source_pdf: Path, *, blocked: set[str], taken: set[str]
+) -> list[tuple[int, list[dict], tuple[dict, ...]]]:
+    """Labels the source stacks in a narrow table cell: (first page, first rows, every
+    place). Translated a line at a time, "Child tax / credit" came back "Crédito /
+    tributario por hijos": the 1040's second line could not fit and stayed English,
+    four times (2026-10-30). One item, drawn across the whole cell, can take the extra
+    line the target needs. A line that goes on in lowercase goes on the same label, so
+    two labels sharing a cell ("Street / City") stay two. A repeated label counts only
+    when each of its lines occurs nowhere else: one answer serves them all."""
+    import fitz
+
+    rows_all = [row for row in segments if isinstance(row, dict)]
+    core_count = Counter(row.get("core") for row in rows_all if isinstance(row.get("core"), str))
+    by_page: dict[int, list[dict]] = {}
+    for row in rows_all:
+        by_page.setdefault(row["page"], []).append(row)
+    found: dict[tuple[str, ...], list[tuple[int, list[dict], list[float]]]] = {}
+    try:
+        doc = fitz.open(str(source_pdf))
+    except Exception:  # noqa: BLE001 -- not a PDF this reader opens: plain line placement
+        return []
+    with doc:
+        for page_number in sorted(by_page):
+            if not 0 <= page_number < doc.page_count:
+                continue
+            page = doc[page_number]
+            if page.rotation % 360 or page.cropbox != page.mediabox:
+                continue
+            rows = by_page[page_number]
+            lines = [
+                row for row in rows
+                if not row.get("passthrough") and isinstance(row.get("core"), str)
+                and len(row["core"]) >= 2 and row["core"] == str(row.get("text") or "").strip()
+                and not row.get("marker") and not row.get("dots") and not row.get("tail")
+                and _horizontal(row) and row["core"] not in blocked
+                and row["core"] not in taken and _width(row) < _PARAGRAPH_MIN_WIDTH
+                and isinstance(row.get("size"), (int, float)) and float(row["size"]) > 0
+            ]
+            chains = [
+                chain for chain in _line_chains(lines, rows, tightest=_STACK_LEADING)
+                if all(b["core"][:1].islower() and not _LINE_END.search(a["core"])
+                       for a, b in pairwise(chain))
+            ]
+            if not chains:
+                continue
+            rules = _page_rules(page)
+            if rules is None:
+                continue
+            widgets = [tuple(widget.rect) for widget in page.widgets()]
+            for chain in chains:
+                box = _cell_box(chain, rows, widgets, rules)
+                if box is not None:
+                    found.setdefault(tuple(row["core"] for row in chain), []).append(
+                        (page_number, chain, box))
+    stacks = []
+    for texts, hits in found.items():
+        if all(core_count[core] == len(hits) * texts.count(core) for core in texts):
+            places = tuple(
+                {"page": page, "origins": [list(row["origin"]) for row in chain], "box": box}
+                for page, chain, box in hits
+            )
+            stacks.append((hits[0][0], hits[0][1], places))
+    return stacks
+
+
+def _token_clean(text: str, table: dict) -> bool:
+    return not (find_missing_tokens(text, table) or find_foreign_tokens(text, table))
+
+
+def _moved_tokens(
+    cores: list[str], answers: dict[str, str], masked: dict[str, MaskResult]
+) -> dict[str, dict]:
+    """{core: the two lines' token table} for neighbouring lines of one sentence whose
+    answers hold each other's tokens. Items are single printed lines, so a language
+    that reorders the sentence moves a masked token to the next line (I-765, 2026-10-30:
+    "Form I-«ck»" one line down), and alone neither line can be unmasked. Tokens are
+    unique across the document, so the pair still has every token, once each."""
+    moved: dict[str, dict] = {}
+    for first, second in pairwise(cores):
+        one, two = answers.get(first), answers.get(second)
+        if not one or not two or first in moved:
+            continue
+        table = {**masked[first].table, **masked[second].table}
+        if not table or (_token_clean(one, masked[first].table)
+                         and _token_clean(two, masked[second].table)):
+            continue
+        joined = f"{one} {two}"
+        source = f"{masked[first].masked_text} {masked[second].masked_text}"
+        if (_token_clean(joined, table)
+                and all(joined.count(token) == source.count(token) for token in table)):
+            moved[first] = moved[second] = table
+    return moved
 
 
 def _continues(group: list[dict], rows: list[dict]) -> bool:
@@ -1195,6 +1337,7 @@ def prepare_document_translation(
         for value in [document.get("title")] + list(document.get("outline") or [])
         if isinstance(value, str)
     )
+    stacks: list[tuple[int, list[dict], tuple[dict, ...]]] = []
     if segments:
         with _LIBRARY_LOCK:
             groups, right_cores = _layout_plan(
@@ -1203,8 +1346,15 @@ def prepare_document_translation(
                 blocked=blocked,
                 paragraphs=paragraph_reflow_target(target_lang),
             )
+            if paragraph_reflow_target(target_lang):
+                stacks = _cell_stacks(
+                    segments, source_pdf, blocked=blocked,
+                    taken={row["core"] for _page, group in groups for row in group},
+                )
     else:
         groups, right_cores = [], ()
+    places_of = {rows[0]["core"]: places for _page, rows, places in stacks}
+    groups = [*groups, *((page, rows) for page, rows, _places in stacks)]
     first_of: dict[str, list[dict]] = {group[0]["core"]: group for _page, group in groups}
     page_of = {group[0]["core"]: page for page, group in groups}
     in_paragraph = {row["core"] for _page, group in groups for row in group}
@@ -1239,6 +1389,7 @@ def prepare_document_translation(
                 italic=all(bool(row.get("italic")) for row in group),
                 masked=result,
                 tagged=_tag_masked(plain, marks, result) if marks else None,
+                places=places_of.get(core, ()),
             ))
             item_texts.append(paragraphs[-1].item_text)
             item_sources.append(("paragraph", group, paragraphs[-1]))
@@ -1754,6 +1905,21 @@ def place_prepared_document(
             "html": _merge_html(text, group, tagged_text),
             "align": "left",
         }
+    line_answers: dict[str, tuple[str | None, str | None]] = {}
+    for core in cores:
+        if core in paragraph_of or core in identifiers:
+            continue
+        line_tagged = tagged_lines.get(core)
+        returned = supplied_masked.get(line_tagged or masked[core].masked_text)
+        tagged_answer = None
+        if returned and line_tagged:
+            returned, tagged_answer = _split_bold_answer(returned)
+        line_answers[core] = (returned, tagged_answer)
+    moved_tokens = _moved_tokens(
+        [core for core in cores if len(core_pages.get(core, ())) == 1],
+        {core: answer[0] for core, answer in line_answers.items() if answer[0]},
+        masked,
+    )
     for core in cores:
         if core in paragraph_of:
             continue
@@ -1762,11 +1928,7 @@ def place_prepared_document(
             kept_source.add(core)
             continue
         result = masked[core]
-        line_tagged = tagged_lines.get(core)
-        returned = supplied_masked.get(line_tagged or result.masked_text)
-        tagged_answer = None
-        if returned and line_tagged:
-            returned, tagged_answer = _split_bold_answer(returned)
+        returned, tagged_answer = line_answers[core]
         if not returned:
             # Cause 2 of the library's eight refusals: ANY segment without a
             # translation fails the whole page. A model that drops one string
@@ -1777,17 +1939,16 @@ def place_prepared_document(
         # GATE Z Z-1 in pipeline.py: reconcile the placeholder set BEFORE unmask
         # runs. unmask is an unconditional str.replace per token, so a token the
         # model dropped or invented must be caught here, not papered over.
-        if find_missing_tokens(returned, result.table) or find_foreign_tokens(
-            returned, result.table
-        ):
+        table = moved_tokens.get(core, result.table)
+        if core not in moved_tokens and not _token_clean(returned, table):
             masking_incomplete.add(core)
             translations[core] = core
             kept_source.add(core)
             continue
-        translations[core] = unmask(returned, result.table)
+        translations[core] = unmask(returned, table)
         if tagged_answer:
             # The library draws <b>...</b> in a single line with its bold role.
-            tagged_text = unmask(tagged_answer, result.table)
+            tagged_text = unmask(tagged_answer, table)
             if _BOLD_TAG.sub("", tagged_text) == translations[core]:
                 translations[core] = tagged_text
                 markup_cores.add(core)
@@ -1952,6 +2113,14 @@ def place_prepared_document(
         # The library names a merge by its first line, which is that line's core.
         return {paragraphs[index].lines[0]: index for index in active_merges}
 
+    def merge_entries() -> list[dict]:
+        """One library merge per place: a stacked label is drawn in each of its cells."""
+        entries: list[dict] = []
+        for index in sorted(active_merges):
+            merge, places = active_merges[index], paragraphs[index].places
+            entries.extend(({**merge, **place} for place in places) if places else (merge,))
+        return entries
+
     # Fitting ladder step 3: a line refused below the floor is drawn at 87.5% width, then 75%,
     # before it is handed back as its source text. Only when the face set has narrow roles.
     widths: dict[str, str] = {}
@@ -2033,7 +2202,7 @@ def place_prepared_document(
                            allow_scale=allow_scale)
             _write_layout(
                 mapping,
-                merges=[active_merges[index] for index in sorted(active_merges)],
+                merges=merge_entries(),
                 source_glyphs=sorted(source_glyphs),
                 right=right_cores,
                 scale_caps=scale_caps,
@@ -2058,8 +2227,9 @@ def place_prepared_document(
                 unmatched = failure.refusals.get("merges")
                 if unmatched:
                     by_lines = {
-                        (merge["page"], tuple(merge["lines"])): index
+                        (place["page"], tuple(merge["lines"])): index
                         for index, merge in active_merges.items()
+                        for place in paragraphs[index].places or (merge,)
                     }
                     hit = {
                         by_lines.get((item.get("page"), tuple(item.get("lines") or ())))

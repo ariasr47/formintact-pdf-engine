@@ -58,6 +58,7 @@ contained text (also stripped, with nesting depth), rewritten widget text,
 and leftover_text (empty on success). Exit 1 when leftover_text is not
 empty.
 """
+import io
 import json
 import logging
 import os
@@ -66,6 +67,8 @@ import tempfile
 
 import pikepdf
 import pymupdf
+from fontTools.pens.boundsPen import BoundsPen
+from fontTools.ttLib import TTFont
 from pikepdf import Name, parse_content_stream, unparse_content_stream
 
 from ._pixels import INK_SKIP, changed_channels, dark_pixels
@@ -305,6 +308,66 @@ def _to_unrotated(d, page):
     return d
 
 
+UNMAPPED = '�'
+
+
+def _spans(data):
+    return (span for block in data['blocks'] for line in block.get('lines', ())
+            for span in line['spans'])
+
+
+def _has_unmapped(data):
+    return any(UNMAPPED in span['text'] for span in _spans(data))
+
+
+def _glyph_draws_nothing(program, gid):
+    """True when a font program's glyph has no outline; False when unsure."""
+    try:
+        font = TTFont(io.BytesIO(program), lazy=True)
+        glyphs = font.getGlyphSet()
+        pen = BoundsPen(glyphs)
+        glyphs[font.getGlyphName(gid)].draw(pen)
+        return pen.bounds is None
+    except Exception:  # noqa: BLE001 -- an unreadable program stays unmapped
+        return False
+
+
+def _blank_unmapped(page, raw):
+    """Turn each U+FFFD whose glyph draws nothing into a space, in place, in a
+    rawdict. A glyph with no outline is white space, whatever its code says, and
+    never a reason to keep a line in the source language: the JPL booklet ends 14
+    lines with a font's `nonmarkingreturn` (2026-10-30). Any font of that name
+    with a glyph at that id must agree; a glyph with ink stays unmapped.
+    """
+    programs = {}
+    fonts = page.get_fonts()
+    blank = set()
+    for trace in page.get_texttrace():
+        for ucs, gid, origin, _ in trace['chars']:
+            if ucs != ord(UNMAPPED):
+                continue
+            matching = [font[0] for font in fonts
+                        if font[3].partition('+')[2 if '+' in font[3] else 0] == trace['font']]
+            for xref in matching:
+                if xref not in programs:
+                    programs[xref] = page.parent.extract_font(xref)[3]
+            if matching and all(_glyph_draws_nothing(programs[xref], gid) for xref in matching):
+                blank.add((round(origin[0], 1), round(origin[1], 1)))
+    for span in _spans(raw):
+        for char in span['chars']:
+            if (char['c'] == UNMAPPED and
+                    (round(char['origin'][0], 1), round(char['origin'][1], 1)) in blank):
+                char['c'] = ' '
+    return raw
+
+
+def _copy_blanked_spans(data, raw):
+    """Give a dict the characters of the rawdict of the same text page."""
+    for span, source in zip(_spans(data), _spans(raw), strict=True):
+        if UNMAPPED in span['text']:
+            span['text'] = ''.join(char['c'] for char in source['chars'])
+
+
 def page_textdict_without_annots(page):
     """get_text('dict') of the page CONTENT only: annotation appearances out.
 
@@ -316,7 +379,10 @@ def page_textdict_without_annots(page):
     that still shows the source value.
     """
     tp = _annots_free_textpage(page)
-    return _to_unrotated(tp.extractDICT(), page)
+    data = tp.extractDICT()
+    if _has_unmapped(data):
+        _copy_blanked_spans(data, _blank_unmapped(page, tp.extractRAWDICT()))
+    return _to_unrotated(data, page)
 
 
 def page_rawdict_without_annots(page):
@@ -325,16 +391,26 @@ def page_rawdict_without_annots(page):
     the same unrotated space. The extractor reads it for lines that carry a
     list marker (row 23)."""
     tp = _annots_free_textpage(page)
-    return _to_unrotated(tp.extractRAWDICT(), page)
+    data = tp.extractRAWDICT()
+    if any(char['c'] == UNMAPPED for span in _spans(data) for char in span['chars']):
+        _blank_unmapped(page, data)
+    return _to_unrotated(data, page)
 
 
 def leftover_page_text(path):
-    """[(page_index, snippet)] for every page whose content still has text."""
+    """[(page_index, snippet)] for every page whose content still draws letters.
+
+    Spans, not extractText(): MuPDF adds a tagged image's /ActualText to the plain
+    text, and that is no text left on the page. NASA's Simple Machines worksheet
+    (2026-10-30) describes its banner so, and the whole order failed on it.
+    """
     doc = pymupdf.open(path)
     out = []
     try:
         for page in doc:
-            text = ' '.join(page_text_without_annots(page).split())
+            text = ' '.join(' '.join(
+                span['text'] for block in page_textdict_without_annots(page)['blocks']
+                for line in block.get('lines', ()) for span in line['spans']).split())
             if text:
                 out.append((page.number, text[:80]))
     finally:

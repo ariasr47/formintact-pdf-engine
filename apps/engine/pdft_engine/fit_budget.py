@@ -16,7 +16,7 @@ import pymupdf
 
 from pdft_engine.masking import MASK_TOKEN_RE
 
-# The module, not the package's `retypeset` function of the same name: pinned 89.0.15
+# The module, not the package's `retypeset` function of the same name: pinned 89.0.16
 # internals, guarded by test_fit_budget.
 _rt = importlib.import_module("pdf_translate.retypeset")
 

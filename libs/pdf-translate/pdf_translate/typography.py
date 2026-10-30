@@ -300,7 +300,7 @@ def _program_observation(data):
                 result['italic'] = italic
             else:
                 result['unresolved'].append('unknown-or-conflicting-slant')
-    except (TTLibError, KeyError, ValueError, OSError) as exc:
+    except Exception as exc:  # noqa: BLE001 -- HUD-90105-A's empty name table raises struct.error
         result['unresolved'].append('unreadable-font-program')
         result['evidence']['error'] = type(exc).__name__
     return result

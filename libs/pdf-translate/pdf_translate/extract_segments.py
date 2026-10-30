@@ -233,6 +233,9 @@ def start_at_first_letter(group, lines, fields):
 
 
 INNER_LEADER = re.compile(r'([.…]{4,}|_{3,})(?=\s*\S)')
+LEADER_LEFT = re.compile(r'[.…]{4,}|_{3,}')
+# A gap this many ems wide is more than one word space: a column, not a phrase.
+COLUMN_GAP = 0.4
 
 
 def _group_chars(group, lines):
@@ -281,14 +284,23 @@ def split_at_field_leaders(group, lines, fields):
         # word, and not punctuation such as a date's "/"; "#:" is a label). A blank
         # inside a sentence ("are ____, referred to as the") stays whole: cut there,
         # it would go to the model as fragments.
-        # With no label before the blank, only a table column (a wide gap after the
-        # blank) is cut: "____ District of ____" is one phrase whose blank the model
-        # moves ("Distrito ____ de ____").
+        # With no label before the blank, only a table column (a gap wider than one
+        # space after the blank) is cut: "____ District of ____" is one phrase whose
+        # blank the model moves ("Distrito ____ de ____"). A word with that gap on
+        # both sides of a blank is a column too ("____  Case number  ____", B101, where
+        # the words drawn with their blanks landed on a field), and so is a label that
+        # ends the line after its blank ("____ When").
+        wide = COLUMN_GAP * group['size']
         before = text[cuts[-1][1] if cuts else 0:m.start()].strip()
+        column = chars[nxt]['bbox'][0] - chars[m.end() - 1]['bbox'][2] >= wide
         head = text[nxt]
+        last = m.start() - 1
+        while last > 0 and text[last].isspace():
+            last -= 1
         if (head.islower() or not (head.isalnum() or head == '#')
-                or (before and not before.endswith(':'))
-                or (not before and nxt - m.end() < 3)):
+                or (before and not before.endswith(':') and not (
+                    column and chars[m.start()]['bbox'][0] - chars[last]['bbox'][2] >= wide))
+                or (not before and not column and LEADER_LEFT.search(text, nxt))):
             continue
         cuts.append((m.end(), nxt))
     if not cuts:
