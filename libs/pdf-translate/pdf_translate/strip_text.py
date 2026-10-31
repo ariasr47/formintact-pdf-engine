@@ -780,7 +780,9 @@ def apply_widget_text(annot, spec, field, report):
                 f'{field}: {key} on a choice field is an export value; '
                 f'translate "options" instead and leave {pdfkey} alone')
         target = _target_of(spec[key], key, field)
-        if target is None:
+        # Writing the same string back is not a change: it would cost the field
+        # its appearance for nothing.
+        if target is None or target == str(annot.get(Name(pdfkey), '')):
             continue
         annot[Name(pdfkey)] = pikepdf.String(target)
         changed.append(key)
@@ -919,6 +921,7 @@ def strip_text(src, dst, hide_buttons=None, captions=None, widget_text=None,
 
     seen_xobjects = set()
     seen_widget_text = set()
+    dropped_appearance = False
     for i, page in enumerate(pdf.pages):
         data, removed = strip_ops(page, pdf)
         page.Contents = pdf.make_stream(b'q\n' + data + b'\nQ\n')
@@ -931,9 +934,10 @@ def strip_text(src, dst, hide_buttons=None, captions=None, widget_text=None,
                          if t and a.get('/Subtype') == Name('/Widget') else '')
             spec_key = spec_keys.get(full_name)
             if spec_key is not None:
-                if apply_widget_text(a, widget_text[spec_key], full_name,
-                                     report):
-                    seen_widget_text.add(spec_key)
+                drawn = '/AP' in a
+                apply_widget_text(a, widget_text[spec_key], full_name, report)
+                seen_widget_text.add(spec_key)
+                dropped_appearance |= drawn and '/AP' not in a
             if a.get('/FT') != Name('/Btn'):
                 continue
             ff = int(a.get('/Ff', 0) or 0)
@@ -952,6 +956,7 @@ def strip_text(src, dst, hide_buttons=None, captions=None, widget_text=None,
                 # caption on top of /CA; drop them so NeedAppearances rebuilds.
                 if '/AP' in a:
                     del a.AP
+                    dropped_appearance = True
                 report['rewritten_captions'].append(t)
             if base in hide or t in hide:
                 a.F = 2
@@ -963,8 +968,10 @@ def strip_text(src, dst, hide_buttons=None, captions=None, widget_text=None,
         raise WidgetTextError(
             f'widget-text mapping names fields this PDF does not have: '
             f'{unknown}')
-    if report['rewritten_widget_text']:
-        # The appearances we dropped have to be rebuilt by the viewer.
+    if dropped_appearance:
+        # The appearances we dropped have to be rebuilt by the viewer. Only
+        # then: the flag covers the whole form, and a viewer that honours it
+        # redraws every field from its value, which turns a barcode into text.
         if acro is None:
             pdf.Root.AcroForm = pdf.make_indirect(pikepdf.Dictionary())
             acro = pdf.Root.AcroForm

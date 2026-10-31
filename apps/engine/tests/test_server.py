@@ -76,7 +76,7 @@ def test_healthz_shape_and_versions(engine) -> None:
     body = json.loads(raw)
     assert body["status"] == "ok"
     assert body["pymupdf_version"] == "1.28.0"
-    assert body["pdf_translate_version"] == "89.0.16"
+    assert body["pdf_translate_version"] == "89.0.17"
     assert set(body) == {
         "status",
         "engine_version",

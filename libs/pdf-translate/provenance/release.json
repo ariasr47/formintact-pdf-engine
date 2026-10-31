@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "release_id": "pdf-translate-89.0.16-refund-shapes",
+  "release_id": "pdf-translate-89.0.17-barcode-fields",
   "scope": "behavior-release",
-  "version": "89.0.16",
+  "version": "89.0.17",
   "origin_revision": "d392c5d0f1bd9f9312879dcd4dc4336d96201bb7",
-  "adopted_owner_revision": "8eadf6ac85f2085c7ff1011076f3536454e0f14d",
-  "source_digest": "8b444d917a444a6f2aaf8c553cdd8e88b5dea6dec630153870970b539cf726c5",
+  "adopted_owner_revision": "0b4e8576e00c9558cc4d84bc4eea98d16ba9d2c3",
+  "source_digest": "00338023f4d29e4e414f236f4c942e626265c41005a0bd3c17a1d6f09c1f27c1",
   "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
   "files": [
     {
@@ -120,8 +120,8 @@
     },
     {
       "path": "pdf_translate/strip_text.py",
-      "size": 44177,
-      "sha256": "7960259dabaa03d531f7b689cc72b0bb692ff938ac0629b4509f52248406e362"
+      "size": 44619,
+      "sha256": "2ac6bb60c0567181f557ee75a1855be380a724cdf9fa2e88e400345c8c7df30a"
     },
     {
       "path": "pdf_translate/typography.py",

@@ -224,7 +224,7 @@ BLACK_WEIGHT_RELEASE = {
 # damaged font table no longer fails the order. Four modules differ from 89.0.15. The
 # pin was derived from the committed owner tree before the candidate record or any
 # artifact was written.
-ADOPTED_RELEASE = {
+REFUND_SHAPES_RELEASE = {
     "scope": "behavior-release", "version": "89.0.16",
     "release_id": "pdf-translate-89.0.16-refund-shapes",
     "adopted_owner_revision": "8eadf6ac85f2085c7ff1011076f3536454e0f14d",
@@ -232,11 +232,23 @@ ADOPTED_RELEASE = {
     "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
     "modules": 27,
 }
+# 2026-10-30 barcode fields: viewers are asked to redraw a form only when an appearance
+# was dropped, so a text field drawn as a picture keeps its picture, and writing a value
+# back unchanged drops nothing. Only strip_text differs from 89.0.16. The pin was derived
+# from the committed owner tree before the candidate record or any artifact was written.
+ADOPTED_RELEASE = {
+    "scope": "behavior-release", "version": "89.0.17",
+    "release_id": "pdf-translate-89.0.17-barcode-fields",
+    "adopted_owner_revision": "0b4e8576e00c9558cc4d84bc4eea98d16ba9d2c3",
+    "source_digest": "00338023f4d29e4e414f236f4c942e626265c41005a0bd3c17a1d6f09c1f27c1",
+    "license_digest": "1bf3136c754246a00a7ecd2591b7ffad12be6ff621333c6828a9ddf0db572a3f",
+    "modules": 27,
+}
 DEFAULT_VERSION = ADOPTED_RELEASE["version"]
 MODULE_COUNTS = {"89.0.0": 26, "89.0.1": 27, "89.0.2": 27, "89.0.3": 27, "89.0.4": 27,
                  "89.0.5": 27, "89.0.6": 27, "89.0.7": 27, "89.0.8": 27, "89.0.9": 27,
                  "89.0.10": 27, "89.0.11": 27, "89.0.12": 27, "89.0.13": 27,
-                 "89.0.14": 27, "89.0.15": 27, "89.0.16": 27}
+                 "89.0.14": 27, "89.0.15": 27, "89.0.16": 27, "89.0.17": 27}
 PACKAGE_PREFIX = "libs/pdf-translate/pdf_translate/"
 PACKAGE_NAME = "pdf-translate"
 RECORD_KEYS = {
