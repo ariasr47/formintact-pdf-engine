@@ -10,10 +10,10 @@ PIXEL_DIFF_PASS_THRESHOLD_PCT = 0.001  # 0.1% of total page pixels
 def pixel_diff_ratio(golden_path: Path, actual_path: Path) -> float | None:
     """Returns the fraction of differing pixels, or None on a dimension mismatch
     (an automatic fail — there is no defined ratio to compute)."""
-    import fitz  # deferred: quarantine
+    import pymupdf  # deferred: quarantine
 
-    golden = fitz.Pixmap(str(golden_path))
-    actual = fitz.Pixmap(str(actual_path))
+    golden = pymupdf.Pixmap(str(golden_path))
+    actual = pymupdf.Pixmap(str(actual_path))
     if (golden.width, golden.height) != (actual.width, actual.height):
         return None
     total = golden.width * golden.height

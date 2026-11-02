@@ -1,7 +1,7 @@
 """Pinned RGB pixel comparator behavior."""
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 from pdft_engine.golden import (
     PIXEL_CHANNEL_DELTA_THRESHOLD,
@@ -12,7 +12,7 @@ from pdft_engine.golden import (
 
 
 def _png(path: Path, width=10, height=10, color=(255, 255, 255)):
-    pix = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, width, height), False)
+    pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, width, height), False)
     pix.clear_with(color[0])
     pix.save(path)
 

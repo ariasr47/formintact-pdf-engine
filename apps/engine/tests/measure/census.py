@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 from .partition import MeasureResult
 
@@ -43,7 +43,7 @@ def _space_runs_in_span(span: dict) -> list[tuple[float, float, float]]:
 
 def census_page(pdf: Path, page_no: int) -> list[dict]:
     loci: list[dict] = []
-    with fitz.open(pdf) as doc:
+    with pymupdf.open(pdf) as doc:
         page = doc[page_no - 1]
         data = page.get_text("rawdict")
     for block in data.get("blocks", []):
@@ -69,7 +69,7 @@ def census_page(pdf: Path, page_no: int) -> list[dict]:
 
 
 def census_pdf(pdf: Path) -> list[dict]:
-    with fitz.open(pdf) as doc:
+    with pymupdf.open(pdf) as doc:
         n_pages = doc.page_count
     loci: list[dict] = []
     for n in range(1, n_pages + 1):

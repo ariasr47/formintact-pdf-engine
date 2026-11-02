@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 from pdft_engine.skill_placement import _split_bold_answer, place_document
 
@@ -41,13 +41,13 @@ def _source(path: Path) -> None:
     lines, current = [], []
     for word in words:
         trial = " ".join(w for w, _ in [*current, word])
-        if current and fitz.get_text_length(trial, "helv", 11) > 300:
+        if current and pymupdf.get_text_length(trial, "helv", 11) > 300:
             lines.append(current)
             current = []
         current.append(word)
     lines.append(current)
     assert len(lines) >= 3, lines
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         page = doc.new_page(width=612, height=792)
         for row, line in enumerate(lines):
             x = 72.0
@@ -55,7 +55,7 @@ def _source(path: Path) -> None:
                 text = word + (" " if index < len(line) - 1 else "")
                 font = "hebo" if bold else "helv"
                 page.insert_text((x, 120 + 14 * row), text, fontname=font, fontsize=11)
-                x += fitz.get_text_length(text, font, 11)
+                x += pymupdf.get_text_length(text, font, 11)
         doc.save(path)
 
 
@@ -70,7 +70,7 @@ def _place(tmp_path: Path, answer):
 
     result = place_document(source_pdf=source, translate=translate, lang="es",
                             font=_LATIN_ROLES, workdir=tmp_path / "work")
-    with fitz.open(result.pdf) as doc:
+    with pymupdf.open(result.pdf) as doc:
         spans = [span for block in doc[0].get_text("dict")["blocks"] if block["type"] == 0
                  for line in block["lines"] for span in line["spans"] if span["text"].strip()]
     return seen, result, spans
@@ -117,10 +117,10 @@ def test_a_single_line_with_a_bold_lead_keeps_only_the_lead_bold(tmp_path):
     the line now reads regular (its majority) with the lead bold."""
     lead, rest = "Caution:", " To claim certain credits you need a valid number."
     source = tmp_path / "source.pdf"
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         page = doc.new_page(width=612, height=792)
         page.insert_text((72, 120), lead, fontname="hebo", fontsize=10)
-        page.insert_text((72 + fitz.get_text_length(lead, "hebo", 10), 120), rest,
+        page.insert_text((72 + pymupdf.get_text_length(lead, "hebo", 10), 120), rest,
                          fontname="helv", fontsize=10)
         doc.save(source)
     for answer, bold_text in (
@@ -140,7 +140,7 @@ def test_a_single_line_with_a_bold_lead_keeps_only_the_lead_bold(tmp_path):
         assert seen == ["<b>" + lead + "</b>" + rest]
         [outcome] = result.outcomes
         assert outcome.outcome in {"placed", "shrunk"} and "<" not in outcome.translation
-        with fitz.open(result.pdf) as doc:
+        with pymupdf.open(result.pdf) as doc:
             spans = [s for b in doc[0].get_text("dict")["blocks"] if b["type"] == 0
                      for line in b["lines"] for s in line["spans"] if s["text"].strip()]
         drawn = " ".join(s["text"] for s in spans)
@@ -154,18 +154,18 @@ def test_a_mostly_bold_line_keeps_its_regular_words_regular(tmp_path):
     parts = [("Influenza vaccine ", "hebo"), ("can prevent ", "helv"),
              ("influenza (flu)", "hebo"), (".", "helv")]
     source = tmp_path / "source.pdf"
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         page = doc.new_page(width=612, height=792)
         x = 72.0
         for text, font in parts:
             page.insert_text((x, 120), text, fontname=font, fontsize=12)
-            x += fitz.get_text_length(text, font, 12)
+            x += pymupdf.get_text_length(text, font, 12)
         doc.save(source)
     answer = "<b>La vacuna antigripal</b> puede prevenir <b>la influenza (gripe)</b>."
     result = place_document(source_pdf=source, translate=lambda items: {i: answer for i in items},
                             lang="es", font=_LATIN_ROLES, workdir=tmp_path / "work")
     assert [o.outcome for o in result.outcomes] in (["placed"], ["shrunk"])
-    with fitz.open(result.pdf) as doc:
+    with pymupdf.open(result.pdf) as doc:
         spans = [s for b in doc[0].get_text("dict")["blocks"] if b["type"] == 0
                  for line in b["lines"] for s in line["spans"] if s["text"].strip()]
     regular = " ".join(s["text"] for s in spans if "Bold" not in s["font"])

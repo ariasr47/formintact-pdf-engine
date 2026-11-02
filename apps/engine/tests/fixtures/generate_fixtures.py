@@ -9,12 +9,12 @@ A relative parents[] computation, not an import of tests.support.paths, so
 own directory on sys.path, not the apps/engine package root)."""
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 OUT = Path(__file__).resolve().parents[4] / "apps" / "engine" / "tests" / "fixtures"
 
 # A zero-page PDF cannot be SAVED by MuPDF, so it is handwritten: a syntactically
-# minimal PDF whose page tree has /Count 0. fitz opens it (repairing the xref) and
+# minimal PDF whose page tree has /Count 0. pymupdf opens it (repairing the xref) and
 # reports page_count == 0 — exactly the shape the zero_pages validation must catch.
 ZERO_PAGE_PDF = (
     b"%PDF-1.4\n"
@@ -26,52 +26,53 @@ ZERO_PAGE_PDF = (
 
 
 def _grey_png() -> bytes:
-    pix = fitz.Pixmap(fitz.csRGB, fitz.IRect(0, 0, 60, 80))
+    pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 60, 80))
     pix.clear_with(200)
     return pix.tobytes("png")
 
 
-def _text_page(doc: fitz.Document, lines: list[str]) -> None:
+def _text_page(doc: pymupdf.Document, lines: list[str]) -> None:
     page = doc.new_page(width=595, height=842)  # A4 portrait
     for i, line in enumerate(lines):
-        page.insert_text(fitz.Point(72, 100 + 18 * i), line, fontsize=11)
+        page.insert_text(pymupdf.Point(72, 100 + 18 * i), line, fontsize=11)
 
 
-def _image_page(doc: fitz.Document, png: bytes) -> None:
+def _image_page(doc: pymupdf.Document, png: bytes) -> None:
     page = doc.new_page(width=595, height=842)
-    page.insert_image(fitz.Rect(72, 72, 400, 500), stream=png)
+    page.insert_image(pymupdf.Rect(72, 72, 400, 500), stream=png)
 
 
 def make_invoice() -> None:
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         for n in range(1, 9):
             page = doc.new_page(width=595, height=842)  # A4 portrait
             # Line 1: uniform-style block (header) — whole line bold+serif (tibo).
             page.insert_text(
-                fitz.Point(72, 100), f"INVOICE 2026-{n:04d} — Benchmark Fixture Page {n} of 8",
+                pymupdf.Point(72, 100), f"INVOICE 2026-{n:04d} — Benchmark Fixture Page {n} of 8",
                 fontsize=13, fontname="tibo",
             )
             # Line 2: plain control block ("Bill to") — unchanged, helv regular.
             page.insert_text(
-                fitz.Point(72, 130), "Bill to: Redline Verlag GmbH, Musterstrasse 12, 10115 Berlin",
+                pymupdf.Point(72, 130),
+                "Bill to: Redline Verlag GmbH, Musterstrasse 12, 10115 Berlin",
                 fontsize=11, fontname="helv",
             )
             # Line 3: mixed-style block — label (helv) + longer italic run (tiit),
             # same baseline. Dominant share ~0.74-0.76 — below the 0.85 threshold.
             label3 = f"Line item {n}: "
-            page.insert_text(fitz.Point(72, 160), label3, fontsize=11, fontname="helv")
-            w3 = fitz.Font("helv").text_length(label3, fontsize=11)
+            page.insert_text(pymupdf.Point(72, 160), label3, fontsize=11, fontname="helv")
+            w3 = pymupdf.Font("helv").text_length(label3, fontsize=11)
             page.insert_text(
-                fitz.Point(72 + w3, 160), "professional document translation services",
+                pymupdf.Point(72 + w3, 160), "professional document translation services",
                 fontsize=11, fontname="tiit",
             )
             # Line 4: mixed-style block — label (helv) + bold amount (hebo), same
             # baseline. Measured dominant share ~0.745, same band as block 3.
             label4 = "Amount due: "
-            page.insert_text(fitz.Point(72, 190), label4, fontsize=11, fontname="helv")
-            w4 = fitz.Font("helv").text_length(label4, fontsize=11)
+            page.insert_text(pymupdf.Point(72, 190), label4, fontsize=11, fontname="helv")
+            w4 = pymupdf.Font("helv").text_length(label4, fontsize=11)
             page.insert_text(
-                fitz.Point(72 + w4, 190), f"EUR {n * 125}.00 — payable within 30 days",
+                pymupdf.Point(72 + w4, 190), f"EUR {n * 125}.00 — payable within 30 days",
                 fontsize=11, fontname="hebo",
             )
         doc.save(OUT / "benchmark-invoice.pdf")
@@ -79,7 +80,7 @@ def make_invoice() -> None:
 
 def make_partly_scanned() -> None:
     png = _grey_png()
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         for n in range(1, 9):
             if n in (3, 4):  # the §4 copy example: "Pages 3–4", "6 of 8"
                 _image_page(doc, png)
@@ -92,26 +93,26 @@ def make_partly_scanned() -> None:
 
 def make_all_scanned() -> None:
     png = _grey_png()
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         for _ in range(4):
             _image_page(doc, png)
         doc.save(OUT / "all-scanned.pdf")
 
 
 def make_encrypted() -> None:
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         for n in (1, 2):
             _text_page(doc, [f"Secret page {n} — this fixture is AES-256 encrypted."])
         doc.save(
             OUT / "encrypted.pdf",
-            encryption=fitz.PDF_ENCRYPT_AES_256,
+            encryption=pymupdf.PDF_ENCRYPT_AES_256,
             user_pw="secret",
             owner_pw="secret",
         )
 
 
 def make_page_count(name: str, pages: int) -> None:
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         for n in range(1, pages + 1):
             _text_page(doc, [f"Page {n} of {pages} — boundary fixture text content line."])
         doc.save(OUT / name)
@@ -123,32 +124,38 @@ def make_simple_ruled() -> None:
     underline. Every criterion of ACs 1-6 must also hold here, and unlike FL-150
     this file is ours to regenerate, so a reader can see exactly what the crops
     are drawn around."""
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         page = doc.new_page(width=595, height=842)
         # 6 checkboxes, 10x10 pt, on a 30 pt pitch, with their labels to the right.
         for i in range(6):
             y = 100 + i * 30
-            page.draw_rect(fitz.Rect(72, y, 82, y + 10), color=(0, 0, 0), width=0.75)
-            page.insert_text(fitz.Point(92, y + 9), f"Option {i + 1}", fontsize=10, fontname="helv")
+            page.draw_rect(pymupdf.Rect(72, y, 82, y + 10), color=(0, 0, 0), width=0.75)
+            page.insert_text(
+                pymupdf.Point(92, y + 9), f"Option {i + 1}", fontsize=10, fontname="helv"
+            )
         # A ruled 3-row table: horizontal rules + one vertical divider.
         for i in range(4):
-            page.draw_line(fitz.Point(72, 300 + i * 24), fitz.Point(523, 300 + i * 24), width=0.75)
-        page.draw_line(fitz.Point(300, 300), fitz.Point(300, 372), width=0.75)
+            page.draw_line(
+                pymupdf.Point(72, 300 + i * 24), pymupdf.Point(523, 300 + i * 24), width=0.75
+            )
+        page.draw_line(pymupdf.Point(300, 300), pymupdf.Point(300, 372), width=0.75)
         for i in range(3):
             y = 300 + i * 24
-            page.insert_text(fitz.Point(78, y + 16), f"Label {i + 1}", fontsize=10, fontname="helv")
             page.insert_text(
-                fitz.Point(306, y + 16), f"Value {i + 1}", fontsize=10, fontname="helv"
+                pymupdf.Point(78, y + 16), f"Label {i + 1}", fontsize=10, fontname="helv"
+            )
+            page.insert_text(
+                pymupdf.Point(306, y + 16), f"Value {i + 1}", fontsize=10, fontname="helv"
             )
         # Lettered items a-h, each on its own line, its own y.
         for i, letter in enumerate("abcdefgh"):
             page.insert_text(
-                fitz.Point(72, 420 + i * 16), f"{letter}. Item {letter} of the lettered list",
+                pymupdf.Point(72, 420 + i * 16), f"{letter}. Item {letter} of the lettered list",
                 fontsize=10, fontname="helv",
             )
         # A fill-in area: an underline with nothing above it.
-        page.insert_text(fitz.Point(72, 600), "Signature:", fontsize=10, fontname="helv")
-        page.draw_line(fitz.Point(140, 602), fitz.Point(400, 602), width=0.75)
+        page.insert_text(pymupdf.Point(72, 600), "Signature:", fontsize=10, fontname="helv")
+        page.draw_line(pymupdf.Point(140, 602), pymupdf.Point(400, 602), width=0.75)
         doc.save(OUT / "simple_ruled.pdf")
 
 
@@ -201,12 +208,12 @@ def make_stub_floor() -> None:
     rows still extract as 6 SEPARATE blocks -- verified empirically: a 2pt gap
     (82pt pitch) merges all 6 rows into ONE PyMuPDF block instead, which changes
     the growth-ceiling geometry entirely and is NOT what this fixture is for."""
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         page = doc.new_page(width=200, height=520)
         label = "Label {i} with a very great deal of descriptive text about this field"
         for i in range(6):
             y0 = 10 + i * 84
-            rect = fitz.Rect(20, y0, 60, y0 + 80)  # a narrow 40pt column, 80pt tall
+            rect = pymupdf.Rect(20, y0, 60, y0 + 80)  # a narrow 40pt column, 80pt tall
             leftover = page.insert_textbox(rect, label.format(i=i), fontsize=8, fontname="helv")
             assert leftover >= 0, f"row {i} overflowed the ORIGINAL column: {leftover}"
         doc.save(OUT / "stub_floor.pdf")
@@ -235,35 +242,35 @@ def make_vector_obstacles() -> None:
        `content_box = union(...) INTERSECTED WITH the page rectangle`) is what
        keeps it on the sheet.
     """
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         page = doc.new_page(width=612, height=792)  # US Letter
 
         # Geometry 4 FIRST -- a full-page 5% grey wash (fill (0.95, 0.95, 0.95),
         # 100% page area >= VECTOR_MAX_AREA_RATIO). Drawn before everything else
         # so it never occludes the rest of the fixture's content.
         page.draw_rect(
-            fitz.Rect(0, 0, 612, 792), color=None, fill=(0.95, 0.95, 0.95), fill_opacity=1.0,
+            pymupdf.Rect(0, 0, 612, 792), color=None, fill=(0.95, 0.95, 0.95), fill_opacity=1.0,
         )
 
         # Geometry 1 -- a bordered cell CONTAINING its own text.
-        page.draw_rect(fitz.Rect(60, 90, 300, 112), color=(0, 0, 0), width=0.75)
-        page.insert_text(fitz.Point(70, 107), "Cell label text", fontsize=10, fontname="helv")
+        page.draw_rect(pymupdf.Rect(60, 90, 300, 112), color=(0, 0, 0), width=0.75)
+        page.insert_text(pymupdf.Point(70, 107), "Cell label text", fontsize=10, fontname="helv")
 
         # Geometry 2 -- an 18x9pt checkbox BLOCKING a short label's wrap.
-        page.insert_text(fitz.Point(60, 148), "Option", fontsize=10, fontname="helv")
-        page.draw_rect(fitz.Rect(150, 140, 168, 149), color=(0, 0, 0), width=0.75)
+        page.insert_text(pymupdf.Point(60, 148), "Option", fontsize=10, fontname="helv")
+        page.draw_rect(pymupdf.Rect(150, 140, 168, 149), color=(0, 0, 0), width=0.75)
 
         # Geometry 3 -- a 2x2pt speck and a 0.4x0.4pt tick, both below
         # VECTOR_MIN_EXTENT_PT on their LONG axis.
-        page.draw_rect(fitz.Rect(400, 178, 402, 180), color=(0, 0, 0), fill=(0, 0, 0))
-        page.draw_rect(fitz.Rect(450, 178.0, 450.4, 178.4), color=(0, 0, 0), fill=(0, 0, 0))
+        page.draw_rect(pymupdf.Rect(400, 178, 402, 180), color=(0, 0, 0), fill=(0, 0, 0))
+        page.draw_rect(pymupdf.Rect(450, 178.0, 450.4, 178.4), color=(0, 0, 0), fill=(0, 0, 0))
 
         # Geometry 5 -- a bleed rule 12pt past the page's right edge (top band),
         # and a long label in a lower band with no obstacle of its own to its
         # right (the label the page clamp must keep on the sheet).
-        page.draw_rect(fitz.Rect(504, 20, 624, 20.5), color=(0, 0, 0), fill=(0, 0, 0))
+        page.draw_rect(pymupdf.Rect(504, 20, 624, 20.5), color=(0, 0, 0), fill=(0, 0, 0))
         page.insert_text(
-            fitz.Point(60, 760),
+            pymupdf.Point(60, 760),
             "A long unbounded label with no printed cell or checkbox to its right",
             fontsize=10, fontname="helv",
         )
@@ -295,10 +302,10 @@ def make_page_box_anomaly() -> None:
     empirically (unlike G1, PyMuPDF's `.mediabox`/`.cropbox` PROPERTIES do carry
     the raw, non-normalized box values through -- this is the "one-print" fact
     §2.2a's build obligation asks for)."""
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         page1 = doc.new_page(width=612, height=792)
         page1.insert_text(
-            fitz.Point(72, 100), "Anomaly page 1 -- G1's attempted falsifier.", fontsize=11,
+            pymupdf.Point(72, 100), "Anomaly page 1 -- G1's attempted falsifier.", fontsize=11,
         )
         xref1 = page1.xref
         # MediaBox and CropBox shifted TOGETHER to a negative origin -- containment
@@ -307,7 +314,7 @@ def make_page_box_anomaly() -> None:
         doc.xref_set_key(xref1, "CropBox", "[-36 0 576 792]")
 
         page2 = doc.new_page(width=612, height=792)
-        page2.insert_text(fitz.Point(72, 100), "Anomaly page 2 -- G2's falsifier.", fontsize=11)
+        page2.insert_text(pymupdf.Point(72, 100), "Anomaly page 2 -- G2's falsifier.", fontsize=11)
         xref2 = page2.xref
         # MediaBox stays the ordinary (0, 0, 612, 792); CropBox is set OUTSIDE it
         # on both edges -- genuinely not contained, PyMuPDF's own validated
@@ -331,10 +338,10 @@ def make_graphics_state_leak() -> None:
     leak is appended AFTER that restore so subsequently appended content
     inherits grey fill + 0.35 alpha unless the rebuild issues its own wrap.
     """
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         page = doc.new_page(width=612, height=792)
         page.insert_text(
-            fitz.Point(72, 120),
+            pymupdf.Point(72, 120),
             "Please translate this ordinary black sentence.",
             fontsize=11, fontname="helv",
         )
@@ -362,14 +369,14 @@ def make_internal_space_run() -> None:
         deliberately just under the threshold.
     The census must report exactly one locus, the over-threshold span.
     """
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         page = doc.new_page(width=612, height=792)
         page.insert_text(
-            fitz.Point(72, 120), "over" + (" " * 8) + "here",
+            pymupdf.Point(72, 120), "over" + (" " * 8) + "here",
             fontsize=10, fontname="helv",
         )
         page.insert_text(
-            fitz.Point(72, 160), "under" + (" " * 4) + "here",
+            pymupdf.Point(72, 160), "under" + (" " * 4) + "here",
             fontsize=10, fontname="helv",
         )
         doc.set_metadata({})

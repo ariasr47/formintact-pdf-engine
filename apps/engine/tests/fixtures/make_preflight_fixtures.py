@@ -29,8 +29,8 @@ from datetime import UTC, datetime
 from importlib import metadata
 from pathlib import Path
 
-import fitz
 import pikepdf
+import pymupdf
 
 REPO = Path(__file__).resolve().parents[4]
 OUT = Path(__file__).resolve().parent / "preflight"
@@ -84,10 +84,10 @@ def _version(dist: str) -> str | None:
 
 
 def _base(lines: list[str]) -> bytes:
-    doc = fitz.open()
+    doc = pymupdf.open()
     page = doc.new_page(width=612, height=792)
     for i, line in enumerate(lines):
-        page.insert_text(fitz.Point(72, 96 + 18 * i), line, fontsize=11)
+        page.insert_text(pymupdf.Point(72, 96 + 18 * i), line, fontsize=11)
     doc.set_metadata({})
     return doc.tobytes(garbage=3, deflate=True)
 
@@ -170,22 +170,22 @@ def build_signed_pyhanko(certify: bool) -> bytes:
 
 
 def build_rtl(lines: list[str], face_name: str | None, font_dir: Path | None) -> bytes:
-    doc = fitz.open()
+    doc = pymupdf.open()
     page = doc.new_page(width=612, height=792)
     html = "".join(f'<p dir="rtl" style="font-size:16px">{line}</p>' for line in lines)
     kwargs = {}
     if font_dir is not None:
         kwargs["css"] = (
             f"@font-face {{font-family: r; src: url({face_name});}} p {{font-family: r;}}")
-        kwargs["archive"] = fitz.Archive(str(font_dir))
-    page.insert_htmlbox(fitz.Rect(72, 72, 540, 720), html, **kwargs)
+        kwargs["archive"] = pymupdf.Archive(str(font_dir))
+    page.insert_htmlbox(pymupdf.Rect(72, 72, 540, 720), html, **kwargs)
     doc.subset_fonts()
     doc.set_metadata({})
     return doc.tobytes(garbage=3, deflate=True)
 
 
 def rtl_share(data: bytes) -> tuple[int, int]:
-    page = fitz.open(stream=data, filetype="pdf")[0]
+    page = pymupdf.open(stream=data, filetype="pdf")[0]
     letters = rtl = 0
     for block in page.get_text("blocks"):
         for char in block[4]:

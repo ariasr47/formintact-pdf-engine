@@ -5,7 +5,7 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 
 @dataclass(frozen=True)
@@ -73,7 +73,7 @@ def unique_bounded_match(left, right, *, tolerance: float = 0.5) -> bool:
 
 
 def extract_lines(pdf: Path, page_no: int) -> list[ExtractedLine]:
-    with fitz.open(pdf) as document:
+    with pymupdf.open(pdf) as document:
         raw = document[page_no - 1].get_text("dict")
     lines = []
     for block in raw.get("blocks", []):
@@ -97,7 +97,7 @@ def extract_spans(pdf: Path, page_no: int) -> list[ExtractedSpan]:
 
 
 def extract_words(pdf: Path, page_no: int) -> list[ExtractedWord]:
-    with fitz.open(pdf) as document:
+    with pymupdf.open(pdf) as document:
         rows = document[page_no - 1].get_text("words")
     return [
         ExtractedWord(text=row[4], bbox=tuple(row[:4]))
@@ -106,16 +106,16 @@ def extract_words(pdf: Path, page_no: int) -> list[ExtractedWord]:
 
 
 def page_count(pdf: Path) -> int:
-    with fitz.open(pdf) as document:
+    with pymupdf.open(pdf) as document:
         return document.page_count
 
 
 def page_size(pdf: Path, page_no: int) -> tuple[float, float]:
-    with fitz.open(pdf) as document:
+    with pymupdf.open(pdf) as document:
         rect = document[page_no - 1].rect
         return rect.width, rect.height
 
 
 def widget_field_rects(pdf: Path, page_no: int) -> list[tuple[float, float, float, float]]:
-    with fitz.open(pdf) as document:
+    with pymupdf.open(pdf) as document:
         return [tuple(widget.rect) for widget in document[page_no - 1].widgets()]

@@ -1,6 +1,6 @@
 """engine-boundary S4-test-split: the engine-environment counterpart of
 `apps/api/tests/support/current_route_witness.py` -- pure-PDF-generation half only
-(`witness_pdf_bytes`/`write_witness_pdf`/the `WITNESS_*` constants, all `fitz`-only,
+(`witness_pdf_bytes`/`write_witness_pdf`/the `WITNESS_*` constants, all `pymupdf`-only,
 zero `api` dependency). The app-side copy's `materialize_witness(client, stub)` is
 App-only (drives a real `TestClient` + `QaStubProvider` HTTP round trip) and stays
 there for `test_conformance_materialization.py`; duplicated rather than imported
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 WITNESS_DNT_TERM = "PETITIONER"
 WITNESS_LENGTHENED_UNIT = "1-0#1"
@@ -25,7 +25,7 @@ WITNESS_MULTI_ORIGIN_UNIT = "1-1#0"
 
 
 def witness_pdf_bytes() -> bytes:
-    document = fitz.open()
+    document = pymupdf.open()
     page = document.new_page(width=595, height=842)
     rows = (
         (100, "Current position", WITNESS_DNT_TERM),

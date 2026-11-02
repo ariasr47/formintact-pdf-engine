@@ -11,9 +11,9 @@ __all__ = ["BillableUnits", "count_billable_units", "count_pages"]
 
 
 def _page_stats(pdf_path: Path, page_number: int) -> tuple[int, int, int, int]:
-    import fitz
+    import pymupdf
 
-    with fitz.open(pdf_path) as document:
+    with pymupdf.open(pdf_path) as document:
         blocks = document[page_number - 1].get_text("blocks")
     texts = [
         str(block[4])

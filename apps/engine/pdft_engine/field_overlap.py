@@ -23,7 +23,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 # A glyph's box as the font reports it can span several lines (the IES certificate's
 # face reports a 67 pt line), so a letter is measured as the band from its baseline up
@@ -55,11 +55,11 @@ def _letters(doc, number: int) -> Iterator[tuple[tuple[float, float, float, floa
                         yield (x0, base - _BAND * size, x1, base), base, size
 
 
-def _under(band: fitz.Rect, field: fitz.Rect) -> bool:
+def _under(band: pymupdf.Rect, field: pymupdf.Rect) -> bool:
     """A letter is under a field when a real part of it is: a quarter of its width
     (at least 1 pt) and a quarter of its height. AO 240 prints "No" 0.2 pt inside its
     checkbox's rectangle; that graze is not a letter under the box."""
-    # Plain arithmetic, not fitz.Rect: FL-150 asks this a million times per round.
+    # Plain arithmetic, not pymupdf.Rect: FL-150 asks this a million times per round.
     width = min(band[2], field[2]) - max(band[0], field[0])
     if width <= 0:
         return False
@@ -112,11 +112,11 @@ def covering_cores(
             by_page.setdefault(row.get("page"), []).append(row)
     cores: set[str] = set()
     unnamed = 0
-    with fitz.open(str(source_pdf)) as source, fitz.open(str(placed_pdf)) as placed:
+    with pymupdf.open(str(source_pdf)) as source, pymupdf.open(str(placed_pdf)) as placed:
         fields_of: dict[int, list[tuple[float, float, float, float]]] = {}
         for number in range(min(source.page_count, placed.page_count)):
             for widget in source[number].widgets() or ():
-                rect = fitz.Rect(widget.rect)
+                rect = pymupdf.Rect(widget.rect)
                 rect.x0 += _INSET
                 rect.y0 += _INSET
                 rect.x1 -= _INSET

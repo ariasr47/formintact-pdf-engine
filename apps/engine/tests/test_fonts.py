@@ -25,21 +25,21 @@ def test_all_nine_faces_present() -> None:
 
 
 def test_faces_load_with_fitz_and_measure_ascii() -> None:
-    import fitz  # test-only import
+    import pymupdf  # test-only import
 
     for name in _LATIN_FILES:
-        face = fitz.Font(fontfile=str(FONTS_DIR / name))
+        face = pymupdf.Font(fontfile=str(FONTS_DIR / name))
         assert face.text_length("Hello", fontsize=12) > 0
 
 
 def test_product_latin_faces_cover_the_w4_triangle() -> None:
     """GATE Z B: the product role faces must cover the measured pass-through glyph."""
-    import fitz  # test-only import
+    import pymupdf  # test-only import
 
     for style in ("Regular", "Bold", "Italic", "BoldItalic"):
         path = FONTS_DIR / f"FormIntactSans-{style}.ttf"
         assert path.is_file(), f"missing {path.name}"
-        face = fitz.Font(fontfile=str(path))
+        face = pymupdf.Font(fontfile=str(path))
         assert face.has_glyph(0x25B2), f"{path.name} missing U+25B2 BLACK UP-POINTING TRIANGLE"
 
 
@@ -47,8 +47,8 @@ def test_cjk_face_covers_the_pinned_substitution_codepoints() -> None:
     """The 26 codepoints translator.py's CJK table maps to (U+4E00..U+4E19) must
     be covered by the bundled face — otherwise AC 15 fails structurally regardless
     of everything else being correct."""
-    import fitz  # test-only import
+    import pymupdf  # test-only import
 
-    face = fitz.Font(fontfile=str(FONTS_DIR / _CJK_FILE))
+    face = pymupdf.Font(fontfile=str(FONTS_DIR / _CJK_FILE))
     for i in range(26):
         assert face.has_glyph(0x4E00 + i), f"CJK face missing codepoint U+{0x4E00+i:04X}"

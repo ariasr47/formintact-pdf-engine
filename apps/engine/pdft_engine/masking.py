@@ -1,4 +1,4 @@
-"""Ordered-classifier masking pass (SPEC §2 'Masking'). Pure Python, no fitz.
+"""Ordered-classifier masking pass (SPEC §2 'Masking'). Pure Python, no pymupdf.
 
 GATE Z Z-3 (2026-08-05): masking used to replace each match with a single
 invisible Private Use Area codepoint (U+E000-U+E0FF). Measured live against a

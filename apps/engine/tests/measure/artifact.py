@@ -1,13 +1,13 @@
 """Read-only form observations over source and delivered PDFs."""
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 from tests.measure.partition import MeasureResult
 
 
 def field_set(pdf: Path) -> set[tuple[str, str]]:
-    with fitz.open(pdf) as document:
+    with pymupdf.open(pdf) as document:
         return {
             (widget.field_name, str(widget.field_type))
             for page in document
@@ -16,7 +16,7 @@ def field_set(pdf: Path) -> set[tuple[str, str]]:
 
 
 def has_acroform(pdf: Path) -> bool:
-    with fitz.open(pdf) as document:
+    with pymupdf.open(pdf) as document:
         return bool(document.pdf_catalog()) and bool(field_set(pdf))
 
 

@@ -1,8 +1,8 @@
 """preflight-declines AC 1, 3, 4: structure flags and letter counts, from exported fixtures only."""
 from pathlib import Path
 
-import fitz
 import pikepdf
+import pymupdf
 import pytest
 
 from pdft_engine.estimate_units import count_pages
@@ -13,7 +13,7 @@ PREFLIGHT = FIXTURES / "preflight"
 
 
 def _measure(path: Path) -> tuple[StructureFlags, int, int]:
-    with fitz.open(path) as document:
+    with pymupdf.open(path) as document:
         pages = list(range(1, document.page_count + 1))
     _totals, _observations, (letters, rtl) = count_pages(path, pages)
     return inspect_structure(path), letters, rtl

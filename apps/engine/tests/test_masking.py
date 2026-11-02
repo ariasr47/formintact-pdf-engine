@@ -250,7 +250,7 @@ def test_z_marker_delimiter_is_covered_by_every_bundled_face() -> None:
     the CJK face has these glyphs, so ANY marker that ever reaches insert_text
     draws with no glyph, and get_text() on the delivered artifact reports it back
     as NUL -- exactly the reported shape ('...\x00aa\x00...')."""
-    import fitz
+    import pymupdf
 
     faces = [
         "pdft_engine/assets/fonts/NotoSans-Regular.ttf",
@@ -266,7 +266,7 @@ def test_z_marker_delimiter_is_covered_by_every_bundled_face() -> None:
     from pdft_engine.masking import _MARKER_CLOSE, _MARKER_OPEN  # the two delimiter glyphs
 
     for path in faces:
-        font = fitz.Font(fontfile=path)
+        font = pymupdf.Font(fontfile=path)
         assert font.has_glyph(ord(_MARKER_OPEN)), f"{path} lacks the open-delimiter glyph"
         assert font.has_glyph(ord(_MARKER_CLOSE)), f"{path} lacks the close-delimiter glyph"
 

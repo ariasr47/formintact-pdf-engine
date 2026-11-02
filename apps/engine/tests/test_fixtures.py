@@ -2,7 +2,7 @@
 classification pins live in test_pdfops.py (they need the heuristic under test)."""
 from pathlib import Path
 
-import fitz
+import pymupdf
 import pytest
 
 FIXTURES = Path(__file__).parent / "fixtures"
@@ -20,12 +20,12 @@ FIXTURES = Path(__file__).parent / "fixtures"
     ],
 )
 def test_fixture_page_counts(name: str, pages: int) -> None:
-    with fitz.open(FIXTURES / name) as doc:
+    with pymupdf.open(FIXTURES / name) as doc:
         assert doc.page_count == pages
 
 
 def test_encrypted_fixture_needs_password() -> None:
-    with fitz.open(FIXTURES / "encrypted.pdf") as doc:
+    with pymupdf.open(FIXTURES / "encrypted.pdf") as doc:
         assert doc.needs_pass
 
 
@@ -51,10 +51,10 @@ def test_v4_state_leak_and_space_run_fixtures_reproduce_byte_for_byte() -> None:
 def test_invoice_d1_style_axes_present() -> None:
     """D1 (SPEC §2): each of the 8 invoice pages carries 4 lines — uniform
     bold-serif header, plain control, and two genuinely mixed-style blocks.
-    Raw fitz assertions only (no product extraction code exists yet)."""
-    import fitz  # test-only import
+    Raw pymupdf assertions only (no product extraction code exists yet)."""
+    import pymupdf  # test-only import
 
-    with fitz.open(FIXTURES / "benchmark-invoice.pdf") as doc:
+    with pymupdf.open(FIXTURES / "benchmark-invoice.pdf") as doc:
         for page in doc:
             raw = page.get_text("dict")
             text_blocks = [b for b in raw["blocks"] if b.get("type") == 0]

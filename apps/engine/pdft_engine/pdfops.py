@@ -28,15 +28,32 @@ class PdfValidationError(Exception):
         self.limit = limit
 
 
+INVISIBLE_TEXT_TYPE = 3  # get_texttrace "type" for render mode 3 (neither fill nor stroke)
+
+
 def _has_text(page) -> bool:
-    return len("".join(page.get_text().split())) >= TEXT_MIN_CHARS
+    # Only text a reader can see counts. An OCR'd scan carries its words as
+    # invisible text over the picture, so get_text() alone would call it a text
+    # page: it would be priced, and then the library's invisible-text check
+    # (pdf_translate.strip_text.invisible_text_pages) would refuse it after
+    # payment. Counting visible characters sends it to the scanned-page notice
+    # at upload instead. That render check stays the backstop for text hidden
+    # in other ways, such as under an image.
+    visible = 0
+    for span in page.get_texttrace():
+        if span["type"] == INVISIBLE_TEXT_TYPE or span["opacity"] <= 0:
+            continue
+        visible += sum(1 for char in span["chars"] if not chr(char[0]).isspace())
+        if visible >= TEXT_MIN_CHARS:
+            return True
+    return False
 
 
 def probe(path: Path, max_pages: int) -> list[bool]:
-    import fitz
+    import pymupdf
 
     try:
-        document = fitz.open(path)
+        document = pymupdf.open(path)
     except Exception as exc:
         raise PdfValidationError("not_a_pdf") from exc
     with document:
@@ -53,23 +70,23 @@ def probe(path: Path, max_pages: int) -> list[bool]:
 
 
 def page_size(pdf_path: Path, page_number: int) -> tuple[float, float]:
-    import fitz
+    import pymupdf
 
-    with fitz.open(pdf_path) as document:
+    with pymupdf.open(pdf_path) as document:
         rectangle = document[page_number - 1].rect
         return rectangle.width, rectangle.height
 
 
 def _rasterize_page(page, zoom: float, *, alpha: bool):
-    import fitz
+    import pymupdf
 
-    return page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=alpha)
+    return page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=alpha)
 
 
 def render_thumbnail(pdf_path: Path, number: int, out_path: Path) -> None:
-    import fitz
+    import pymupdf
 
-    with fitz.open(pdf_path) as document:
+    with pymupdf.open(pdf_path) as document:
         page = document[number - 1]
         width = page.rect.width or float(THUMB_TARGET_WIDTH)
         zoom = min(THUMB_TARGET_WIDTH / width, MAX_ZOOM)
@@ -77,17 +94,17 @@ def render_thumbnail(pdf_path: Path, number: int, out_path: Path) -> None:
 
 
 def render_for_golden_diff(pdf_path: Path, number: int, out_path: Path) -> None:
-    import fitz
+    import pymupdf
 
-    with fitz.open(pdf_path) as document:
+    with pymupdf.open(pdf_path) as document:
         pixmap = _rasterize_page(document[number - 1], GOLDEN_DIFF_ZOOM, alpha=False)
         pixmap.save(out_path, output="png")
 
 
 def field_names(pdf_path: Path) -> list[str]:
-    import fitz
+    import pymupdf
 
-    with fitz.open(pdf_path) as document:
+    with pymupdf.open(pdf_path) as document:
         return [
             widget.field_name
             for page in document
@@ -97,10 +114,10 @@ def field_names(pdf_path: Path) -> list[str]:
 
 def field_inventory(pdf_path: Path) -> list[dict]:
     """Raw fully-qualified widget facts for fidelity checks."""
-    import fitz
+    import pymupdf
 
     inventory: list[dict] = []
-    with fitz.open(pdf_path) as document:
+    with pymupdf.open(pdf_path) as document:
         for page_number, page in enumerate(document, start=1):
             for widget in page.widgets():
                 inventory.append(
@@ -121,9 +138,9 @@ def write_page_subset_pdf(
     out_path: Path,
 ) -> None:
     """Delete excluded pages from a source copy before native extraction."""
-    import fitz
+    import pymupdf
 
-    with fitz.open(source_pdf_path) as document:
+    with pymupdf.open(source_pdf_path) as document:
         keep = {number - 1 for number in kept_pages}
         if (
             not kept_pages
@@ -149,11 +166,11 @@ def write_single_page_pdf(
     out_path: Path,
 ) -> None:
     """Create a preview slice only; this artifact is never the download."""
-    import fitz
+    import pymupdf
 
-    output = fitz.open()
+    output = pymupdf.open()
     try:
-        with fitz.open(original_pdf_path) as original:
+        with pymupdf.open(original_pdf_path) as original:
             output.insert_pdf(
                 original,
                 from_page=page_number - 1,
@@ -171,14 +188,14 @@ def assemble_result_pdf(
 ) -> bytes:
     """Legacy endpoint utility for already committed page artifacts, not a transform."""
     del original_pdf_path
-    import fitz
+    import pymupdf
 
-    output = fitz.open()
+    output = pymupdf.open()
     try:
         for page_number in kept_pages:
             artifact = job_dir / f"page-{page_number}.pdf"
             if artifact.is_file():
-                with fitz.open(artifact) as page_document:
+                with pymupdf.open(artifact) as page_document:
                     output.insert_pdf(page_document)
         return output.tobytes(no_new_id=True)
     finally:
@@ -186,9 +203,9 @@ def assemble_result_pdf(
 
 
 def page_count(pdf_path: Path) -> int:
-    import fitz
+    import pymupdf
 
-    with fitz.open(pdf_path) as document:
+    with pymupdf.open(pdf_path) as document:
         return document.page_count
 
 

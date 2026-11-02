@@ -1,7 +1,7 @@
 """Real native Japanese rendering and disclosed regular-only role behavior."""
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 from pdft_engine import skill_placement
 from tests.support.deliver import deliver
@@ -15,7 +15,7 @@ def test_japanese_native_document_contains_target_script(tmp_path) -> None:
         FIXTURES / "benchmark-invoice.pdf", [1], tmp_path / "out",
         translator=CompactCJKTranslator(), target_lang="Japanese",
     )
-    with fitz.open(result) as document:
+    with pymupdf.open(result) as document:
         text = "".join(page.get_text() for page in document)
     assert outcome.status == "done"
     assert any(

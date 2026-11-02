@@ -19,19 +19,19 @@ def crop_png(src: Path, rect_pt: Rect, out: Path) -> None:
     """Crops a page render to `rect_pt`, converting points to pixels at the one
     pinned zoom. floor on the low edge / ceil on the high edge so a crop never
     silently excludes a boundary pixel of the feature it was drawn around."""
-    import fitz
+    import pymupdf
 
     z = GOLDEN_DIFF_ZOOM
     x0, y0, x1, y1 = rect_pt
-    clip = fitz.IRect(
+    clip = pymupdf.IRect(
         math.floor(x0 * z), math.floor(y0 * z), math.ceil(x1 * z), math.ceil(y1 * z)
     )
-    full = fitz.Pixmap(str(src))
-    # `fitz.Pixmap(src, clip)` is documented but this PyMuPDF build's overload
+    full = pymupdf.Pixmap(str(src))
+    # `pymupdf.Pixmap(src, clip)` is documented but this PyMuPDF build's overload
     # resolver (args_match) throws on the two-arg form; `(src, width, height, clip)`
     # -- the "scaled copy" overload with width/height held equal to the source's own
     # -- resolves correctly and produces the same crop.
-    fitz.Pixmap(full, full.width, full.height, clip).save(out, output="png")
+    pymupdf.Pixmap(full, full.width, full.height, clip).save(out, output="png")
 
 
 def crop_ratio(reference_png: Path, actual_png: Path, rect_pt: Rect, scratch: Path) -> float | None:

@@ -8,7 +8,7 @@ import shutil
 from collections import Counter
 from pathlib import Path
 
-import fitz
+import pymupdf
 import pytest
 from pdf_translate import ExtractResult
 from pdft_engine_contract import naming, target_language
@@ -83,7 +83,7 @@ class _AlwaysRaises:
 
 
 def _tiny_source(path: Path, *, pages: int = 1) -> Path:
-    with fitz.open() as document:
+    with pymupdf.open() as document:
         for index in range(pages):
             page = document.new_page(width=300, height=200)
             page.insert_text(

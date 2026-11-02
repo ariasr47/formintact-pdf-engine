@@ -2,18 +2,18 @@
 wrong pixels would make every crop criterion in this feature vacuously green."""
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 from tests.support.crops import crop_png, crop_ratio
 
 
 def _page_png(path: Path, mark: bool) -> None:
     """A 100x100 pt page, white, with an optional 10x10 pt black square at (20,20)."""
-    with fitz.open() as doc:
+    with pymupdf.open() as doc:
         page = doc.new_page(width=100, height=100)
         if mark:
-            page.draw_rect(fitz.Rect(20, 20, 30, 30), color=None, fill=(0, 0, 0))
-        pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), alpha=False)
+            page.draw_rect(pymupdf.Rect(20, 20, 30, 30), color=None, fill=(0, 0, 0))
+        pix = page.get_pixmap(matrix=pymupdf.Matrix(2.0, 2.0), alpha=False)
         pix.save(path, output="png")
 
 
@@ -22,7 +22,7 @@ def test_crop_is_scaled_by_the_pinned_zoom(tmp_path: Path) -> None:
     _page_png(src, mark=False)
     out = tmp_path / "crop.png"
     crop_png(src, (20.0, 20.0, 30.0, 30.0), out)
-    pix = fitz.Pixmap(str(out))
+    pix = pymupdf.Pixmap(str(out))
     assert (pix.width, pix.height) == (20, 20)  # 10 pt * zoom 2.0
 
 

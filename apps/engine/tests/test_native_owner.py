@@ -40,6 +40,11 @@ def test_service_utilities_and_library_preparation_share_one_native_owner(tmp_pa
                 "A full line of source text for this document"
             )
 
+        def get_texttrace(self):
+            observed.touch()
+            text = "A full line of source text for this document"
+            return [{"type": 0, "opacity": 1.0, "chars": [(ord(c),) for c in text]}]
+
         def widgets(self):
             observed.touch()
             return []
@@ -81,7 +86,7 @@ def test_service_utilities_and_library_preparation_share_one_native_owner(tmp_pa
         observed.touch()
         return Document()
 
-    monkeypatch.setitem(sys.modules, "fitz", SimpleNamespace(open=open_pdf, Matrix=lambda *a: a))
+    monkeypatch.setitem(sys.modules, "pymupdf", SimpleNamespace(open=open_pdf, Matrix=lambda *a: a))
 
     def extract(source, directory):
         observed.touch()

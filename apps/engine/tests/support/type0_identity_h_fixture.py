@@ -255,13 +255,13 @@ def build_source(path: Path) -> None:
 
 
 def build_expected(source: Path, path: Path) -> None:
-    import fitz
     import pikepdf
+    import pymupdf
 
     copied = path.with_suffix(".copied.pdf")
     stripped = path.with_suffix(".base.pdf")
-    with fitz.open(source) as original:
-        normalized = fitz.open()
+    with pymupdf.open(source) as original:
+        normalized = pymupdf.open()
         normalized.insert_pdf(original)
         normalized.save(copied)
         normalized.close()
@@ -270,13 +270,13 @@ def build_expected(source: Path, path: Path) -> None:
         page["/Contents"] = pdf.make_stream(_protected_stream())
         pdf.save(stripped, deterministic_id=True, compress_streams=True)
     _, serif_path = _font_paths()
-    with fitz.open(stripped) as document:
+    with pymupdf.open(stripped) as document:
         page = document[0]
         for index, (text, origin, size) in enumerate(
             zip(EXPECTED_WORDS, BASELINES, SIZES, strict=True)
         ):
             page.insert_text(
-                fitz.Point(*origin),
+                pymupdf.Point(*origin),
                 text,
                 fontsize=size,
                 fontname=f"FixtureExpected{index}",
@@ -290,12 +290,12 @@ def build_expected(source: Path, path: Path) -> None:
 
 
 def render_references(pdf_path: Path, output_dir: Path) -> None:
-    import fitz
+    import pymupdf
 
-    with fitz.open(pdf_path) as document:
+    with pymupdf.open(pdf_path) as document:
         page = document[0]
-        matrix = fitz.Matrix(ZOOM, ZOOM)
-        page.get_pixmap(matrix=matrix, colorspace=fitz.csRGB, alpha=False).save(
+        matrix = pymupdf.Matrix(ZOOM, ZOOM)
+        page.get_pixmap(matrix=matrix, colorspace=pymupdf.csRGB, alpha=False).save(
             output_dir / "expected-full.png"
         )
         protected = (
@@ -305,15 +305,15 @@ def render_references(pdf_path: Path, output_dir: Path) -> None:
         for name, crop in protected:
             page.get_pixmap(
                 matrix=matrix,
-                colorspace=fitz.csRGB,
+                colorspace=pymupdf.csRGB,
                 alpha=False,
-                clip=fitz.Rect(*crop),
+                clip=pymupdf.Rect(*crop),
             ).save(output_dir / name)
 
 
 def generate(output_dir: Path) -> None:
-    import fitz
     import pikepdf
+    import pymupdf
 
     output_dir.mkdir(parents=True, exist_ok=True)
     source = output_dir / "source-multi-font-identity-h.pdf"
@@ -334,7 +334,7 @@ def generate(output_dir: Path) -> None:
         "producer": "tests/support/type0_identity_h_fixture.py",
         "produced_utc": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "pdf_metadata_date": "D:20260930000000Z",
-        "pymupdf": fitz.VersionBind,
+        "pymupdf": pymupdf.VersionBind,
         "pikepdf": pikepdf.__version__,
         "zoom": ZOOM,
         "colorspace": "RGB",

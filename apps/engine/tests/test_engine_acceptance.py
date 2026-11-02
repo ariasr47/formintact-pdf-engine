@@ -1,7 +1,7 @@
 """Small end-to-end native acceptance checks with deterministic providers."""
 from pathlib import Path
 
-import fitz
+import pymupdf
 
 from pdft_engine import pdfops
 from tests.support.deliver import deliver
@@ -12,7 +12,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 def test_selected_page_native_output_excludes_unselected_source_text(tmp_path) -> None:
     source = tmp_path / "selected.pdf"
-    with fitz.open() as document:
+    with pymupdf.open() as document:
         for text in ("SELECTED UNIQUE ALPHA", "EXCLUDED UNIQUE OMEGA"):
             page = document.new_page(width=300, height=200)
             page.insert_text((30, 80), text, fontsize=12)
@@ -21,7 +21,7 @@ def test_selected_page_native_output_excludes_unselected_source_text(tmp_path) -
     result, outcome = deliver(
         source, [1], tmp_path / "out", translator=PseudoTranslator(), target_lang="Spanish",
     )
-    with fitz.open(result) as document:
+    with pymupdf.open(result) as document:
         text = "".join(page.get_text() for page in document)
         assert document.page_count == 1
     assert "EXCLUDED UNIQUE OMEGA" not in text
